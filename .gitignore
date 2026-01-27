@@ -1,0 +1,41 @@
+# Dependencies
+/backend/vendor/
+/frontend/node_modules/
+
+# Build outputs
+/frontend/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/backend/storage/logs/*
+!/backend/storage/logs/.gitkeep
+
+# Cache
+/backend/bootstrap/cache/*
+!/backend/bootstrap/cache/.gitkeep
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+
+# Laravel specific
+/backend/storage/*.key
+/backend/public/hot
+/backend/public/storage
+
+# Composer
+composer.phar
