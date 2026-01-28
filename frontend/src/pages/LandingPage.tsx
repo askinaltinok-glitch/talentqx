@@ -30,8 +30,9 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import pricingHero from '../assets/pricing-hero.jpg';
 
 export default function LandingPage() {
-  const { t } = useTranslation('landing');
+  const { t, i18n } = useTranslation('landing');
   const { t: tc } = useTranslation('common');
+  const currentLang = i18n.language;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     company_name: '',
@@ -402,19 +403,19 @@ export default function LandingPage() {
       </section>
 
       {/* 9. PLANS & PRICING */}
-      <section id="pricing" className="py-20 bg-white">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Pricing Hero Image */}
-          <div className="flex justify-center mb-12">
+          {/* Decorative Pricing Hero Image */}
+          <div className="flex justify-center mb-12 pointer-events-none select-none" aria-hidden="true">
             <img
               src={pricingHero}
-              alt="Plans & Pricing"
-              className="w-full max-w-[1100px] rounded-2xl shadow-xl object-cover"
+              alt=""
+              className="w-full max-w-[1100px] rounded-2xl shadow-lg object-cover opacity-90"
             />
           </div>
 
           {/* Title */}
-          <div className="text-center mb-16">
+          <div id="pricing" className="text-center mb-16 scroll-mt-20">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               {t('pricing.title')}
             </h2>
@@ -426,12 +427,13 @@ export default function LandingPage() {
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
             {pricingPlans.map((plan, index) => (
-              <div
+              <a
                 key={index}
-                className={`relative p-8 rounded-2xl border-2 transition-all ${
+                href="#demo"
+                className={`relative p-8 rounded-2xl border-2 transition-all duration-300 cursor-pointer block ${
                   plan.popular
-                    ? 'border-primary-500 bg-primary-50 shadow-lg scale-105'
-                    : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-lg'
+                    ? 'border-primary-500 bg-primary-50 shadow-lg scale-105 hover:scale-110 hover:shadow-xl'
+                    : 'border-gray-200 bg-white hover:border-primary-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1'
                 }`}
               >
                 {plan.popular && (
@@ -446,12 +448,21 @@ export default function LandingPage() {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{t(plan.nameKey)}</h3>
                   <p className="text-gray-600 mb-6">{t(plan.assessmentsKey)}</p>
                   <div className="mb-6">
-                    <p className="text-3xl font-bold text-gray-900">{plan.priceTL}</p>
-                    <p className="text-lg text-gray-500">{plan.priceEUR}</p>
+                    {currentLang === 'tr' ? (
+                      <>
+                        <p className="text-3xl font-bold text-gray-900">{plan.priceTL}</p>
+                        <p className="text-sm text-gray-400">≈ {plan.priceEUR}</p>
+                      </>
+                    ) : (
+                      <p className="text-3xl font-bold text-gray-900">{plan.priceEUR}</p>
+                    )}
                     <p className="text-sm text-gray-400 mt-1">{t('pricing.perMonth')}</p>
                   </div>
+                  <span className="inline-block mt-2 text-primary-600 font-medium text-sm group-hover:underline">
+                    {tc('nav.requestDemo')} →
+                  </span>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
 
