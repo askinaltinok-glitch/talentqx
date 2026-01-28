@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import type { Candidate, Job } from '../types';
+import { candidateDetailPath } from '../routes';
 import StatusBadge from '../components/StatusBadge';
 import ScoreCircle from '../components/ScoreCircle';
 import RecommendationBadge from '../components/RecommendationBadge';
@@ -18,6 +19,7 @@ export default function Candidates() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   const jobId = searchParams.get('job_id') || '';
   const status = searchParams.get('status') || '';
@@ -62,6 +64,10 @@ export default function Candidates() {
       searchParams.delete(key);
     }
     setSearchParams(searchParams);
+  };
+
+  const handleRowClick = (candidateId: string) => {
+    navigate(candidateDetailPath(candidateId));
   };
 
   return (
@@ -177,9 +183,7 @@ export default function Candidates() {
                 <tr
                   key={candidate.id}
                   className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() =>
-                    (window.location.href = `/app/candidates/${candidate.id}`)
-                  }
+                  onClick={() => handleRowClick(candidate.id)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

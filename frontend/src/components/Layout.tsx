@@ -12,18 +12,16 @@ import {
   ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../stores/authStore';
+import { ROUTES, NAV_ITEMS } from '../routes';
 import clsx from 'clsx';
 
-const navigation = [
-  { name: 'Dashboard', href: '/app', icon: HomeIcon },
-  { name: 'Is Ilanlari', href: '/app/jobs', icon: BriefcaseIcon },
-  { name: 'Adaylar', href: '/app/candidates', icon: UsersIcon },
-];
-
-const workforceNavigation = [
-  { name: 'Calisanlar', href: '/app/employees', icon: UserGroupIcon },
-  { name: 'Degerlendirmeler', href: '/app/assessments', icon: ClipboardDocumentListIcon },
-];
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  [ROUTES.DASHBOARD]: HomeIcon,
+  [ROUTES.JOBS]: BriefcaseIcon,
+  [ROUTES.CANDIDATES]: UsersIcon,
+  [ROUTES.EMPLOYEES]: UserGroupIcon,
+  [ROUTES.ASSESSMENTS]: ClipboardDocumentListIcon,
+};
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,7 +30,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate(ROUTES.LOGIN);
   };
 
   return (
@@ -56,32 +54,13 @@ export default function Layout() {
             </button>
           </div>
           <nav className="p-4 space-y-1">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </NavLink>
-            ))}
-            <div className="pt-4 mt-4 border-t border-gray-200">
-              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Yetkinlik Degerlendirme
-              </p>
-              {workforceNavigation.map((item) => (
+            {NAV_ITEMS.main.map((item) => {
+              const Icon = iconMap[item.href] || HomeIcon;
+              return (
                 <NavLink
                   key={item.name}
                   to={item.href}
+                  end={item.end}
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
                     clsx(
@@ -92,10 +71,37 @@ export default function Layout() {
                     )
                   }
                 >
-                  <item.icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" />
                   {item.name}
                 </NavLink>
-              ))}
+              );
+            })}
+            <div className="pt-4 mt-4 border-t border-gray-200">
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Yetkinlik Degerlendirme
+              </p>
+              {NAV_ITEMS.workforce.map((item) => {
+                const Icon = iconMap[item.href] || UserGroupIcon;
+                return (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    end={item.end}
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      clsx(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                        isActive
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      )
+                    }
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.name}
+                  </NavLink>
+                );
+              })}
             </div>
           </nav>
         </div>
@@ -111,25 +117,28 @@ export default function Layout() {
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => (
-                    <li key={item.name}>
-                      <NavLink
-                        to={item.href}
-                        end={item.href === '/app'}
-                        className={({ isActive }) =>
-                          clsx(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                            isActive
-                              ? 'bg-primary-50 text-primary-700'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          )
-                        }
-                      >
-                        <item.icon className="h-5 w-5" />
-                        {item.name}
-                      </NavLink>
-                    </li>
-                  ))}
+                  {NAV_ITEMS.main.map((item) => {
+                    const Icon = iconMap[item.href] || HomeIcon;
+                    return (
+                      <li key={item.name}>
+                        <NavLink
+                          to={item.href}
+                          end={item.end}
+                          className={({ isActive }) =>
+                            clsx(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                              isActive
+                                ? 'bg-primary-50 text-primary-700'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            )
+                          }
+                        >
+                          <Icon className="h-5 w-5" />
+                          {item.name}
+                        </NavLink>
+                      </li>
+                    );
+                  })}
                 </ul>
               </li>
               <li>
@@ -137,24 +146,28 @@ export default function Layout() {
                   Yetkinlik Degerlendirme
                 </div>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {workforceNavigation.map((item) => (
-                    <li key={item.name}>
-                      <NavLink
-                        to={item.href}
-                        className={({ isActive }) =>
-                          clsx(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                            isActive
-                              ? 'bg-primary-50 text-primary-700'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          )
-                        }
-                      >
-                        <item.icon className="h-5 w-5" />
-                        {item.name}
-                      </NavLink>
-                    </li>
-                  ))}
+                  {NAV_ITEMS.workforce.map((item) => {
+                    const Icon = iconMap[item.href] || UserGroupIcon;
+                    return (
+                      <li key={item.name}>
+                        <NavLink
+                          to={item.href}
+                          end={item.end}
+                          className={({ isActive }) =>
+                            clsx(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                              isActive
+                                ? 'bg-primary-50 text-primary-700'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            )
+                          }
+                        >
+                          <Icon className="h-5 w-5" />
+                          {item.name}
+                        </NavLink>
+                      </li>
+                    );
+                  })}
                 </ul>
               </li>
               <li className="mt-auto">

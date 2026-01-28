@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ChartBarIcon,
   ExclamationTriangleIcon,
@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import type { AssessmentResult, AssessmentDashboardStats, AssessmentCostStats } from '../types';
+import { employeeDetailPath, assessmentsComparePath } from '../routes';
 
 const riskColors: Record<string, string> = {
   low: 'bg-green-100 text-green-800',
@@ -47,6 +48,7 @@ export default function AssessmentResults() {
   const [costStats, setCostStats] = useState<AssessmentCostStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   const riskLevel = searchParams.get('risk_level') || '';
   const levelLabel = searchParams.get('level_label') || '';
@@ -114,8 +116,13 @@ export default function AssessmentResults() {
 
   const compareSelected = async () => {
     if (selectedResults.length < 2) return;
-    // Navigate to compare page or open modal
-    window.location.href = `/app/assessments/compare?ids=${selectedResults.join(',')}`;
+    navigate(assessmentsComparePath(selectedResults));
+  };
+
+  const handleRowClick = (employeeId?: string) => {
+    if (employeeId) {
+      navigate(employeeDetailPath(employeeId));
+    }
   };
 
   return (
@@ -401,7 +408,7 @@ export default function AssessmentResults() {
                   className={`hover:bg-gray-50 cursor-pointer ${
                     selectedResults.includes(result.id) ? 'bg-primary-50' : ''
                   }`}
-                  onClick={() => window.location.href = `/app/employees/${result.session?.employee?.id}`}
+                  onClick={() => handleRowClick(result.session?.employee?.id)}
                 >
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <input

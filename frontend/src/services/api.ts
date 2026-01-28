@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import type { ApiResponse, ApiError } from '../types';
+import { ROUTES } from '../routes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -28,7 +29,7 @@ class ApiService {
       (error: AxiosError<ApiResponse<unknown>>) => {
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          window.location.href = ROUTES.LOGIN;
         }
         return Promise.reject(error);
       }

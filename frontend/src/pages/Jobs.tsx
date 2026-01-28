@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import type { Job, PositionTemplate } from '../types';
+import { jobDetailPath } from '../routes';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
 
@@ -103,7 +104,7 @@ export default function Jobs() {
           {jobs.map((job) => (
             <Link
               key={job.id}
-              to={`/jobs/${job.id}`}
+              to={jobDetailPath(job.id)}
               className="card p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

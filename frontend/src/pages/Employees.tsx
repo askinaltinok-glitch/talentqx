@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import type { Employee, EmployeeStats } from '../types';
+import { employeeDetailPath } from '../routes';
 
 const riskColors: Record<string, string> = {
   low: 'bg-green-100 text-green-800',
@@ -31,6 +32,7 @@ export default function Employees() {
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   const role = searchParams.get('role') || '';
   const department = searchParams.get('department') || '';
@@ -76,6 +78,10 @@ export default function Employees() {
       searchParams.delete(key);
     }
     setSearchParams(searchParams);
+  };
+
+  const handleRowClick = (employeeId: string) => {
+    navigate(employeeDetailPath(employeeId));
   };
 
   const uniqueRoles = [...new Set(employees.map((e) => e.current_role))].filter(Boolean);
@@ -240,7 +246,7 @@ export default function Employees() {
                 <tr
                   key={employee.id}
                   className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => window.location.href = `/app/employees/${employee.id}`}
+                  onClick={() => handleRowClick(employee.id)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

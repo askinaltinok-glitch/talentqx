@@ -1,7 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useAuthStore } from './stores/authStore';
-import { useEffect } from 'react';
+import { ROUTES } from './routes';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -16,33 +15,12 @@ import InterviewDetail from './pages/InterviewDetail';
 import Employees from './pages/Employees';
 import EmployeeDetail from './pages/EmployeeDetail';
 import AssessmentResults from './pages/AssessmentResults';
+// NotFound Pages
+import { PublicNotFound, AppNotFound } from './pages/NotFound';
 
-// Layout
+// Components
 import Layout from './components/Layout';
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, token, fetchUser, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    if (token && !isAuthenticated) {
-      fetchUser();
-    }
-  }, [token, isAuthenticated, fetchUser]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated && !token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
+import RequireAuth from './components/RequireAuth';
 
 function App() {
   return (
@@ -50,16 +28,16 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
+        <Route path={ROUTES.HOME} element={<LandingPage />} />
+        <Route path={ROUTES.LOGIN} element={<Login />} />
 
         {/* Protected Routes - HR Panel */}
         <Route
           path="/app"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <Layout />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         >
           <Route index element={<Dashboard />} />
@@ -72,9 +50,12 @@ function App() {
           <Route path="employees" element={<Employees />} />
           <Route path="employees/:id" element={<EmployeeDetail />} />
           <Route path="assessments" element={<AssessmentResults />} />
+          {/* App 404 - catches unmatched /app/* routes */}
+          <Route path="*" element={<AppNotFound />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Public 404 - catches all other unmatched routes */}
+        <Route path="*" element={<PublicNotFound />} />
       </Routes>
     </BrowserRouter>
   );

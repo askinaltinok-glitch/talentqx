@@ -11,6 +11,7 @@ import {
   TruckIcon,
   CakeIcon,
 } from '@heroicons/react/24/outline';
+import { ROUTES } from '../routes';
 
 const features = [
   { name: 'Pozisyon bazli akilli soru motoru', icon: CpuChipIcon },
@@ -97,7 +98,7 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-600 hover:text-gray-900">Ozellikler</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-gray-900">Nasil Calisir</a>
               <a href="#for-who" className="text-gray-600 hover:text-gray-900">Kimler Icin</a>
-              <Link to="/login" className="btn-secondary">Giris Yap</Link>
+              <Link to={ROUTES.LOGIN} className="btn-secondary">Giris Yap</Link>
               <a href="#contact" className="btn-primary">Demo Talep Et</a>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { ROUTES } from '../routes';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
@@ -10,6 +11,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,15 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success('Giris basarili!');
-      navigate('/app');
+
+      // Redirect to next parameter or default to dashboard
+      const next = searchParams.get('next');
+      if (next && next.startsWith('/app')) {
+        // Only allow redirects to /app/* routes for security
+        navigate(next);
+      } else {
+        navigate(ROUTES.DASHBOARD);
+      }
     } catch (error) {
       toast.error(api.getErrorMessage(error));
     } finally {
@@ -70,7 +80,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="input"
-                placeholder="••••••••"
+                placeholder="********"
               />
             </div>
 
