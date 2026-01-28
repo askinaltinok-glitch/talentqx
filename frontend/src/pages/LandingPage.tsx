@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -20,137 +21,17 @@ import {
   AcademicCapIcon,
   ArrowTrendingUpIcon,
   ScaleIcon,
+  StarIcon,
+  DocumentTextIcon,
+  UserMinusIcon,
 } from '@heroicons/react/24/outline';
-import { ROUTES } from '../routes';
-
-// How it works steps
-const steps = [
-  {
-    number: '1',
-    title: 'Pozisyonu Tanımlayın',
-    description: 'Yetkinlikleri, riskleri ve kültür kriterlerini belirleyin.',
-  },
-  {
-    number: '2',
-    title: 'Online Değerlendirme',
-    description: 'Aday veya çalışan, rolüne özel senaryo testine girer.',
-  },
-  {
-    number: '3',
-    title: 'Yapay Zeka Analizi',
-    description: 'Cevaplar analiz edilir, skorlar ve riskler çıkarılır.',
-  },
-  {
-    number: '4',
-    title: 'Karar Destek Raporu',
-    description: 'İşe alım, eğitim veya terfi kararını objektif verin.',
-  },
-];
-
-// Target audiences
-const audiences = [
-  {
-    title: 'Franchise Markalar',
-    description: 'Merkezden personel standardı, şube bazlı kalite kontrol.',
-    icon: BuildingStorefrontIcon,
-    color: 'bg-purple-50 border-purple-200',
-    iconColor: 'text-purple-600',
-  },
-  {
-    title: 'Zincir Mağazalar',
-    description: 'Tezgahtar, kasiyer ve mağaza yöneticileri için standart değerlendirme.',
-    icon: UserGroupIcon,
-    color: 'bg-blue-50 border-blue-200',
-    iconColor: 'text-blue-600',
-  },
-  {
-    title: 'Üretim & Pastahane Tesisleri',
-    description: 'Hijyen, talimat uyumu ve kalite risklerini önceden görün.',
-    icon: CakeIcon,
-    color: 'bg-pink-50 border-pink-200',
-    iconColor: 'text-pink-600',
-  },
-  {
-    title: 'Lojistik & Depo',
-    description: 'Şoför ve depo personelinde operasyonel riski azaltın.',
-    icon: TruckIcon,
-    color: 'bg-green-50 border-green-200',
-    iconColor: 'text-green-600',
-  },
-];
-
-// Features
-const features = [
-  { name: 'Pozisyon bazlı akıllı soru motoru', icon: CpuChipIcon },
-  { name: 'Senaryo & davranış analizleri', icon: ChartBarIcon },
-  { name: 'Kırmızı bayrak (risk) tespiti', icon: ExclamationTriangleIcon },
-  { name: 'Kopya & ezber risk skoru', icon: ShieldCheckIcon },
-  { name: 'Franchise merkez onay akışı', icon: BuildingStorefrontIcon },
-  { name: 'KVKK uyumlu veri yönetimi', icon: CheckCircleIcon },
-  { name: 'Maliyet kontrollü AI altyapısı', icon: CurrencyDollarIcon },
-];
-
-// Benefits
-const benefits = [
-  { text: 'Yanlış işe alımı %50+ azaltır', icon: ArrowTrendingUpIcon },
-  { text: 'Mülakat süresini %70 kısaltır', icon: ClockIcon },
-  { text: 'Eğitim ihtiyacını net gösterir', icon: AcademicCapIcon },
-  { text: 'Terfi kararlarını objektifleştirir', icon: ScaleIcon },
-  { text: 'Franchise standartlarını korur', icon: ShieldCheckIcon },
-];
-
-// Solution metrics
-const solutionMetrics = [
-  { label: 'İşe uygunluk', icon: CheckCircleIcon },
-  { label: 'Disiplin & hijyen bilinci', icon: ShieldCheckIcon },
-  { label: 'Stres ve tempo toleransı', icon: ClockIcon },
-  { label: 'Riskli davranışlar', icon: ExclamationTriangleIcon },
-  { label: 'Marka ve ekip uyumu', icon: UserGroupIcon },
-];
-
-// Packages
-const packages = [
-  {
-    title: 'Küçük İşletmeler',
-    description: 'Aday başı değerlendirme modeli',
-    icon: UserIcon,
-  },
-  {
-    title: 'Zincir Mağazalar',
-    description: 'Mağaza bazlı abonelik',
-    icon: BuildingStorefrontIcon,
-  },
-  {
-    title: 'Franchise Markalar',
-    description: 'Merkez lisans + şube kullanımı',
-    icon: BuildingOfficeIcon,
-  },
-];
-
-// FAQ items
-const faqItems = [
-  {
-    question: 'Bu bir mülakat sistemi mi?',
-    answer: 'Hayır. Bu bir karar destek ve değerlendirme platformudur.',
-  },
-  {
-    question: 'Mevcut çalışanlar için kullanılabilir mi?',
-    answer: 'Evet. Terfi, eğitim ve risk analizi için idealdir.',
-  },
-  {
-    question: 'KVKK uyumlu mu?',
-    answer: 'Evet. Veri saklama, silme ve export süreçleri dahildir.',
-  },
-];
-
-// Company types for demo form
-const companyTypes = [
-  { value: 'single', label: 'Tek Şube' },
-  { value: 'chain', label: 'Zincir' },
-  { value: 'franchise', label: 'Franchise' },
-];
+import { localizedPath } from '../routes';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import pricingHero from '../assets/pricing-hero.jpg';
 
 export default function LandingPage() {
+  const { t } = useTranslation('landing');
+  const { t: tc } = useTranslation('common');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     company_name: '',
@@ -161,6 +42,121 @@ export default function LandingPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // How it works steps
+  const steps = [
+    { number: '1', titleKey: 'howItWorks.steps.1.title', descKey: 'howItWorks.steps.1.description' },
+    { number: '2', titleKey: 'howItWorks.steps.2.title', descKey: 'howItWorks.steps.2.description' },
+    { number: '3', titleKey: 'howItWorks.steps.3.title', descKey: 'howItWorks.steps.3.description' },
+    { number: '4', titleKey: 'howItWorks.steps.4.title', descKey: 'howItWorks.steps.4.description' },
+  ];
+
+  // Target audiences
+  const audiences = [
+    {
+      titleKey: 'forWho.audiences.franchise.title',
+      descKey: 'forWho.audiences.franchise.description',
+      icon: BuildingStorefrontIcon,
+      color: 'bg-purple-50 border-purple-200',
+      iconColor: 'text-purple-600',
+    },
+    {
+      titleKey: 'forWho.audiences.chain.title',
+      descKey: 'forWho.audiences.chain.description',
+      icon: UserGroupIcon,
+      color: 'bg-blue-50 border-blue-200',
+      iconColor: 'text-blue-600',
+    },
+    {
+      titleKey: 'forWho.audiences.production.title',
+      descKey: 'forWho.audiences.production.description',
+      icon: CakeIcon,
+      color: 'bg-pink-50 border-pink-200',
+      iconColor: 'text-pink-600',
+    },
+    {
+      titleKey: 'forWho.audiences.logistics.title',
+      descKey: 'forWho.audiences.logistics.description',
+      icon: TruckIcon,
+      color: 'bg-green-50 border-green-200',
+      iconColor: 'text-green-600',
+    },
+  ];
+
+  // Features
+  const features = [
+    { nameKey: 'features.list.smartEngine', icon: CpuChipIcon },
+    { nameKey: 'features.list.scenario', icon: ChartBarIcon },
+    { nameKey: 'features.list.redFlag', icon: ExclamationTriangleIcon },
+    { nameKey: 'features.list.cheating', icon: ShieldCheckIcon },
+    { nameKey: 'features.list.franchise', icon: BuildingStorefrontIcon },
+    { nameKey: 'features.list.kvkk', icon: CheckCircleIcon },
+    { nameKey: 'features.list.cost', icon: CurrencyDollarIcon },
+  ];
+
+  // Benefits
+  const benefits = [
+    { textKey: 'benefits.list.reduce', icon: ArrowTrendingUpIcon },
+    { textKey: 'benefits.list.time', icon: ClockIcon },
+    { textKey: 'benefits.list.training', icon: AcademicCapIcon },
+    { textKey: 'benefits.list.promotion', icon: ScaleIcon },
+    { textKey: 'benefits.list.standards', icon: ShieldCheckIcon },
+  ];
+
+  // Solution metrics
+  const solutionMetrics = [
+    { labelKey: 'solution.metrics.jobFit', icon: CheckCircleIcon },
+    { labelKey: 'solution.metrics.discipline', icon: ShieldCheckIcon },
+    { labelKey: 'solution.metrics.stress', icon: ClockIcon },
+    { labelKey: 'solution.metrics.risks', icon: ExclamationTriangleIcon },
+    { labelKey: 'solution.metrics.culture', icon: UserGroupIcon },
+  ];
+
+  // Packages
+  const packages = [
+    { titleKey: 'packages.types.small.title', descKey: 'packages.types.small.description', icon: UserIcon },
+    { titleKey: 'packages.types.chain.title', descKey: 'packages.types.chain.description', icon: BuildingStorefrontIcon },
+    { titleKey: 'packages.types.franchise.title', descKey: 'packages.types.franchise.description', icon: BuildingOfficeIcon },
+  ];
+
+  // FAQ items
+  const faqItems = [
+    { questionKey: 'faq.items.1.question', answerKey: 'faq.items.1.answer' },
+    { questionKey: 'faq.items.2.question', answerKey: 'faq.items.2.answer' },
+    { questionKey: 'faq.items.3.question', answerKey: 'faq.items.3.answer' },
+  ];
+
+  // Pricing plans
+  const pricingPlans = [
+    {
+      nameKey: 'pricing.plans.mini.name',
+      assessmentsKey: 'pricing.plans.mini.assessments',
+      priceTL: '9.900 TL',
+      priceEUR: '199 €',
+      popular: false,
+    },
+    {
+      nameKey: 'pricing.plans.midi.name',
+      assessmentsKey: 'pricing.plans.midi.assessments',
+      priceTL: '19.900 TL',
+      priceEUR: '399 €',
+      popular: true,
+    },
+    {
+      nameKey: 'pricing.plans.pro.name',
+      assessmentsKey: 'pricing.plans.pro.assessments',
+      priceTL: '49.900 TL',
+      priceEUR: '999 €',
+      popular: false,
+    },
+  ];
+
+  // Company types for demo form
+  const companyTypes = [
+    { value: 'single', labelKey: 'demo.form.companyTypes.single' },
+    { value: 'chain', labelKey: 'demo.form.companyTypes.chain' },
+    { value: 'franchise', labelKey: 'demo.form.companyTypes.franchise' },
+  ];
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -186,12 +182,14 @@ export default function LandingPage() {
               <span className="text-2xl font-bold text-gray-900">Talent<span className="text-primary-600">QX</span></span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">Nasıl Çalışır</a>
-              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Özellikler</a>
-              <a href="#for-who" className="text-gray-600 hover:text-gray-900 transition-colors">Kimler İçin</a>
-              <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">SSS</a>
-              <Link to={ROUTES.LOGIN} className="text-gray-600 hover:text-gray-900 transition-colors">Giriş Yap</Link>
-              <a href="#demo" className="btn-primary">Demo Talep Et</a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.howItWorks')}</a>
+              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.features')}</a>
+              <a href="#for-who" className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.forWho')}</a>
+              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.pricing')}</a>
+              <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.faq')}</a>
+              <Link to={localizedPath('/login')} className="text-gray-600 hover:text-gray-900 transition-colors">{tc('nav.login')}</Link>
+              <LanguageSwitcher variant="light" showFullName={false} />
+              <a href="#demo" className="btn-primary">{tc('nav.requestDemo')}</a>
             </div>
           </div>
         </div>
@@ -202,22 +200,21 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-              Doğru Personeli,{' '}
-              <span className="text-primary-600">İşe Almadan Önce</span>{' '}
-              Tanıyın.
+              {t('hero.title')}{' '}
+              <span className="text-primary-600">{t('hero.titleHighlight')}</span>
             </h1>
             <h2 className="mt-6 text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
-              Zincir mağazalar ve franchise yapıları için AI destekli işe alım ve çalışan değerlendirme platformu.
+              {t('hero.subtitle')}
             </h2>
             <p className="mt-4 text-lg text-gray-500">
-              Yanlış işe alımı azaltın, personel standardınızı merkezden yönetin.
+              {t('hero.description')}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <a href="#demo" className="btn-primary text-lg px-8 py-3">
-                Ücretsiz Demo Talep Et
+                {t('hero.cta')}
               </a>
               <a href="#how-it-works" className="btn-secondary text-lg px-8 py-3">
-                Nasıl Çalışır?
+                {t('hero.howItWorks')}
               </a>
             </div>
           </div>
@@ -230,39 +227,39 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Yanlış Personel,{' '}
-                <span className="text-red-400">En Pahalı Operasyon Hatasıdır.</span>
+                {t('problem.title')}{' '}
+                <span className="text-red-400">{t('problem.titleHighlight')}</span>
               </h2>
               <p className="text-gray-300 mb-6">
-                İşletmelerin çoğu şu sorunları yaşıyor:
+                {t('problem.intro')}
               </p>
               <ul className="space-y-4 text-gray-300">
                 <li className="flex items-start">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>CV'ler birbirinin aynısı</span>
+                  <span>{t('problem.points.1')}</span>
                 </li>
                 <li className="flex items-start">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Mülakatlar kişiye göre değişiyor</span>
+                  <span>{t('problem.points.2')}</span>
                 </li>
                 <li className="flex items-start">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Hijyen, disiplin ve tempo sahada bozuluyor</span>
+                  <span>{t('problem.points.3')}</span>
                 </li>
                 <li className="flex items-start">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Yanlış işe alım aylarca zarar yazıyor</span>
+                  <span>{t('problem.points.4')}</span>
                 </li>
               </ul>
             </div>
             <div className="text-center">
               <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-8">
-                <p className="text-gray-400 mb-2">Yanlış bir personelin gerçek maliyeti:</p>
+                <p className="text-gray-400 mb-2">{t('problem.costLabel')}</p>
                 <p className="text-5xl md:text-6xl font-bold text-red-400">
-                  50.000 – 500.000 TL
+                  {t('problem.costRange')}
                 </p>
                 <p className="mt-6 text-lg text-gray-300">
-                  Ama bu riski, işe almadan önce ölçmek mümkün.
+                  {t('problem.costNote')}
                 </p>
               </div>
             </div>
@@ -275,20 +272,20 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              CV Değil, <span className="text-primary-600">İnsanı Okuyan</span> Sistem.
+              {t('solution.title')} <span className="text-primary-600">{t('solution.titleHighlight')}</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              TalentQX; pozisyona özel sorular, senaryo testleri ve yapay zeka analiziyle adayları ve mevcut çalışanları objektif olarak değerlendirir.
+              {t('solution.description')}
             </p>
           </div>
 
           <div className="mb-12">
-            <p className="text-center text-lg font-medium text-gray-700 mb-8">Ölçtüğümüz şeyler:</p>
+            <p className="text-center text-lg font-medium text-gray-700 mb-8">{t('solution.metricsTitle')}</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {solutionMetrics.map((item, index) => (
                 <div key={index} className="text-center p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                   <item.icon className="h-10 w-10 text-primary-600 mx-auto mb-3" />
-                  <p className="font-medium text-gray-900">{item.label}</p>
+                  <p className="font-medium text-gray-900">{t(item.labelKey)}</p>
                 </div>
               ))}
             </div>
@@ -296,7 +293,7 @@ export default function LandingPage() {
 
           <div className="text-center">
             <p className="text-xl font-semibold text-gray-900">
-              Sonuç: <span className="text-primary-600">Daha doğru kararlar. Daha güçlü ekipler.</span>
+              {t('solution.result')} <span className="text-primary-600">{t('solution.resultText')}</span>
             </p>
           </div>
         </div>
@@ -307,7 +304,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Kimler İçin?
+              {t('forWho.title')}
             </h2>
           </div>
 
@@ -315,8 +312,8 @@ export default function LandingPage() {
             {audiences.map((audience, index) => (
               <div key={index} className={`p-6 rounded-xl border-2 ${audience.color} hover:shadow-lg transition-shadow`}>
                 <audience.icon className={`h-12 w-12 ${audience.iconColor} mb-4`} />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{audience.title}</h3>
-                <p className="text-gray-600">{audience.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t(audience.titleKey)}</h3>
+                <p className="text-gray-600">{t(audience.descKey)}</p>
               </div>
             ))}
           </div>
@@ -328,9 +325,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Nasıl Çalışır?
+              {t('howItWorks.title')}
             </h2>
-            <p className="text-xl text-gray-600">4 adımda daha doğru personel kararları</p>
+            <p className="text-xl text-gray-600">{t('howItWorks.subtitle')}</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -342,8 +339,8 @@ export default function LandingPage() {
                 {index < steps.length - 1 && (
                   <div className="hidden lg:block absolute top-7 left-14 w-full h-0.5 bg-primary-200" />
                 )}
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-gray-600">{step.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t(step.titleKey)}</h3>
+                <p className="text-gray-600">{t(step.descKey)}</p>
               </div>
             ))}
           </div>
@@ -355,7 +352,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Öne Çıkan Özellikler
+              {t('features.title')}
             </h2>
           </div>
 
@@ -363,7 +360,7 @@ export default function LandingPage() {
             {features.map((feature, index) => (
               <div key={index} className="flex items-center p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
                 <feature.icon className="h-8 w-8 text-white mr-4 flex-shrink-0" />
-                <span className="text-white font-medium">{feature.name}</span>
+                <span className="text-white font-medium">{t(feature.nameKey)}</span>
               </div>
             ))}
           </div>
@@ -375,7 +372,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Personel Kalitesi Artık <span className="text-primary-600">Tesadüf Değil.</span>
+              {t('benefits.title')} <span className="text-primary-600">{t('benefits.titleHighlight')}</span>
             </h2>
           </div>
 
@@ -383,7 +380,7 @@ export default function LandingPage() {
             {benefits.map((benefit, index) => (
               <div key={index} className="text-center p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                 <benefit.icon className="h-10 w-10 text-primary-600 mx-auto mb-3" />
-                <p className="font-medium text-gray-900">{benefit.text}</p>
+                <p className="font-medium text-gray-900">{t(benefit.textKey)}</p>
               </div>
             ))}
           </div>
@@ -395,21 +392,99 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <blockquote className="text-center">
             <p className="text-2xl md:text-3xl italic text-gray-700">
-              "Kendi zincirimizde uyguladık. 6 ayda personel hatalarını <span className="text-primary-600 font-semibold">%40</span> azalttık."
+              "{t('testimonial.quote')} <span className="text-primary-600 font-semibold">{t('testimonial.quoteHighlight')}</span> {t('testimonial.quoteEnd')}"
             </p>
             <footer className="mt-6 text-gray-500">
-              — İç Kullanım Referansı
+              {t('testimonial.source')}
             </footer>
           </blockquote>
         </div>
       </section>
 
-      {/* 9. PACKAGES */}
-      <section className="py-20 bg-white">
+      {/* 9. PLANS & PRICING */}
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Pricing Hero Image */}
+          <div className="flex justify-center mb-12">
+            <img
+              src={pricingHero}
+              alt="Plans & Pricing"
+              className="w-full max-w-[1100px] rounded-2xl shadow-xl object-cover"
+            />
+          </div>
+
+          {/* Title */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {t('pricing.title')}
+            </h2>
+            <p className="text-xl text-gray-600">
+              {t('pricing.subtitle')}
+            </p>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
+            {pricingPlans.map((plan, index) => (
+              <div
+                key={index}
+                className={`relative p-8 rounded-2xl border-2 transition-all ${
+                  plan.popular
+                    ? 'border-primary-500 bg-primary-50 shadow-lg scale-105'
+                    : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-lg'
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 px-4 py-1 bg-primary-600 text-white text-sm font-semibold rounded-full">
+                      <StarIcon className="h-4 w-4" />
+                      {t('pricing.mostPopular')}
+                    </span>
+                  </div>
+                )}
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{t(plan.nameKey)}</h3>
+                  <p className="text-gray-600 mb-6">{t(plan.assessmentsKey)}</p>
+                  <div className="mb-6">
+                    <p className="text-3xl font-bold text-gray-900">{plan.priceTL}</p>
+                    <p className="text-lg text-gray-500">{plan.priceEUR}</p>
+                    <p className="text-sm text-gray-400 mt-1">{t('pricing.perMonth')}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Included Features */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
+            <div className="flex items-center gap-2 text-gray-700">
+              <DocumentTextIcon className="h-5 w-5 text-primary-600" />
+              <span>{t('pricing.features.pdfReports')}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-700">
+              <UserMinusIcon className="h-5 w-5 text-primary-600" />
+              <span>{t('pricing.features.noPerUser')}</span>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#demo" className="btn-primary text-lg px-8 py-3">
+              {tc('nav.requestDemo')}
+            </a>
+            <a href="#demo" className="btn-secondary text-lg px-8 py-3">
+              {tc('nav.talkToSales')}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* 10. PACKAGES */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Paketler & Model
+              {t('packages.title')}
             </h2>
           </div>
 
@@ -417,35 +492,35 @@ export default function LandingPage() {
             {packages.map((pkg, index) => (
               <div key={index} className="text-center p-8 bg-gray-50 rounded-xl border-2 border-gray-100 hover:border-primary-200 hover:shadow-lg transition-all">
                 <pkg.icon className="h-12 w-12 text-primary-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{pkg.title}</h3>
-                <p className="text-gray-600">{pkg.description}</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{t(pkg.titleKey)}</h3>
+                <p className="text-gray-600">{t(pkg.descKey)}</p>
               </div>
             ))}
           </div>
 
           <p className="text-center text-gray-500 mt-8">
-            Detaylı fiyatlandırma demo sonrası paylaşılır.
+            {t('packages.note')}
           </p>
         </div>
       </section>
 
-      {/* 10. DEMO CTA */}
+      {/* 11. DEMO CTA */}
       <section id="demo" className="py-20 bg-gradient-to-br from-primary-600 to-primary-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Personel Kalitenizi Bugün Ölçmeye Başlayın.
+              {t('demo.title')}
             </h2>
             <p className="text-xl text-primary-100">
-              Kurulum 1 gün. İlk sonuçlar ilk haftada.
+              {t('demo.subtitle')}
             </p>
           </div>
 
           {submitSuccess ? (
             <div className="bg-white rounded-2xl p-8 text-center">
               <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Talebiniz Alındı!</h3>
-              <p className="text-gray-600">En kısa sürede sizinle iletişime geçeceğiz.</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('demo.success.title')}</h3>
+              <p className="text-gray-600">{t('demo.success.message')}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8">
@@ -453,7 +528,7 @@ export default function LandingPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <BuildingOfficeIcon className="h-4 w-4 inline mr-1" />
-                    Firma Adı
+                    {t('demo.form.companyName')}
                   </label>
                   <input
                     type="text"
@@ -462,13 +537,13 @@ export default function LandingPage() {
                     onChange={handleFormChange}
                     required
                     className="input"
-                    placeholder="Şirket Adı"
+                    placeholder={t('demo.form.companyName')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <UserIcon className="h-4 w-4 inline mr-1" />
-                    Yetkili Adı
+                    {t('demo.form.contactName')}
                   </label>
                   <input
                     type="text"
@@ -477,13 +552,13 @@ export default function LandingPage() {
                     onChange={handleFormChange}
                     required
                     className="input"
-                    placeholder="Ad Soyad"
+                    placeholder={t('demo.form.contactName')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <EnvelopeIcon className="h-4 w-4 inline mr-1" />
-                    E-posta
+                    {t('demo.form.email')}
                   </label>
                   <input
                     type="email"
@@ -492,13 +567,13 @@ export default function LandingPage() {
                     onChange={handleFormChange}
                     required
                     className="input"
-                    placeholder="ornek@sirket.com"
+                    placeholder="example@company.com"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <PhoneIcon className="h-4 w-4 inline mr-1" />
-                    Telefon
+                    {t('demo.form.phone')}
                   </label>
                   <input
                     type="tel"
@@ -507,13 +582,13 @@ export default function LandingPage() {
                     onChange={handleFormChange}
                     required
                     className="input"
-                    placeholder="05XX XXX XX XX"
+                    placeholder="+1 555 123 4567"
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <BuildingStorefrontIcon className="h-4 w-4 inline mr-1" />
-                    Firma Tipi
+                    {t('demo.form.companyType')}
                   </label>
                   <select
                     name="company_type"
@@ -522,9 +597,9 @@ export default function LandingPage() {
                     required
                     className="input"
                   >
-                    <option value="">Seçin...</option>
+                    <option value="">{t('demo.form.companyTypePlaceholder')}</option>
                     {companyTypes.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                      <option key={type.value} value={type.value}>{t(type.labelKey)}</option>
                     ))}
                   </select>
                 </div>
@@ -534,19 +609,19 @@ export default function LandingPage() {
                 disabled={isSubmitting}
                 className="mt-8 w-full btn-primary py-4 text-lg"
               >
-                {isSubmitting ? 'Gönderiliyor...' : 'Ücretsiz Demo Talep Et'}
+                {isSubmitting ? t('demo.form.submitting') : t('demo.form.submit')}
               </button>
             </form>
           )}
         </div>
       </section>
 
-      {/* 11. FAQ */}
+      {/* 12. FAQ */}
       <section id="faq" className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Sıkça Sorulan Sorular
+              {t('faq.title')}
             </h2>
           </div>
 
@@ -557,12 +632,12 @@ export default function LandingPage() {
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
                 >
-                  <span className="font-semibold text-gray-900">{item.question}</span>
+                  <span className="font-semibold text-gray-900">{t(item.questionKey)}</span>
                   <ChevronDownIcon className={`h-5 w-5 text-gray-500 transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === index && (
                   <div className="px-6 pb-4 text-gray-600">
-                    {item.answer}
+                    {t(item.answerKey)}
                   </div>
                 )}
               </div>
@@ -571,49 +646,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 12. FOOTER */}
+      {/* 13. FOOTER */}
       <footer className="py-16 bg-gray-900 text-gray-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
               <span className="text-2xl font-bold text-white">Talent<span className="text-primary-400">QX</span></span>
               <p className="mt-4 text-sm">
-                AI Destekli İnsan Kalitesi Platformu
+                {t('footer.tagline')}
               </p>
               <p className="mt-2 text-sm italic">
-                İnsan kaynağınız, markanızın görünmeyen vitrini.
+                {t('footer.motto')}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-4">Platform</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.platform')}</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#how-it-works" className="hover:text-white transition-colors">Nasıl Çalışır</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Özellikler</a></li>
-                <li><a href="#for-who" className="hover:text-white transition-colors">Kimler İçin</a></li>
-                <li><a href="#demo" className="hover:text-white transition-colors">Demo Talep Et</a></li>
+                <li><a href="#how-it-works" className="hover:text-white transition-colors">{tc('nav.howItWorks')}</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">{tc('nav.features')}</a></li>
+                <li><a href="#for-who" className="hover:text-white transition-colors">{tc('nav.forWho')}</a></li>
+                <li><a href="#demo" className="hover:text-white transition-colors">{tc('nav.requestDemo')}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-4">Çözümler</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.solutions')}</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">İşe Alım</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Değerlendirme</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Gelişim</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Franchise Standartları</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.solutionsItems.hiring')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.solutionsItems.assessment')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.solutionsItems.development')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.solutionsItems.franchise')}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-4">Yasal</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.legal')}</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Hakkımızda</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Gizlilik Politikası</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">İletişim</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.about')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.privacy')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.privacyPolicy')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.contact')}</a></li>
               </ul>
             </div>
           </div>
           <div className="pt-8 border-t border-gray-800 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} TalentQX. Tüm hakları saklıdır.</p>
+            <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
           </div>
         </div>
       </footer>

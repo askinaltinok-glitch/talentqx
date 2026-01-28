@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "howItWorks": "How It Works",
+    "features": "Features",
+    "forWho": "For Who",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "login": "Sign In",
+    "requestDemo": "Request Demo",
+    "talkToSales": "Talk to Sales",
+    "dashboard": "Dashboard",
+    "jobs": "Job Listings",
+    "candidates": "Candidates",
+    "employees": "Employees",
+    "assessments": "Assessments",
+    "leads": "Potential Customers",
+    "workforceAssessment": "Competency Assessment",
+    "salesConsole": "Sales Console",
+    "followUpNeeded": "Follow-up Needed",
+    "logout": "Sign Out"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This Week"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Turkish",
+    "de": "German",
+    "fr": "French"
+  }
+}

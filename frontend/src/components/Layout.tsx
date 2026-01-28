@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   HomeIcon,
   BriefcaseIcon,
@@ -14,10 +15,11 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../stores/authStore';
-import { ROUTES, NAV_ITEMS } from '../routes';
+import { ROUTES, NAV_ITEMS, localizedPath, loginPath } from '../routes';
 import api from '../services/api';
 import type { FollowUpStats } from '../types';
 import clsx from 'clsx';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   [ROUTES.DASHBOARD]: HomeIcon,
@@ -29,6 +31,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export default function Layout() {
+  const { t } = useTranslation('common');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [followUpCount, setFollowUpCount] = useState(0);
   const { user, logout } = useAuthStore();
@@ -53,7 +56,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate(ROUTES.LOGIN);
+    navigate(loginPath());
   };
 
   return (
@@ -81,8 +84,8 @@ export default function Layout() {
               const Icon = iconMap[item.href] || HomeIcon;
               return (
                 <NavLink
-                  key={item.name}
-                  to={item.href}
+                  key={item.nameKey}
+                  to={localizedPath(item.href)}
                   end={item.end}
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
@@ -95,20 +98,20 @@ export default function Layout() {
                   }
                 >
                   <Icon className="h-5 w-5" />
-                  {item.name}
+                  {t(item.nameKey)}
                 </NavLink>
               );
             })}
             <div className="pt-4 mt-4 border-t border-gray-200">
               <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Yetkinlik Değerlendirme
+                {t('nav.workforceAssessment')}
               </p>
               {NAV_ITEMS.workforce.map((item) => {
                 const Icon = iconMap[item.href] || UserGroupIcon;
                 return (
                   <NavLink
-                    key={item.name}
-                    to={item.href}
+                    key={item.nameKey}
+                    to={localizedPath(item.href)}
                     end={item.end}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
@@ -121,21 +124,21 @@ export default function Layout() {
                     }
                   >
                     <Icon className="h-5 w-5" />
-                    {item.name}
+                    {t(item.nameKey)}
                   </NavLink>
                 );
               })}
             </div>
             <div className="pt-4 mt-4 border-t border-gray-200">
               <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Satış Konsolu
+                {t('nav.salesConsole')}
               </p>
               {NAV_ITEMS.sales.map((item) => {
                 const Icon = iconMap[item.href] || ChartBarIcon;
                 return (
                   <NavLink
-                    key={item.name}
-                    to={item.href}
+                    key={item.nameKey}
+                    to={localizedPath(item.href)}
                     end={item.end}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
@@ -148,7 +151,7 @@ export default function Layout() {
                     }
                   >
                     <Icon className="h-5 w-5" />
-                    {item.name}
+                    {t(item.nameKey)}
                   </NavLink>
                 );
               })}
@@ -170,9 +173,9 @@ export default function Layout() {
                   {NAV_ITEMS.main.map((item) => {
                     const Icon = iconMap[item.href] || HomeIcon;
                     return (
-                      <li key={item.name}>
+                      <li key={item.nameKey}>
                         <NavLink
-                          to={item.href}
+                          to={localizedPath(item.href)}
                           end={item.end}
                           className={({ isActive }) =>
                             clsx(
@@ -184,7 +187,7 @@ export default function Layout() {
                           }
                         >
                           <Icon className="h-5 w-5" />
-                          {item.name}
+                          {t(item.nameKey)}
                         </NavLink>
                       </li>
                     );
@@ -193,15 +196,15 @@ export default function Layout() {
               </li>
               <li>
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Yetkinlik Değerlendirme
+                  {t('nav.workforceAssessment')}
                 </div>
                 <ul role="list" className="-mx-2 space-y-1">
                   {NAV_ITEMS.workforce.map((item) => {
                     const Icon = iconMap[item.href] || UserGroupIcon;
                     return (
-                      <li key={item.name}>
+                      <li key={item.nameKey}>
                         <NavLink
-                          to={item.href}
+                          to={localizedPath(item.href)}
                           end={item.end}
                           className={({ isActive }) =>
                             clsx(
@@ -213,7 +216,7 @@ export default function Layout() {
                           }
                         >
                           <Icon className="h-5 w-5" />
-                          {item.name}
+                          {t(item.nameKey)}
                         </NavLink>
                       </li>
                     );
@@ -222,15 +225,15 @@ export default function Layout() {
               </li>
               <li>
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Satış Konsolu
+                  {t('nav.salesConsole')}
                 </div>
                 <ul role="list" className="-mx-2 space-y-1">
                   {NAV_ITEMS.sales.map((item) => {
                     const Icon = iconMap[item.href] || ChartBarIcon;
                     return (
-                      <li key={item.name}>
+                      <li key={item.nameKey}>
                         <NavLink
-                          to={item.href}
+                          to={localizedPath(item.href)}
                           end={item.end}
                           className={({ isActive }) =>
                             clsx(
@@ -242,7 +245,7 @@ export default function Layout() {
                           }
                         >
                           <Icon className="h-5 w-5" />
-                          {item.name}
+                          {t(item.nameKey)}
                         </NavLink>
                       </li>
                     );
@@ -253,17 +256,21 @@ export default function Layout() {
               {followUpCount > 0 && (
                 <li>
                   <Link
-                    to="/leads?filter=follow_up"
+                    to={localizedPath('/app/leads?filter=follow_up')}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 hover:bg-yellow-100 transition-colors"
                   >
                     <BellIcon className="h-5 w-5" />
-                    <span className="flex-1 text-sm font-medium">Takip Gereken</span>
+                    <span className="flex-1 text-sm font-medium">{t('nav.followUpNeeded')}</span>
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-white">
                       {followUpCount > 9 ? '9+' : followUpCount}
                     </span>
                   </Link>
                 </li>
               )}
+              {/* Language Switcher */}
+              <li>
+                <LanguageSwitcher variant="light" className="w-full" />
+              </li>
               <li className="mt-auto">
                 <div className="flex items-center gap-3 px-3 py-2 text-sm">
                   <UserCircleIcon className="h-8 w-8 text-gray-400" />
@@ -278,7 +285,7 @@ export default function Layout() {
                   <button
                     onClick={handleLogout}
                     className="p-1 text-gray-400 hover:text-gray-600"
-                    title="Cikis Yap"
+                    title={t('nav.logout')}
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
                   </button>
@@ -303,19 +310,22 @@ export default function Layout() {
             </button>
             <span className="text-lg font-bold text-primary-600">TalentQX</span>
           </div>
-          {/* Follow-up notification */}
-          <Link
-            to="/leads?filter=follow_up"
-            className="relative p-2 text-gray-500 hover:text-gray-700"
-            title="Takip Gereken Leadler"
-          >
-            <BellIcon className="h-6 w-6" />
-            {followUpCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                {followUpCount > 9 ? '9+' : followUpCount}
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="light" showFullName={false} />
+            {/* Follow-up notification */}
+            <Link
+              to={localizedPath('/app/leads?filter=follow_up')}
+              className="relative p-2 text-gray-500 hover:text-gray-700"
+              title={t('nav.followUpNeeded')}
+            >
+              <BellIcon className="h-6 w-6" />
+              {followUpCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                  {followUpCount > 9 ? '9+' : followUpCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
 
         <main className="p-4 lg:p-8">

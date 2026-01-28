@@ -11,14 +11,16 @@ import {
   EnvelopeIcon,
   ChevronRightIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { DashboardStats, FollowUpStats } from '../types';
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from '../types';
-import { leadDetailPath } from '../routes';
+import { LEAD_STATUS_COLORS } from '../types';
+import { leadDetailPath, localizedPath } from '../routes';
 import ScoreCircle from '../components/ScoreCircle';
 import clsx from 'clsx';
 
 export default function Dashboard() {
+  const { t } = useTranslation('sales');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function Dashboard() {
       subValue: `${stats.active_jobs} aktif`,
       icon: BriefcaseIcon,
       color: 'bg-blue-500',
-      link: '/jobs',
+      link: localizedPath('/app/jobs'),
     },
     {
       name: 'Toplam Aday',
@@ -98,7 +100,7 @@ export default function Dashboard() {
       subValue: `${stats.by_status.hired || 0} ise alindi`,
       icon: UsersIcon,
       color: 'bg-green-500',
-      link: '/candidates',
+      link: localizedPath('/app/candidates'),
     },
     {
       name: 'Tamamlanan Mulakat',
@@ -106,7 +108,7 @@ export default function Dashboard() {
       subValue: `${stats.interviews_pending} bekliyor`,
       icon: VideoCameraIcon,
       color: 'bg-purple-500',
-      link: '/candidates?status=interview_completed',
+      link: localizedPath('/app/candidates?status=interview_completed'),
     },
     {
       name: 'Ortalama Puan',
@@ -114,7 +116,7 @@ export default function Dashboard() {
       subValue: `%${(stats.hire_rate * 100).toFixed(0)} ise alim orani`,
       icon: ChartBarIcon,
       color: 'bg-yellow-500',
-      link: '/candidates',
+      link: localizedPath('/app/candidates'),
     },
   ];
 
@@ -195,7 +197,7 @@ export default function Dashboard() {
                         </span>
                       )}
                       <span className={clsx('text-xs px-2 py-0.5 rounded-full', LEAD_STATUS_COLORS[lead.status])}>
-                        {LEAD_STATUS_LABELS[lead.status]}
+                        {t(`status.${lead.status}`)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 truncate">{lead.contact_name}</p>
@@ -218,7 +220,7 @@ export default function Dashboard() {
 
           {followUpStats.total_due > followUpStats.due_leads.length && (
             <Link
-              to="/leads?filter=follow_up"
+              to={localizedPath('/app/leads?filter=follow_up')}
               className="block text-center text-sm text-primary-600 hover:underline mt-3"
             >
               Tümünü görüntüle ({followUpStats.total_due} lead)
@@ -320,13 +322,13 @@ export default function Dashboard() {
           Hizli Islemler
         </h2>
         <div className="flex flex-wrap gap-3">
-          <Link to="/jobs" className="btn-primary">
+          <Link to={localizedPath('/app/jobs')} className="btn-primary">
             Yeni Is Ilani Olustur
           </Link>
-          <Link to="/candidates" className="btn-secondary">
+          <Link to={localizedPath('/app/candidates')} className="btn-secondary">
             Adaylari Goruntule
           </Link>
-          <Link to="/candidates?has_red_flags=true" className="btn-secondary">
+          <Link to={localizedPath('/app/candidates?has_red_flags=true')} className="btn-secondary">
             Kirmizi Bayrakli Adaylar
           </Link>
         </div>

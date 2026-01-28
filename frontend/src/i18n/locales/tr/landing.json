@@ -1,0 +1,213 @@
+{
+  "hero": {
+    "title": "Doğru Personeli,",
+    "titleHighlight": "İşe Almadan Önce Tanıyın.",
+    "subtitle": "Zincir mağazalar ve franchise yapıları için AI destekli işe alım ve çalışan değerlendirme platformu.",
+    "description": "Yanlış işe alımı azaltın, personel standardınızı merkezden yönetin.",
+    "cta": "Ücretsiz Demo Talep Et",
+    "howItWorks": "Nasıl Çalışır?"
+  },
+  "problem": {
+    "title": "Yanlış Personel,",
+    "titleHighlight": "En Pahalı Operasyon Hatasıdır.",
+    "intro": "İşletmelerin çoğu şu sorunları yaşıyor:",
+    "points": {
+      "1": "CV'ler birbirinin aynısı",
+      "2": "Mülakatlar kişiye göre değişiyor",
+      "3": "Hijyen, disiplin ve tempo sahada bozuluyor",
+      "4": "Yanlış işe alım aylarca zarar yazıyor"
+    },
+    "costLabel": "Yanlış bir personelin gerçek maliyeti:",
+    "costRange": "50.000 – 500.000 TL",
+    "costNote": "Ama bu riski, işe almadan önce ölçmek mümkün."
+  },
+  "solution": {
+    "title": "CV Değil,",
+    "titleHighlight": "İnsanı Okuyan Sistem.",
+    "description": "TalentQX; pozisyona özel sorular, senaryo testleri ve yapay zeka analiziyle adayları ve mevcut çalışanları objektif olarak değerlendirir.",
+    "metricsTitle": "Ölçtüğümüz şeyler:",
+    "metrics": {
+      "jobFit": "İşe uygunluk",
+      "discipline": "Disiplin & hijyen bilinci",
+      "stress": "Stres ve tempo toleransı",
+      "risks": "Riskli davranışlar",
+      "culture": "Marka ve ekip uyumu"
+    },
+    "result": "Sonuç:",
+    "resultText": "Daha doğru kararlar. Daha güçlü ekipler."
+  },
+  "forWho": {
+    "title": "Kimler İçin?",
+    "audiences": {
+      "franchise": {
+        "title": "Franchise Markalar",
+        "description": "Merkezden personel standardı, şube bazlı kalite kontrol."
+      },
+      "chain": {
+        "title": "Zincir Mağazalar",
+        "description": "Tezgahtar, kasiyer ve mağaza yöneticileri için standart değerlendirme."
+      },
+      "production": {
+        "title": "Üretim & Pastahane Tesisleri",
+        "description": "Hijyen, talimat uyumu ve kalite risklerini önceden görün."
+      },
+      "logistics": {
+        "title": "Lojistik & Depo",
+        "description": "Şoför ve depo personelinde operasyonel riski azaltın."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "Nasıl Çalışır?",
+    "subtitle": "4 adımda daha doğru personel kararları",
+    "steps": {
+      "1": {
+        "title": "Pozisyonu Tanımlayın",
+        "description": "Yetkinlikleri, riskleri ve kültür kriterlerini belirleyin."
+      },
+      "2": {
+        "title": "Online Değerlendirme",
+        "description": "Aday veya çalışan, rolüne özel senaryo testine girer."
+      },
+      "3": {
+        "title": "Yapay Zeka Analizi",
+        "description": "Cevaplar analiz edilir, skorlar ve riskler çıkarılır."
+      },
+      "4": {
+        "title": "Karar Destek Raporu",
+        "description": "İşe alım, eğitim veya terfi kararını objektif verin."
+      }
+    }
+  },
+  "features": {
+    "title": "Öne Çıkan Özellikler",
+    "list": {
+      "smartEngine": "Pozisyon bazlı akıllı soru motoru",
+      "scenario": "Senaryo & davranış analizleri",
+      "redFlag": "Kırmızı bayrak (risk) tespiti",
+      "cheating": "Kopya & ezber risk skoru",
+      "franchise": "Franchise merkez onay akışı",
+      "kvkk": "KVKK uyumlu veri yönetimi",
+      "cost": "Maliyet kontrollü AI altyapısı"
+    }
+  },
+  "benefits": {
+    "title": "Personel Kalitesi Artık",
+    "titleHighlight": "Tesadüf Değil.",
+    "list": {
+      "reduce": "Yanlış işe alımı %50+ azaltır",
+      "time": "Mülakat süresini %70 kısaltır",
+      "training": "Eğitim ihtiyacını net gösterir",
+      "promotion": "Terfi kararlarını objektifleştirir",
+      "standards": "Franchise standartlarını korur"
+    }
+  },
+  "testimonial": {
+    "quote": "Kendi zincirimizde uyguladık. 6 ayda personel hatalarını",
+    "quoteHighlight": "%40",
+    "quoteEnd": "azalttık.",
+    "source": "— İç Kullanım Referansı"
+  },
+  "pricing": {
+    "title": "Planlar & Fiyatlandırma",
+    "subtitle": "Basit fiyatlandırma. Ciddi kararlar.",
+    "mostPopular": "En Popüler",
+    "perMonth": "aylık",
+    "plans": {
+      "mini": {
+        "name": "MINI",
+        "assessments": "100 değerlendirme / ay"
+      },
+      "midi": {
+        "name": "MIDI",
+        "assessments": "250 değerlendirme / ay"
+      },
+      "pro": {
+        "name": "PRO",
+        "assessments": "600 değerlendirme / ay"
+      }
+    },
+    "features": {
+      "pdfReports": "PDF raporlar dahil",
+      "noPerUser": "Kullanıcı başı fiyatlandırma yok"
+    }
+  },
+  "packages": {
+    "title": "Paketler & Model",
+    "note": "Detaylı fiyatlandırma demo sonrası paylaşılır.",
+    "types": {
+      "small": {
+        "title": "Küçük İşletmeler",
+        "description": "Aday başı değerlendirme modeli"
+      },
+      "chain": {
+        "title": "Zincir Mağazalar",
+        "description": "Mağaza bazlı abonelik"
+      },
+      "franchise": {
+        "title": "Franchise Markalar",
+        "description": "Merkez lisans + şube kullanımı"
+      }
+    }
+  },
+  "demo": {
+    "title": "Personel Kalitenizi Bugün Ölçmeye Başlayın.",
+    "subtitle": "Kurulum 1 gün. İlk sonuçlar ilk haftada.",
+    "success": {
+      "title": "Talebiniz Alındı!",
+      "message": "En kısa sürede sizinle iletişime geçeceğiz."
+    },
+    "form": {
+      "companyName": "Firma Adı",
+      "contactName": "Yetkili Adı",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "companyType": "Firma Tipi",
+      "companyTypePlaceholder": "Seçin...",
+      "companyTypes": {
+        "single": "Tek Şube",
+        "chain": "Zincir",
+        "franchise": "Franchise"
+      },
+      "submit": "Ücretsiz Demo Talep Et",
+      "submitting": "Gönderiliyor..."
+    }
+  },
+  "faq": {
+    "title": "Sıkça Sorulan Sorular",
+    "items": {
+      "1": {
+        "question": "Bu bir mülakat sistemi mi?",
+        "answer": "Hayır. Bu bir karar destek ve değerlendirme platformudur."
+      },
+      "2": {
+        "question": "Mevcut çalışanlar için kullanılabilir mi?",
+        "answer": "Evet. Terfi, eğitim ve risk analizi için idealdir."
+      },
+      "3": {
+        "question": "KVKK uyumlu mu?",
+        "answer": "Evet. Veri saklama, silme ve export süreçleri dahildir."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "AI Destekli İnsan Kalitesi Platformu",
+    "motto": "İnsan kaynağınız, markanızın görünmeyen vitrini.",
+    "platform": "Platform",
+    "solutions": "Çözümler",
+    "solutionsItems": {
+      "hiring": "İşe Alım",
+      "assessment": "Değerlendirme",
+      "development": "Gelişim",
+      "franchise": "Franchise Standartları"
+    },
+    "legal": "Yasal",
+    "legalItems": {
+      "about": "Hakkımızda",
+      "privacy": "KVKK Aydınlatma Metni",
+      "privacyPolicy": "Gizlilik Politikası",
+      "contact": "İletişim"
+    },
+    "copyright": "© {{year}} TalentQX. Tüm hakları saklıdır."
+  }
+}

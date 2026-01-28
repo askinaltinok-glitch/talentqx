@@ -1,0 +1,172 @@
+{
+  "leads": {
+    "title": "Sales Console",
+    "subtitle": "Manage your potential customers",
+    "newLead": "New Lead",
+    "noLeads": "No leads found",
+    "noLeadsHint": "Start by adding a new lead",
+    "loading": "Loading...",
+    "activity": "activity",
+    "activities": "activities"
+  },
+  "status": {
+    "new": "New",
+    "contacted": "Contacted",
+    "demo": "Demo",
+    "pilot": "Pilot",
+    "negotiation": "Negotiation",
+    "won": "Won",
+    "lost": "Lost"
+  },
+  "stats": {
+    "totalLeads": "Total Leads",
+    "hotLeads": "Hot Leads",
+    "overdue": "Overdue",
+    "followUpNeeded": "Follow-up Needed",
+    "wonThisMonth": "Won This Month",
+    "conversion": "conversion"
+  },
+  "filters": {
+    "search": "Search company, person or email...",
+    "all": "All"
+  },
+  "followUp": {
+    "overdue": "Overdue",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "follow": "Follow-up"
+  },
+  "detail": {
+    "back": "Back",
+    "changeStatus": "Change Status",
+    "addActivity": "Add Activity",
+    "sendPilotOffer": "Send Pilot Offer",
+    "followUp": "Follow-up",
+    "notFound": "Lead not found",
+    "goBack": "Go back"
+  },
+  "contact": {
+    "title": "Contact Information",
+    "email": "Email",
+    "phone": "Phone"
+  },
+  "company": {
+    "title": "Company Information",
+    "type": "Company Type",
+    "types": {
+      "single": "Single Branch",
+      "chain": "Chain",
+      "franchise": "Franchise"
+    },
+    "size": "Company Size",
+    "source": "Source",
+    "leadScore": "Lead Score"
+  },
+  "financial": {
+    "title": "Financial Information",
+    "estimatedValue": "Estimated Value",
+    "actualValue": "Actual Value"
+  },
+  "dates": {
+    "title": "Important Dates",
+    "created": "Created",
+    "firstContact": "First Contact",
+    "demoDate": "Demo Date",
+    "nextFollowUp": "Next Follow-up"
+  },
+  "notes": {
+    "title": "Notes"
+  },
+  "tabs": {
+    "activities": "Activities",
+    "checklist": "Checklist"
+  },
+  "activities": {
+    "noActivities": "No activities yet",
+    "addFirst": "Add first activity",
+    "types": {
+      "note": "Note",
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting",
+      "demo": "Demo",
+      "statusChange": "Status Change",
+      "task": "Task"
+    }
+  },
+  "checklist": {
+    "overallProgress": "Overall Progress",
+    "stages": {
+      "discovery": "Discovery",
+      "demo": "Demo",
+      "pilot": "Pilot",
+      "closing": "Closing"
+    }
+  },
+  "modal": {
+    "newLead": {
+      "title": "Add New Lead",
+      "companyName": "Company Name",
+      "contactName": "Contact Name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyType": "Company Type",
+      "companySize": "Company Size",
+      "industry": "Industry",
+      "industryPlaceholder": "Retail, Manufacturing, etc.",
+      "city": "City",
+      "source": "Source",
+      "sources": {
+        "website": "Website",
+        "referral": "Referral",
+        "linkedin": "LinkedIn",
+        "coldCall": "Cold Call",
+        "event": "Event"
+      },
+      "notes": "Notes",
+      "select": "Select",
+      "sizes": {
+        "1-10": "1-10 employees",
+        "11-50": "11-50 employees",
+        "51-200": "51-200 employees",
+        "200+": "200+ employees"
+      }
+    },
+    "activity": {
+      "title": "Add Activity",
+      "type": "Activity Type",
+      "subject": "Subject",
+      "description": "Description",
+      "meetingLink": "Meeting Link (Zoom/Meet)",
+      "meetingLinkPlaceholder": "https://zoom.us/j/...",
+      "dateTime": "Date & Time",
+      "duration": "Duration (min)",
+      "dueDate": "Due Date"
+    },
+    "status": {
+      "title": "Change Status",
+      "lostReason": "Lost Reason",
+      "lostReasonPlaceholder": "Why was the customer lost?",
+      "update": "Update"
+    },
+    "pilotOffer": {
+      "title": "Send Pilot Offer",
+      "recipient": "Recipient:",
+      "openEmail": "Open Email"
+    },
+    "followUp": {
+      "title": "Follow-up Reminder",
+      "quickSelect": "Quick Select",
+      "dateTime": "Date & Time",
+      "currentReminder": "Current reminder:",
+      "removeReminder": "Remove Reminder",
+      "presets": {
+        "tomorrow": "Tomorrow",
+        "3days": "3 Days",
+        "1week": "1 Week",
+        "2weeks": "2 Weeks",
+        "1month": "1 Month"
+      }
+    }
+  }
+}

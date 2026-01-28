@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   PlusIcon,
   PhoneIcon,
@@ -16,12 +17,12 @@ import { FireIcon as FireIconSolid } from '@heroicons/react/24/solid';
 import api from '../services/api';
 import { leadDetailPath } from '../routes';
 import type { Lead, LeadPipelineStats, LeadStatus, FollowUpStats } from '../types';
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from '../types';
+import { LEAD_STATUS_COLORS } from '../types';
 import clsx from 'clsx';
 
 const PIPELINE_STAGES: LeadStatus[] = ['new', 'contacted', 'demo', 'pilot', 'negotiation', 'won', 'lost'];
 
-type FollowUpBadge = { label: string; color: string; priority: number } | null;
+type FollowUpBadge = { labelKey: string; color: string; priority: number } | null;
 
 const getFollowUpBadge = (nextFollowUpAt: string | undefined): FollowUpBadge => {
   if (!nextFollowUpAt) return null;
@@ -32,11 +33,11 @@ const getFollowUpBadge = (nextFollowUpAt: string | undefined): FollowUpBadge => 
   const endOfWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   if (followUpDate < startOfToday) {
-    return { label: 'Gecikmiş', color: 'bg-red-100 text-red-700 border-red-200', priority: 1 };
+    return { labelKey: 'followUp.overdue', color: 'bg-red-100 text-red-700 border-red-200', priority: 1 };
   } else if (followUpDate <= endOfToday) {
-    return { label: 'Bugün', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', priority: 2 };
+    return { labelKey: 'followUp.today', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', priority: 2 };
   } else if (followUpDate <= endOfWeek) {
-    return { label: 'Bu Hafta', color: 'bg-blue-100 text-blue-700 border-blue-200', priority: 3 };
+    return { labelKey: 'followUp.thisWeek', color: 'bg-blue-100 text-blue-700 border-blue-200', priority: 3 };
   }
   return null;
 };
@@ -44,6 +45,8 @@ const getFollowUpBadge = (nextFollowUpAt: string | undefined): FollowUpBadge => 
 type FilterType = LeadStatus | 'all' | 'hot' | 'follow_up' | 'overdue';
 
 export default function Leads() {
+  const { t } = useTranslation('sales');
+  const { i18n } = useTranslation();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<LeadPipelineStats | null>(null);
   const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
@@ -103,16 +106,16 @@ export default function Leads() {
 
   const formatCurrency = (value: number | undefined) => {
     if (!value) return '-';
-    return new Intl.NumberFormat('tr-TR', {
+    return new Intl.NumberFormat(i18n.language === 'tr' ? 'tr-TR' : 'en-US', {
       style: 'currency',
-      currency: 'TRY',
+      currency: i18n.language === 'tr' ? 'TRY' : 'EUR',
       minimumFractionDigits: 0,
     }).format(value);
   };
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('tr-TR', {
+    return new Date(dateString).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'short',
     });
@@ -120,9 +123,9 @@ export default function Leads() {
 
   const getDaysAgo = (dateString: string) => {
     const days = Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Bugün';
-    if (days === 1) return 'Dün';
-    return `${days} gün önce`;
+    if (days === 0) return t('followUp.today');
+    if (days === 1) return i18n.language === 'tr' ? 'Dün' : 'Yesterday';
+    return `${days} ${i18n.language === 'tr' ? 'gün önce' : 'days ago'}`;
   };
 
   return (
@@ -130,15 +133,15 @@ export default function Leads() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Satış Konsolu</h1>
-          <p className="text-gray-500 mt-1">Potansiyel müşterilerinizi yönetin</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('leads.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('leads.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowNewLeadModal(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           <PlusIcon className="h-5 w-5" />
-          Yeni Lead
+          {t('leads.newLead')}
         </button>
       </div>
 
@@ -162,7 +165,7 @@ export default function Leads() {
                 )}
               >
                 <span className={clsx('text-xs font-medium px-2 py-0.5 rounded-full', LEAD_STATUS_COLORS[status])}>
-                  {LEAD_STATUS_LABELS[status]}
+                  {t(`status.${status}`)}
                 </span>
                 <div className="mt-2">
                   <span className="text-2xl font-bold text-gray-900">{count}</span>
@@ -182,7 +185,7 @@ export default function Leads() {
           <div className="bg-white rounded-lg border p-4">
             <div className="flex items-center gap-2 text-gray-500 text-sm">
               <BuildingOfficeIcon className="h-4 w-4" />
-              Toplam Lead
+              {t('stats.totalLeads')}
             </div>
             <div className="text-2xl font-bold mt-1">{stats.total_leads}</div>
           </div>
@@ -195,7 +198,7 @@ export default function Leads() {
           >
             <div className="flex items-center gap-2 text-orange-500 text-sm">
               <FireIconSolid className="h-4 w-4" />
-              Sıcak Lead
+              {t('stats.hotLeads')}
             </div>
             <div className="text-2xl font-bold mt-1">{stats.hot_leads}</div>
           </button>
@@ -208,7 +211,7 @@ export default function Leads() {
           >
             <div className="flex items-center gap-2 text-red-600 text-sm">
               <ExclamationCircleIcon className="h-4 w-4" />
-              Gecikmiş
+              {t('stats.overdue')}
             </div>
             <div className="text-2xl font-bold mt-1">{followUpStats?.overdue || 0}</div>
           </button>
@@ -221,17 +224,17 @@ export default function Leads() {
           >
             <div className="flex items-center gap-2 text-yellow-600 text-sm">
               <ClockIcon className="h-4 w-4" />
-              Takip Gereken
+              {t('stats.followUpNeeded')}
             </div>
             <div className="text-2xl font-bold mt-1">{stats.needs_follow_up}</div>
           </button>
           <div className="bg-white rounded-lg border p-4">
             <div className="flex items-center gap-2 text-green-600 text-sm">
               <CalendarIcon className="h-4 w-4" />
-              Bu Ay Kazanılan
+              {t('stats.wonThisMonth')}
             </div>
             <div className="text-2xl font-bold mt-1">{stats.won_this_month}</div>
-            <div className="text-xs text-gray-500">%{stats.conversion_rate} dönüşüm</div>
+            <div className="text-xs text-gray-500">%{stats.conversion_rate} {t('stats.conversion')}</div>
           </div>
         </div>
       )}
@@ -242,7 +245,7 @@ export default function Leads() {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Firma, kişi veya e-posta ara..."
+            placeholder={t('filters.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -258,7 +261,7 @@ export default function Leads() {
           )}
         >
           <FunnelIcon className="h-5 w-5" />
-          Tümü
+          {t('filters.all')}
         </button>
       </div>
 
@@ -267,13 +270,13 @@ export default function Leads() {
         {loading ? (
           <div className="p-8 text-center text-gray-500">
             <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            Yükleniyor...
+            {t('leads.loading')}
           </div>
         ) : leads.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="font-medium">Lead bulunamadı</p>
-            <p className="text-sm mt-1">Yeni lead ekleyerek başlayın</p>
+            <p className="font-medium">{t('leads.noLeads')}</p>
+            <p className="text-sm mt-1">{t('leads.noLeadsHint')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -307,7 +310,7 @@ export default function Leads() {
                       <FireIconSolid className="h-4 w-4 text-orange-500 flex-shrink-0" />
                     )}
                     <span className={clsx('text-xs px-2 py-0.5 rounded-full', LEAD_STATUS_COLORS[lead.status])}>
-                      {LEAD_STATUS_LABELS[lead.status]}
+                      {t(`status.${lead.status}`)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
@@ -331,12 +334,12 @@ export default function Leads() {
                       <div className="flex items-center gap-2 mt-1">
                         {badge && (
                           <span className={clsx('text-xs px-2 py-0.5 rounded-full border', badge.color)}>
-                            {badge.label}
+                            {t(badge.labelKey)}
                           </span>
                         )}
                         <span className="text-xs text-gray-500 flex items-center gap-1">
                           <ClockIcon className="h-3.5 w-3.5" />
-                          Takip: {formatDate(lead.next_follow_up_at)}
+                          {t('followUp.follow')}: {formatDate(lead.next_follow_up_at)}
                         </span>
                       </div>
                     );
@@ -355,7 +358,7 @@ export default function Leads() {
                   </div>
                   {lead.activities_count !== undefined && lead.activities_count > 0 && (
                     <div className="text-xs text-gray-400 mt-1">
-                      {lead.activities_count} aktivite
+                      {lead.activities_count} {lead.activities_count === 1 ? t('leads.activity') : t('leads.activities')}
                     </div>
                   )}
                 </div>
@@ -389,6 +392,7 @@ function NewLeadModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation('sales');
   const [formData, setFormData] = useState({
     company_name: '',
     contact_name: '',
@@ -424,13 +428,13 @@ function NewLeadModal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Yeni Lead Ekle</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('modal.newLead.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Firma Adı *
+                  {t('modal.newLead.companyName')} *
                 </label>
                 <input
                   type="text"
@@ -442,7 +446,7 @@ function NewLeadModal({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Yetkili Adı *
+                  {t('modal.newLead.contactName')} *
                 </label>
                 <input
                   type="text"
@@ -457,7 +461,7 @@ function NewLeadModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  E-posta *
+                  {t('modal.newLead.email')} *
                 </label>
                 <input
                   type="email"
@@ -469,7 +473,7 @@ function NewLeadModal({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telefon
+                  {t('modal.newLead.phone')}
                 </label>
                 <input
                   type="tel"
@@ -483,33 +487,33 @@ function NewLeadModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Firma Tipi
+                  {t('modal.newLead.companyType')}
                 </label>
                 <select
                   value={formData.company_type}
                   onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="">Seçiniz</option>
-                  <option value="single">Tekil Şube</option>
-                  <option value="chain">Zincir</option>
-                  <option value="franchise">Franchise</option>
+                  <option value="">{t('modal.newLead.select')}</option>
+                  <option value="single">{t('company.types.single')}</option>
+                  <option value="chain">{t('company.types.chain')}</option>
+                  <option value="franchise">{t('company.types.franchise')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Firma Büyüklüğü
+                  {t('modal.newLead.companySize')}
                 </label>
                 <select
                   value={formData.company_size}
                   onChange={(e) => setFormData({ ...formData, company_size: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="">Seçiniz</option>
-                  <option value="1-10">1-10 çalışan</option>
-                  <option value="11-50">11-50 çalışan</option>
-                  <option value="51-200">51-200 çalışan</option>
-                  <option value="200+">200+ çalışan</option>
+                  <option value="">{t('modal.newLead.select')}</option>
+                  <option value="1-10">{t('modal.newLead.sizes.1-10')}</option>
+                  <option value="11-50">{t('modal.newLead.sizes.11-50')}</option>
+                  <option value="51-200">{t('modal.newLead.sizes.51-200')}</option>
+                  <option value="200+">{t('modal.newLead.sizes.200+')}</option>
                 </select>
               </div>
             </div>
@@ -517,19 +521,19 @@ function NewLeadModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sektör
+                  {t('modal.newLead.industry')}
                 </label>
                 <input
                   type="text"
                   value={formData.industry}
                   onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                  placeholder="Perakende, Üretim, vb."
+                  placeholder={t('modal.newLead.industryPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Şehir
+                  {t('modal.newLead.city')}
                 </label>
                 <input
                   type="text"
@@ -542,24 +546,24 @@ function NewLeadModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kaynak
+                {t('modal.newLead.source')}
               </label>
               <select
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="website">Website</option>
-                <option value="referral">Referans</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="cold_call">Soğuk Arama</option>
-                <option value="event">Etkinlik</option>
+                <option value="website">{t('modal.newLead.sources.website')}</option>
+                <option value="referral">{t('modal.newLead.sources.referral')}</option>
+                <option value="linkedin">{t('modal.newLead.sources.linkedin')}</option>
+                <option value="cold_call">{t('modal.newLead.sources.coldCall')}</option>
+                <option value="event">{t('modal.newLead.sources.event')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notlar
+                {t('modal.newLead.notes')}
               </label>
               <textarea
                 rows={3}
@@ -581,14 +585,14 @@ function NewLeadModal({
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                İptal
+                {t('modal.newLead.select') === 'Seçiniz' ? 'İptal' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                {loading ? (t('modal.newLead.select') === 'Seçiniz' ? 'Kaydediliyor...' : 'Saving...') : (t('modal.newLead.select') === 'Seçiniz' ? 'Kaydet' : 'Save')}
               </button>
             </div>
           </form>

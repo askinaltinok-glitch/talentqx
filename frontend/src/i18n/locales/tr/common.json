@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "howItWorks": "Nasıl Çalışır",
+    "features": "Özellikler",
+    "forWho": "Kimler İçin",
+    "pricing": "Fiyatlandırma",
+    "faq": "SSS",
+    "login": "Giriş Yap",
+    "requestDemo": "Demo Talep Et",
+    "talkToSales": "Satışla Görüş",
+    "dashboard": "Dashboard",
+    "jobs": "İş İlanları",
+    "candidates": "Adaylar",
+    "employees": "Çalışanlar",
+    "assessments": "Değerlendirmeler",
+    "leads": "Potansiyel Müşteriler",
+    "workforceAssessment": "Yetkinlik Değerlendirme",
+    "salesConsole": "Satış Konsolu",
+    "followUpNeeded": "Takip Gereken",
+    "logout": "Çıkış Yap"
+  },
+  "buttons": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "add": "Ekle",
+    "close": "Kapat",
+    "submit": "Gönder",
+    "back": "Geri",
+    "next": "İleri",
+    "loading": "Yükleniyor...",
+    "saving": "Kaydediliyor...",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı!"
+  },
+  "status": {
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "pending": "Beklemede",
+    "completed": "Tamamlandı",
+    "cancelled": "İptal Edildi"
+  },
+  "time": {
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "daysAgo": "{{count}} gün önce",
+    "tomorrow": "Yarın",
+    "thisWeek": "Bu Hafta"
+  },
+  "validation": {
+    "required": "Bu alan zorunludur",
+    "email": "Geçerli bir e-posta adresi girin",
+    "phone": "Geçerli bir telefon numarası girin"
+  },
+  "languages": {
+    "en": "İngilizce",
+    "tr": "Türkçe",
+    "de": "Almanca",
+    "fr": "Fransızca"
+  }
+}

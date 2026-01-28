@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeftIcon,
   PhoneIcon,
@@ -19,7 +20,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { FireIcon as FireIconSolid, CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 import api from '../services/api';
-import { ROUTES } from '../routes';
+import { leadsPath } from '../routes';
 import type {
   Lead,
   LeadActivity,
@@ -29,12 +30,7 @@ import type {
   LeadActivityType,
   LeadChecklistStage,
 } from '../types';
-import {
-  LEAD_STATUS_LABELS,
-  LEAD_STATUS_COLORS,
-  LEAD_ACTIVITY_TYPE_LABELS,
-  LEAD_CHECKLIST_STAGE_LABELS,
-} from '../types';
+import { LEAD_STATUS_COLORS } from '../types';
 import clsx from 'clsx';
 
 const ACTIVITY_ICONS: Record<LeadActivityType, React.ComponentType<{ className?: string }>> = {
@@ -50,6 +46,7 @@ const ACTIVITY_ICONS: Record<LeadActivityType, React.ComponentType<{ className?:
 const STATUS_ORDER: LeadStatus[] = ['new', 'contacted', 'demo', 'pilot', 'negotiation', 'won', 'lost'];
 
 export default function LeadDetail() {
+  const { t, i18n } = useTranslation('sales');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [lead, setLead] = useState<Lead | null>(null);
@@ -94,7 +91,7 @@ export default function LeadDetail() {
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('tr-TR', {
+    return new Date(dateString).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -103,9 +100,9 @@ export default function LeadDetail() {
 
   const formatCurrency = (value: number | undefined) => {
     if (!value) return '-';
-    return new Intl.NumberFormat('tr-TR', {
+    return new Intl.NumberFormat(i18n.language === 'tr' ? 'tr-TR' : 'en-US', {
       style: 'currency',
-      currency: 'TRY',
+      currency: i18n.language === 'tr' ? 'TRY' : 'EUR',
       minimumFractionDigits: 0,
     }).format(value);
   };
@@ -121,9 +118,9 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Lead bulunamadı</p>
-        <Link to={ROUTES.LEADS} className="text-primary-600 hover:underline mt-2 inline-block">
-          Geri dön
+        <p className="text-gray-500">{t('detail.notFound')}</p>
+        <Link to={leadsPath()} className="text-primary-600 hover:underline mt-2 inline-block">
+          {t('detail.goBack')}
         </Link>
       </div>
     );
@@ -142,7 +139,7 @@ export default function LeadDetail() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate(ROUTES.LEADS)}
+          onClick={() => navigate(leadsPath())}
           className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
         >
           <ArrowLeftIcon className="h-5 w-5" />
@@ -152,7 +149,7 @@ export default function LeadDetail() {
             <h1 className="text-2xl font-bold text-gray-900">{lead.company_name}</h1>
             {lead.is_hot && <FireIconSolid className="h-6 w-6 text-orange-500" />}
             <span className={clsx('px-3 py-1 rounded-full text-sm font-medium', LEAD_STATUS_COLORS[lead.status])}>
-              {LEAD_STATUS_LABELS[lead.status]}
+              {t(`status.${lead.status}`)}
             </span>
           </div>
           <p className="text-gray-500 mt-1">{lead.contact_name}</p>
@@ -161,30 +158,30 @@ export default function LeadDetail() {
           <button
             onClick={() => setShowFollowUpModal(true)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2"
-            title="Takip Hatırlatıcısı"
+            title={t('detail.followUp')}
           >
             <BellIcon className="h-4 w-4" />
-            Takip
+            {t('detail.followUp')}
           </button>
           <button
             onClick={() => setShowPilotOfferModal(true)}
             className="px-4 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 text-sm font-medium flex items-center gap-2"
           >
             <DocumentTextIcon className="h-4 w-4" />
-            Pilot Teklifi Gönder
+            {t('detail.sendPilotOffer')}
           </button>
           <button
             onClick={() => setShowStatusModal(true)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
           >
-            Durum Değiştir
+            {t('detail.changeStatus')}
           </button>
           <button
             onClick={() => setShowActivityModal(true)}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium flex items-center gap-2"
           >
             <PlusIcon className="h-4 w-4" />
-            Aktivite Ekle
+            {t('detail.addActivity')}
           </button>
         </div>
       </div>
@@ -232,7 +229,7 @@ export default function LeadDetail() {
         <div className="flex justify-between mt-2">
           {STATUS_ORDER.filter(s => s !== 'lost').map((status) => (
             <div key={status} className="text-xs text-gray-500 text-center" style={{ width: '14%' }}>
-              {LEAD_STATUS_LABELS[status]}
+              {t(`status.${status}`)}
             </div>
           ))}
         </div>
@@ -243,7 +240,7 @@ export default function LeadDetail() {
         <div className="space-y-6">
           {/* Contact Info Card */}
           <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">İletişim Bilgileri</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('contact.title')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <EnvelopeIcon className="h-5 w-5 text-gray-400" />
@@ -276,30 +273,24 @@ export default function LeadDetail() {
 
           {/* Company Info Card */}
           <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Firma Bilgileri</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('company.title')}</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Firma Tipi</dt>
+                <dt className="text-gray-500">{t('company.type')}</dt>
                 <dd className="text-gray-900 font-medium">
-                  {lead.company_type === 'single'
-                    ? 'Tekil Şube'
-                    : lead.company_type === 'chain'
-                    ? 'Zincir'
-                    : lead.company_type === 'franchise'
-                    ? 'Franchise'
-                    : '-'}
+                  {lead.company_type ? t(`company.types.${lead.company_type}`) : '-'}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Firma Büyüklüğü</dt>
+                <dt className="text-gray-500">{t('company.size')}</dt>
                 <dd className="text-gray-900 font-medium">{lead.company_size || '-'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Kaynak</dt>
+                <dt className="text-gray-500">{t('company.source')}</dt>
                 <dd className="text-gray-900 font-medium">{lead.source}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Lead Skoru</dt>
+                <dt className="text-gray-500">{t('company.leadScore')}</dt>
                 <dd className="text-gray-900 font-medium">
                   <span
                     className={clsx(
@@ -320,15 +311,15 @@ export default function LeadDetail() {
 
           {/* Financial Info Card */}
           <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Finansal Bilgiler</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('financial.title')}</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Tahmini Değer</dt>
+                <dt className="text-gray-500">{t('financial.estimatedValue')}</dt>
                 <dd className="text-gray-900 font-medium">{formatCurrency(lead.estimated_value)}</dd>
               </div>
               {lead.actual_value && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Gerçek Değer</dt>
+                  <dt className="text-gray-500">{t('financial.actualValue')}</dt>
                   <dd className="text-gray-900 font-medium">{formatCurrency(lead.actual_value)}</dd>
                 </div>
               )}
@@ -337,21 +328,21 @@ export default function LeadDetail() {
 
           {/* Dates Card */}
           <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Önemli Tarihler</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('dates.title')}</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Oluşturulma</dt>
+                <dt className="text-gray-500">{t('dates.created')}</dt>
                 <dd className="text-gray-900">{formatDate(lead.created_at)}</dd>
               </div>
               {lead.first_contact_at && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">İlk İletişim</dt>
+                  <dt className="text-gray-500">{t('dates.firstContact')}</dt>
                   <dd className="text-gray-900">{formatDate(lead.first_contact_at)}</dd>
                 </div>
               )}
               {lead.demo_scheduled_at && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Demo Tarihi</dt>
+                  <dt className="text-gray-500">{t('dates.demoDate')}</dt>
                   <dd className="text-gray-900">{formatDate(lead.demo_scheduled_at)}</dd>
                 </div>
               )}
@@ -359,7 +350,7 @@ export default function LeadDetail() {
                 <div className="flex justify-between">
                   <dt className="text-gray-500 flex items-center gap-1">
                     <ClockIcon className="h-4 w-4 text-yellow-500" />
-                    Sonraki Takip
+                    {t('dates.nextFollowUp')}
                   </dt>
                   <dd className="text-yellow-600 font-medium">{formatDate(lead.next_follow_up_at)}</dd>
                 </div>
@@ -370,7 +361,7 @@ export default function LeadDetail() {
           {/* Notes Card */}
           {lead.notes && (
             <div className="bg-white rounded-lg border p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Notlar</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('notes.title')}</h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{lead.notes}</p>
             </div>
           )}
@@ -391,7 +382,7 @@ export default function LeadDetail() {
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   )}
                 >
-                  Aktiviteler ({lead.activities?.length || 0})
+                  {t('tabs.activities')} ({lead.activities?.length || 0})
                 </button>
                 <button
                   onClick={() => setActiveTab('checklist')}
@@ -402,7 +393,7 @@ export default function LeadDetail() {
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   )}
                 >
-                  Checklist ({checklistProgress?.overall_percentage || 0}%)
+                  {t('tabs.checklist')} ({checklistProgress?.overall_percentage || 0}%)
                 </button>
               </nav>
             </div>
@@ -413,12 +404,12 @@ export default function LeadDetail() {
                   {!lead.activities || lead.activities.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <ChatBubbleLeftIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                      <p>Henüz aktivite yok</p>
+                      <p>{t('activities.noActivities')}</p>
                       <button
                         onClick={() => setShowActivityModal(true)}
                         className="mt-2 text-primary-600 hover:underline text-sm"
                       >
-                        İlk aktiviteyi ekle
+                        {t('activities.addFirst')}
                       </button>
                     </div>
                   ) : (
@@ -436,7 +427,7 @@ export default function LeadDetail() {
                   {checklistProgress && (
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Genel İlerleme</span>
+                        <span className="text-sm font-medium text-gray-700">{t('checklist.overallProgress')}</span>
                         <span className="text-sm font-bold text-primary-600">
                           {checklistProgress.completed}/{checklistProgress.total}
                         </span>
@@ -460,7 +451,7 @@ export default function LeadDetail() {
                       <div key={stage}>
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium text-gray-900">
-                            {LEAD_CHECKLIST_STAGE_LABELS[stage]}
+                            {t(`checklist.stages.${stage}`)}
                           </h4>
                           {stageProgress && (
                             <span className="text-xs text-gray-500">
@@ -552,10 +543,12 @@ export default function LeadDetail() {
 
 // Activity Item Component
 function ActivityItem({ activity }: { activity: LeadActivity }) {
+  const { t } = useTranslation('sales');
+  const { i18n } = useTranslation();
   const Icon = ACTIVITY_ICONS[activity.type] || ChatBubbleLeftIcon;
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('tr-TR', {
+    return new Date(dateString).toLocaleString(i18n.language, {
       day: 'numeric',
       month: 'short',
       hour: '2-digit',
@@ -598,7 +591,7 @@ function ActivityItem({ activity }: { activity: LeadActivity }) {
       <div className="bg-gray-50 rounded-lg p-3">
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-medium text-gray-900">
-            {LEAD_ACTIVITY_TYPE_LABELS[activity.type]}
+            {t(`activities.types.${activity.type === 'status_change' ? 'statusChange' : activity.type}`)}
             {activity.subject && `: ${activity.subject}`}
           </span>
           <span className="text-xs text-gray-500">{formatDateTime(activity.created_at)}</span>
@@ -606,9 +599,9 @@ function ActivityItem({ activity }: { activity: LeadActivity }) {
 
         {activity.type === 'status_change' && (
           <p className="text-sm text-gray-600">
-            {LEAD_STATUS_LABELS[activity.old_status as LeadStatus] || activity.old_status} →{' '}
+            {t(`status.${activity.old_status}`)} →{' '}
             <span className="font-medium">
-              {LEAD_STATUS_LABELS[activity.new_status as LeadStatus] || activity.new_status}
+              {t(`status.${activity.new_status}`)}
             </span>
           </p>
         )}
@@ -625,15 +618,15 @@ function ActivityItem({ activity }: { activity: LeadActivity }) {
             className="inline-flex items-center gap-1 mt-2 text-sm text-primary-600 hover:underline"
           >
             <LinkIcon className="h-4 w-4" />
-            Toplantı Linki
+            Meeting Link
           </a>
         )}
 
         {activity.scheduled_at && (
           <p className="text-xs text-gray-500 mt-1">
             <CalendarIcon className="h-3.5 w-3.5 inline mr-1" />
-            {new Date(activity.scheduled_at).toLocaleString('tr-TR')}
-            {activity.duration_minutes && ` (${activity.duration_minutes} dk)`}
+            {new Date(activity.scheduled_at).toLocaleString(i18n.language)}
+            {activity.duration_minutes && ` (${activity.duration_minutes} min)`}
           </p>
         )}
 
@@ -657,6 +650,8 @@ function ActivityModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation('sales');
+  const { t: tc } = useTranslation('common');
   const [formData, setFormData] = useState({
     type: 'note' as LeadActivityType,
     subject: '',
@@ -700,30 +695,30 @@ function ActivityModal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Aktivite Ekle</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('modal.activity.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Aktivite Tipi *
+                {t('modal.activity.type')} *
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as LeadActivityType })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="note">Not</option>
-                <option value="call">Arama</option>
-                <option value="email">E-posta</option>
-                <option value="meeting">Toplantı</option>
-                <option value="demo">Demo</option>
-                <option value="task">Görev</option>
+                <option value="note">{t('activities.types.note')}</option>
+                <option value="call">{t('activities.types.call')}</option>
+                <option value="email">{t('activities.types.email')}</option>
+                <option value="meeting">{t('activities.types.meeting')}</option>
+                <option value="demo">{t('activities.types.demo')}</option>
+                <option value="task">{t('activities.types.task')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Konu
+                {t('modal.activity.subject')}
               </label>
               <input
                 type="text"
@@ -735,7 +730,7 @@ function ActivityModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Açıklama
+                {t('modal.activity.description')}
               </label>
               <textarea
                 rows={3}
@@ -749,13 +744,13 @@ function ActivityModal({
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Toplantı Linki (Zoom/Meet)
+                    {t('modal.activity.meetingLink')}
                   </label>
                   <input
                     type="url"
                     value={formData.meeting_link}
                     onChange={(e) => setFormData({ ...formData, meeting_link: e.target.value })}
-                    placeholder="https://zoom.us/j/..."
+                    placeholder={t('modal.activity.meetingLinkPlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
@@ -763,7 +758,7 @@ function ActivityModal({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tarih & Saat
+                      {t('modal.activity.dateTime')}
                     </label>
                     <input
                       type="datetime-local"
@@ -774,7 +769,7 @@ function ActivityModal({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Süre (dk)
+                      {t('modal.activity.duration')}
                     </label>
                     <input
                       type="number"
@@ -791,7 +786,7 @@ function ActivityModal({
             {formData.type === 'task' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teslim Tarihi
+                  {t('modal.activity.dueDate')}
                 </label>
                 <input
                   type="datetime-local"
@@ -814,14 +809,14 @@ function ActivityModal({
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                İptal
+                {tc('buttons.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                {loading ? tc('buttons.saving') : tc('buttons.save')}
               </button>
             </div>
           </form>
@@ -841,6 +836,8 @@ function StatusModal({
   onClose: () => void;
   onUpdated: () => void;
 }) {
+  const { t } = useTranslation('sales');
+  const { t: tc } = useTranslation('common');
   const [selectedStatus, setSelectedStatus] = useState<LeadStatus>(lead.status);
   const [lostReason, setLostReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -869,7 +866,7 @@ function StatusModal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Durum Değiştir</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('modal.status.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -886,7 +883,7 @@ function StatusModal({
                   )}
                 >
                   <span className={clsx('inline-block px-2 py-0.5 rounded-full text-xs mb-1', LEAD_STATUS_COLORS[status])}>
-                    {LEAD_STATUS_LABELS[status]}
+                    {t(`status.${status}`)}
                   </span>
                 </button>
               ))}
@@ -895,14 +892,14 @@ function StatusModal({
             {selectedStatus === 'lost' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kayıp Nedeni *
+                  {t('modal.status.lostReason')} *
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={lostReason}
                   onChange={(e) => setLostReason(e.target.value)}
-                  placeholder="Müşteri neden kaybedildi?"
+                  placeholder={t('modal.status.lostReasonPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
@@ -920,14 +917,14 @@ function StatusModal({
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                İptal
+                {tc('buttons.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading || selectedStatus === lead.status}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                {loading ? 'Kaydediliyor...' : 'Güncelle'}
+                {loading ? tc('buttons.saving') : t('modal.status.update')}
               </button>
             </div>
           </form>
@@ -945,48 +942,50 @@ function PilotOfferModal({
   lead: Lead;
   onClose: () => void;
 }) {
+  const { t } = useTranslation('sales');
+  const { t: tc } = useTranslation('common');
   const [copied, setCopied] = useState(false);
 
   const generateEmailTemplate = () => {
-    const contactName = lead.contact_name || 'Yetkili';
+    const contactName = lead.contact_name || 'Dear Sir/Madam';
     const companyName = lead.company_name;
 
-    return `Sayın ${contactName},
+    return `Dear ${contactName},
 
-${companyName} için hazırladığımız TalentQX Pilot Programı teklifini ekte bilgilerinize sunarız.
+Please find attached our TalentQX Pilot Program proposal prepared for ${companyName}.
 
-## TalentQX Pilot Programı - 30 Gün
+## TalentQX Pilot Program - 30 Days
 
-**Neler Dahil:**
-- Tam platform erişimi
-- 3 role özel değerlendirme şablonu
-- 20 aday/çalışan değerlendirmesi
-- 1 saatlik İK ekibi eğitimi
-- E-posta ve telefon desteği
-- Pilot sonu ROI analizi raporu
+**What's Included:**
+- Full platform access
+- 3 role-specific assessment templates
+- 20 candidate/employee assessments
+- 1-hour HR team training
+- Email and phone support
+- Post-pilot ROI analysis report
 
-**Yatırım:** €490 + KDV
+**Investment:** €490 + VAT
 
-**Avantajlar:**
-- Uzun vadeli taahhüt yok
-- Pilot ücreti yıllık abonelikten düşülür
-- 30 gün içinde karar verirseniz %15 indirim
+**Benefits:**
+- No long-term commitment
+- Pilot fee deducted from annual subscription
+- 15% discount if you decide within 30 days
 
-**Pilot Sonrası Seçenekler:**
-A) Tam Abonelik - Sorunsuz geçiş, pilot ücreti düşülür
-B) Pilot Uzatma - Ek 30 gün, daha fazla rol testi
-C) Sonlandırma - Hiçbir yükümlülük yok
+**Post-Pilot Options:**
+A) Full Subscription - Seamless transition, pilot fee deducted
+B) Pilot Extension - Additional 30 days, more role testing
+C) Termination - No obligation
 
-**KVKK/GDPR Uyumu:** Tam mevzuat uyumu, açık rıza yönetimi, veri silme hakkı
+**GDPR Compliance:** Full regulatory compliance, consent management, data deletion rights
 
-**Sonraki Adımlar:**
-1. Pilot sözleşmesi imzası
-2. 48 saat içinde başlangıç toplantısı
-3. 3 iş günü içinde canlıya geçiş
+**Next Steps:**
+1. Pilot contract signature
+2. Kickoff meeting within 48 hours
+3. Go-live within 3 business days
 
-Herhangi bir sorunuz olursa beni arayabilirsiniz.
+Please feel free to call me if you have any questions.
 
-Saygılarımla,
+Best regards,
 
 ---
 TalentQX Sales Team
@@ -994,7 +993,7 @@ pilot@talentqx.com
 www.talentqx.com
 
 ---
-"TalentQX – İşe Almadan Önce Çalışanlarınızı Tanıyın."`;
+"TalentQX – Know Your Employees Before Hiring."`;
   };
 
   const handleCopy = async () => {
@@ -1008,7 +1007,7 @@ www.talentqx.com
   };
 
   const handleOpenEmail = () => {
-    const subject = encodeURIComponent(`TalentQX Pilot Programı Teklifi - ${lead.company_name}`);
+    const subject = encodeURIComponent(`TalentQX Pilot Program Proposal - ${lead.company_name}`);
     const body = encodeURIComponent(generateEmailTemplate());
     window.open(`mailto:${lead.email}?subject=${subject}&body=${body}`, '_blank');
   };
@@ -1019,13 +1018,13 @@ www.talentqx.com
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Pilot Teklifi Gönder</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t('modal.pilotOffer.title')}</h2>
             <span className="text-sm text-gray-500">{lead.company_name}</span>
           </div>
 
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-700">Alıcı:</span>
+              <span className="text-sm font-medium text-gray-700">{t('modal.pilotOffer.recipient')}</span>
               <span className="text-sm text-gray-900">{lead.email}</span>
             </div>
           </div>
@@ -1042,21 +1041,21 @@ www.talentqx.com
               onClick={onClose}
               className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              Kapat
+              {tc('buttons.close')}
             </button>
             <button
               onClick={handleCopy}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
             >
               <ClipboardDocumentIcon className="h-4 w-4" />
-              {copied ? 'Kopyalandı!' : 'Kopyala'}
+              {copied ? tc('buttons.copied') : tc('buttons.copy')}
             </button>
             <button
               onClick={handleOpenEmail}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
             >
               <EnvelopeIcon className="h-4 w-4" />
-              E-posta Aç
+              {t('modal.pilotOffer.openEmail')}
             </button>
           </div>
         </div>
@@ -1075,6 +1074,9 @@ function FollowUpModal({
   onClose: () => void;
   onUpdated: () => void;
 }) {
+  const { t } = useTranslation('sales');
+  const { t: tc } = useTranslation('common');
+  const { i18n } = useTranslation();
   const [followUpDate, setFollowUpDate] = useState(
     lead.next_follow_up_at
       ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16)
@@ -1130,12 +1132,12 @@ function FollowUpModal({
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Takip Hatırlatıcısı</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('modal.followUp.title')}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hızlı Seçim
+                {t('modal.followUp.quickSelect')}
               </label>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -1143,42 +1145,42 @@ function FollowUpModal({
                   onClick={() => setPreset(1)}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  Yarın
+                  {t('modal.followUp.presets.tomorrow')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreset(3)}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  3 Gün
+                  {t('modal.followUp.presets.3days')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreset(7)}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  1 Hafta
+                  {t('modal.followUp.presets.1week')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreset(14)}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  2 Hafta
+                  {t('modal.followUp.presets.2weeks')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreset(30)}
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  1 Ay
+                  {t('modal.followUp.presets.1month')}
                 </button>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tarih & Saat
+                {t('modal.followUp.dateTime')}
               </label>
               <input
                 type="datetime-local"
@@ -1192,9 +1194,9 @@ function FollowUpModal({
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
                   <BellIcon className="h-4 w-4 inline mr-1" />
-                  Mevcut hatırlatıcı:{' '}
+                  {t('modal.followUp.currentReminder')}{' '}
                   <strong>
-                    {new Date(lead.next_follow_up_at).toLocaleString('tr-TR', {
+                    {new Date(lead.next_follow_up_at).toLocaleString(i18n.language, {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
@@ -1221,7 +1223,7 @@ function FollowUpModal({
                     disabled={loading}
                     className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
                   >
-                    Hatırlatıcıyı Kaldır
+                    {t('modal.followUp.removeReminder')}
                   </button>
                 )}
               </div>
@@ -1231,14 +1233,14 @@ function FollowUpModal({
                   onClick={onClose}
                   className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  İptal
+                  {tc('buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !followUpDate}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                 >
-                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                  {loading ? tc('buttons.saving') : tc('buttons.save')}
                 </button>
               </div>
             </div>

@@ -3,8 +3,10 @@
  * All route paths should be defined here to avoid hard-coded strings
  */
 
+import i18n from './i18n';
+
 // ============================================
-// Route Path Constants
+// Route Path Constants (without language prefix)
 // ============================================
 
 export const ROUTES = {
@@ -33,76 +35,117 @@ export const ROUTES = {
 } as const;
 
 // ============================================
-// Route Helper Functions
+// Language-aware Route Helper Functions
 // ============================================
 
 /**
- * Generate job detail URL
+ * Get current language from i18n
+ */
+function getCurrentLang(): string {
+  return i18n.language || 'en';
+}
+
+/**
+ * Prefix a route with the current language
+ */
+export function localizedPath(path: string): string {
+  const lang = getCurrentLang();
+  if (path.startsWith('/')) {
+    return `/${lang}${path}`;
+  }
+  return `/${lang}/${path}`;
+}
+
+/**
+ * Generate job detail URL with language prefix
  */
 export function jobDetailPath(id: string): string {
-  return `/app/jobs/${id}`;
+  return localizedPath(`/app/jobs/${id}`);
 }
 
 /**
- * Generate candidate detail URL
+ * Generate candidate detail URL with language prefix
  */
 export function candidateDetailPath(id: string): string {
-  return `/app/candidates/${id}`;
+  return localizedPath(`/app/candidates/${id}`);
 }
 
 /**
- * Generate interview detail URL
+ * Generate interview detail URL with language prefix
  */
 export function interviewDetailPath(id: string): string {
-  return `/app/interviews/${id}`;
+  return localizedPath(`/app/interviews/${id}`);
 }
 
 /**
- * Generate employee detail URL
+ * Generate employee detail URL with language prefix
  */
 export function employeeDetailPath(id: string): string {
-  return `/app/employees/${id}`;
+  return localizedPath(`/app/employees/${id}`);
 }
 
 /**
- * Generate assessments compare URL
+ * Generate assessments compare URL with language prefix
  */
 export function assessmentsComparePath(ids: string[]): string {
-  return `/app/assessments/compare?ids=${ids.join(',')}`;
+  return localizedPath(`/app/assessments/compare?ids=${ids.join(',')}`);
 }
 
 /**
- * Generate lead detail URL
+ * Generate lead detail URL with language prefix
  */
 export function leadDetailPath(id: string): string {
-  return `/app/leads/${id}`;
+  return localizedPath(`/app/leads/${id}`);
 }
 
 /**
- * Generate login URL with optional redirect
+ * Generate login URL with optional redirect and language prefix
  */
 export function loginPath(next?: string): string {
+  const basePath = localizedPath('/login');
   if (next) {
-    return `/login?next=${encodeURIComponent(next)}`;
+    return `${basePath}?next=${encodeURIComponent(next)}`;
   }
-  return '/login';
+  return basePath;
+}
+
+/**
+ * Generate home URL with language prefix
+ */
+export function homePath(): string {
+  return localizedPath('/');
+}
+
+/**
+ * Generate dashboard URL with language prefix
+ */
+export function dashboardPath(): string {
+  return localizedPath('/app');
+}
+
+/**
+ * Generate leads URL with language prefix
+ */
+export function leadsPath(): string {
+  return localizedPath('/app/leads');
 }
 
 // ============================================
 // Navigation Items (for Layout)
+// These use translation keys, not hardcoded strings
 // ============================================
 
 export const NAV_ITEMS = {
   main: [
-    { name: 'Dashboard', href: ROUTES.DASHBOARD, end: true },
-    { name: 'İş İlanları', href: ROUTES.JOBS, end: false },
-    { name: 'Adaylar', href: ROUTES.CANDIDATES, end: false },
+    { nameKey: 'nav.dashboard', href: ROUTES.DASHBOARD, end: true },
+    { nameKey: 'nav.jobs', href: ROUTES.JOBS, end: false },
+    { nameKey: 'nav.candidates', href: ROUTES.CANDIDATES, end: false },
   ],
   workforce: [
-    { name: 'Çalışanlar', href: ROUTES.EMPLOYEES, end: false },
-    { name: 'Değerlendirmeler', href: ROUTES.ASSESSMENTS, end: false },
+    { nameKey: 'nav.employees', href: ROUTES.EMPLOYEES, end: false },
+    { nameKey: 'nav.assessments', href: ROUTES.ASSESSMENTS, end: false },
   ],
   sales: [
-    { name: 'Potansiyel Müşteriler', href: ROUTES.LEADS, end: false },
+    { nameKey: 'nav.leads', href: ROUTES.LEADS, end: false },
   ],
 } as const;

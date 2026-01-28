@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "howItWorks": "Comment ça marche",
+    "features": "Fonctionnalités",
+    "forWho": "Pour qui",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "login": "Connexion",
+    "requestDemo": "Demander une démo",
+    "talkToSales": "Parler aux ventes",
+    "dashboard": "Tableau de bord",
+    "jobs": "Offres d'emploi",
+    "candidates": "Candidats",
+    "employees": "Employés",
+    "assessments": "Évaluations",
+    "leads": "Clients potentiels",
+    "workforceAssessment": "Évaluation des compétences",
+    "salesConsole": "Console de vente",
+    "followUpNeeded": "Suivi requis",
+    "logout": "Déconnexion"
+  },
+  "buttons": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "submit": "Soumettre",
+    "back": "Retour",
+    "next": "Suivant",
+    "loading": "Chargement...",
+    "saving": "Enregistrement...",
+    "copy": "Copier",
+    "copied": "Copié!"
+  },
+  "status": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "pending": "En attente",
+    "completed": "Terminé",
+    "cancelled": "Annulé"
+  },
+  "time": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "daysAgo": "il y a {{count}} jours",
+    "tomorrow": "Demain",
+    "thisWeek": "Cette semaine"
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "email": "Veuillez entrer une adresse e-mail valide",
+    "phone": "Veuillez entrer un numéro de téléphone valide"
+  },
+  "languages": {
+    "en": "Anglais",
+    "tr": "Turc",
+    "de": "Allemand",
+    "fr": "Français"
+  }
+}

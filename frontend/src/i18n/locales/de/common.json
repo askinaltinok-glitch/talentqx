@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "howItWorks": "Wie es funktioniert",
+    "features": "Funktionen",
+    "forWho": "Für wen",
+    "pricing": "Preise",
+    "faq": "FAQ",
+    "login": "Anmelden",
+    "requestDemo": "Demo anfordern",
+    "talkToSales": "Vertrieb kontaktieren",
+    "dashboard": "Dashboard",
+    "jobs": "Stellenangebote",
+    "candidates": "Kandidaten",
+    "employees": "Mitarbeiter",
+    "assessments": "Bewertungen",
+    "leads": "Potenzielle Kunden",
+    "workforceAssessment": "Kompetenzbewertung",
+    "salesConsole": "Vertriebskonsole",
+    "followUpNeeded": "Nachverfolgung erforderlich",
+    "logout": "Abmelden"
+  },
+  "buttons": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "close": "Schließen",
+    "submit": "Absenden",
+    "back": "Zurück",
+    "next": "Weiter",
+    "loading": "Laden...",
+    "saving": "Speichern...",
+    "copy": "Kopieren",
+    "copied": "Kopiert!"
+  },
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "pending": "Ausstehend",
+    "completed": "Abgeschlossen",
+    "cancelled": "Storniert"
+  },
+  "time": {
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "daysAgo": "vor {{count}} Tagen",
+    "tomorrow": "Morgen",
+    "thisWeek": "Diese Woche"
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "phone": "Bitte geben Sie eine gültige Telefonnummer ein"
+  },
+  "languages": {
+    "en": "Englisch",
+    "tr": "Türkisch",
+    "de": "Deutsch",
+    "fr": "Französisch"
+  }
+}

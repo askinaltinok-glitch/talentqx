@@ -769,14 +769,15 @@ export interface FollowUpStats {
   due_leads: Pick<Lead, 'id' | 'company_name' | 'contact_name' | 'email' | 'status' | 'next_follow_up_at'>[];
 }
 
-export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
-  new: 'Yeni',
-  contacted: 'İletişime Geçildi',
-  demo: 'Demo',
-  pilot: 'Pilot',
-  negotiation: 'Görüşme',
-  won: 'Kazanıldı',
-  lost: 'Kaybedildi',
+// Lead status translation keys - use with t('sales:status.{key}')
+export const LEAD_STATUS_KEYS: Record<LeadStatus, string> = {
+  new: 'status.new',
+  contacted: 'status.contacted',
+  demo: 'status.demo',
+  pilot: 'status.pilot',
+  negotiation: 'status.negotiation',
+  won: 'status.won',
+  lost: 'status.lost',
 };
 
 export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
@@ -789,19 +790,21 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   lost: 'bg-red-100 text-red-800',
 };
 
-export const LEAD_ACTIVITY_TYPE_LABELS: Record<LeadActivityType, string> = {
-  note: 'Not',
-  call: 'Arama',
-  email: 'E-posta',
-  meeting: 'Toplantı',
-  demo: 'Demo',
-  status_change: 'Durum Değişikliği',
-  task: 'Görev',
+// Lead activity type translation keys - use with t('sales:activities.types.{key}')
+export const LEAD_ACTIVITY_TYPE_KEYS: Record<LeadActivityType, string> = {
+  note: 'activities.types.note',
+  call: 'activities.types.call',
+  email: 'activities.types.email',
+  meeting: 'activities.types.meeting',
+  demo: 'activities.types.demo',
+  status_change: 'activities.types.statusChange',
+  task: 'activities.types.task',
 };
 
-export const LEAD_CHECKLIST_STAGE_LABELS: Record<LeadChecklistStage, string> = {
-  discovery: 'Keşif',
-  demo: 'Demo',
-  pilot: 'Pilot',
-  closing: 'Kapanış',
+// Lead checklist stage translation keys - use with t('sales:checklist.stages.{key}')
+export const LEAD_CHECKLIST_STAGE_KEYS: Record<LeadChecklistStage, string> = {
+  discovery: 'checklist.stages.discovery',
+  demo: 'checklist.stages.demo',
+  pilot: 'checklist.stages.pilot',
+  closing: 'checklist.stages.closing',
 };

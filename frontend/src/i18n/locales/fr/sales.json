@@ -1,0 +1,172 @@
+{
+  "leads": {
+    "title": "Console de vente",
+    "subtitle": "Gérez vos clients potentiels",
+    "newLead": "Nouveau lead",
+    "noLeads": "Aucun lead trouvé",
+    "noLeadsHint": "Commencez par ajouter un nouveau lead",
+    "loading": "Chargement...",
+    "activity": "activité",
+    "activities": "activités"
+  },
+  "status": {
+    "new": "Nouveau",
+    "contacted": "Contacté",
+    "demo": "Démo",
+    "pilot": "Pilote",
+    "negotiation": "Négociation",
+    "won": "Gagné",
+    "lost": "Perdu"
+  },
+  "stats": {
+    "totalLeads": "Total leads",
+    "hotLeads": "Leads chauds",
+    "overdue": "En retard",
+    "followUpNeeded": "Suivi requis",
+    "wonThisMonth": "Gagnés ce mois",
+    "conversion": "conversion"
+  },
+  "filters": {
+    "search": "Rechercher entreprise, personne ou e-mail...",
+    "all": "Tous"
+  },
+  "followUp": {
+    "overdue": "En retard",
+    "today": "Aujourd'hui",
+    "thisWeek": "Cette semaine",
+    "follow": "Suivi"
+  },
+  "detail": {
+    "back": "Retour",
+    "changeStatus": "Changer le statut",
+    "addActivity": "Ajouter une activité",
+    "sendPilotOffer": "Envoyer l'offre pilote",
+    "followUp": "Suivi",
+    "notFound": "Lead non trouvé",
+    "goBack": "Retour"
+  },
+  "contact": {
+    "title": "Informations de contact",
+    "email": "E-mail",
+    "phone": "Téléphone"
+  },
+  "company": {
+    "title": "Informations sur l'entreprise",
+    "type": "Type d'entreprise",
+    "types": {
+      "single": "Site unique",
+      "chain": "Chaîne",
+      "franchise": "Franchise"
+    },
+    "size": "Taille de l'entreprise",
+    "source": "Source",
+    "leadScore": "Score du lead"
+  },
+  "financial": {
+    "title": "Informations financières",
+    "estimatedValue": "Valeur estimée",
+    "actualValue": "Valeur réelle"
+  },
+  "dates": {
+    "title": "Dates importantes",
+    "created": "Créé",
+    "firstContact": "Premier contact",
+    "demoDate": "Date de démo",
+    "nextFollowUp": "Prochain suivi"
+  },
+  "notes": {
+    "title": "Notes"
+  },
+  "tabs": {
+    "activities": "Activités",
+    "checklist": "Checklist"
+  },
+  "activities": {
+    "noActivities": "Pas encore d'activités",
+    "addFirst": "Ajouter la première activité",
+    "types": {
+      "note": "Note",
+      "call": "Appel",
+      "email": "E-mail",
+      "meeting": "Réunion",
+      "demo": "Démo",
+      "statusChange": "Changement de statut",
+      "task": "Tâche"
+    }
+  },
+  "checklist": {
+    "overallProgress": "Progression globale",
+    "stages": {
+      "discovery": "Découverte",
+      "demo": "Démo",
+      "pilot": "Pilote",
+      "closing": "Clôture"
+    }
+  },
+  "modal": {
+    "newLead": {
+      "title": "Ajouter un nouveau lead",
+      "companyName": "Nom de l'entreprise",
+      "contactName": "Nom du contact",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "companyType": "Type d'entreprise",
+      "companySize": "Taille de l'entreprise",
+      "industry": "Secteur",
+      "industryPlaceholder": "Commerce, Production, etc.",
+      "city": "Ville",
+      "source": "Source",
+      "sources": {
+        "website": "Site web",
+        "referral": "Recommandation",
+        "linkedin": "LinkedIn",
+        "coldCall": "Appel à froid",
+        "event": "Événement"
+      },
+      "notes": "Notes",
+      "select": "Sélectionner",
+      "sizes": {
+        "1-10": "1-10 employés",
+        "11-50": "11-50 employés",
+        "51-200": "51-200 employés",
+        "200+": "200+ employés"
+      }
+    },
+    "activity": {
+      "title": "Ajouter une activité",
+      "type": "Type d'activité",
+      "subject": "Sujet",
+      "description": "Description",
+      "meetingLink": "Lien de réunion (Zoom/Meet)",
+      "meetingLinkPlaceholder": "https://zoom.us/j/...",
+      "dateTime": "Date et heure",
+      "duration": "Durée (min)",
+      "dueDate": "Date d'échéance"
+    },
+    "status": {
+      "title": "Changer le statut",
+      "lostReason": "Raison de la perte",
+      "lostReasonPlaceholder": "Pourquoi le client a-t-il été perdu?",
+      "update": "Mettre à jour"
+    },
+    "pilotOffer": {
+      "title": "Envoyer l'offre pilote",
+      "recipient": "Destinataire:",
+      "openEmail": "Ouvrir l'e-mail"
+    },
+    "followUp": {
+      "title": "Rappel de suivi",
+      "quickSelect": "Sélection rapide",
+      "dateTime": "Date et heure",
+      "currentReminder": "Rappel actuel:",
+      "removeReminder": "Supprimer le rappel",
+      "presets": {
+        "tomorrow": "Demain",
+        "3days": "3 jours",
+        "1week": "1 semaine",
+        "2weeks": "2 semaines",
+        "1month": "1 mois"
+      }
+    }
+  }
+}

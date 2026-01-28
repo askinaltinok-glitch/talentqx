@@ -1,0 +1,213 @@
+{
+  "hero": {
+    "title": "Know the Right Employee,",
+    "titleHighlight": "Before Hiring.",
+    "subtitle": "AI-powered recruitment and employee assessment platform for chain stores and franchise structures.",
+    "description": "Reduce bad hires, manage your personnel standards centrally.",
+    "cta": "Request Free Demo",
+    "howItWorks": "How It Works?"
+  },
+  "problem": {
+    "title": "Wrong Personnel,",
+    "titleHighlight": "The Most Expensive Operational Error.",
+    "intro": "Most businesses experience these problems:",
+    "points": {
+      "1": "CVs all look the same",
+      "2": "Interviews vary by person",
+      "3": "Hygiene, discipline and tempo break down in the field",
+      "4": "Bad hires cost months of losses"
+    },
+    "costLabel": "The real cost of a wrong employee:",
+    "costRange": "€2,000 – €20,000",
+    "costNote": "But it's possible to measure this risk before hiring."
+  },
+  "solution": {
+    "title": "A System That Reads",
+    "titleHighlight": "People, Not CVs.",
+    "description": "TalentQX objectively evaluates candidates and existing employees using position-specific questions, scenario tests, and AI analysis.",
+    "metricsTitle": "What we measure:",
+    "metrics": {
+      "jobFit": "Job suitability",
+      "discipline": "Discipline & hygiene awareness",
+      "stress": "Stress and tempo tolerance",
+      "risks": "Risky behaviors",
+      "culture": "Brand and team compatibility"
+    },
+    "result": "Result:",
+    "resultText": "Better decisions. Stronger teams."
+  },
+  "forWho": {
+    "title": "For Whom?",
+    "audiences": {
+      "franchise": {
+        "title": "Franchise Brands",
+        "description": "Central personnel standards, branch-based quality control."
+      },
+      "chain": {
+        "title": "Chain Stores",
+        "description": "Standard assessment for salespeople, cashiers, and store managers."
+      },
+      "production": {
+        "title": "Production & Bakery Facilities",
+        "description": "Preview hygiene, instruction compliance, and quality risks."
+      },
+      "logistics": {
+        "title": "Logistics & Warehouse",
+        "description": "Reduce operational risk with drivers and warehouse personnel."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works?",
+    "subtitle": "Better personnel decisions in 4 steps",
+    "steps": {
+      "1": {
+        "title": "Define the Position",
+        "description": "Identify competencies, risks, and culture criteria."
+      },
+      "2": {
+        "title": "Online Assessment",
+        "description": "Candidate or employee takes role-specific scenario test."
+      },
+      "3": {
+        "title": "AI Analysis",
+        "description": "Answers are analyzed, scores and risks are extracted."
+      },
+      "4": {
+        "title": "Decision Support Report",
+        "description": "Make objective hiring, training, or promotion decisions."
+      }
+    }
+  },
+  "features": {
+    "title": "Key Features",
+    "list": {
+      "smartEngine": "Position-based smart question engine",
+      "scenario": "Scenario & behavior analysis",
+      "redFlag": "Red flag (risk) detection",
+      "cheating": "Cheating & memorization risk score",
+      "franchise": "Franchise central approval flow",
+      "kvkk": "GDPR compliant data management",
+      "cost": "Cost-controlled AI infrastructure"
+    }
+  },
+  "benefits": {
+    "title": "Personnel Quality Is No Longer",
+    "titleHighlight": "A Coincidence.",
+    "list": {
+      "reduce": "Reduces bad hires by 50%+",
+      "time": "Shortens interview time by 70%",
+      "training": "Clearly shows training needs",
+      "promotion": "Objectifies promotion decisions",
+      "standards": "Protects franchise standards"
+    }
+  },
+  "testimonial": {
+    "quote": "We applied it in our own chain. Reduced personnel errors by",
+    "quoteHighlight": "40%",
+    "quoteEnd": "in 6 months.",
+    "source": "— Internal Use Reference"
+  },
+  "pricing": {
+    "title": "Plans & Pricing",
+    "subtitle": "Simple pricing. Serious decisions.",
+    "mostPopular": "Most Popular",
+    "perMonth": "per month",
+    "plans": {
+      "mini": {
+        "name": "MINI",
+        "assessments": "100 assessments / month"
+      },
+      "midi": {
+        "name": "MIDI",
+        "assessments": "250 assessments / month"
+      },
+      "pro": {
+        "name": "PRO",
+        "assessments": "600 assessments / month"
+      }
+    },
+    "features": {
+      "pdfReports": "PDF reports included",
+      "noPerUser": "No per-user pricing"
+    }
+  },
+  "packages": {
+    "title": "Packages & Model",
+    "note": "Detailed pricing is shared after the demo.",
+    "types": {
+      "small": {
+        "title": "Small Businesses",
+        "description": "Per-candidate assessment model"
+      },
+      "chain": {
+        "title": "Chain Stores",
+        "description": "Store-based subscription"
+      },
+      "franchise": {
+        "title": "Franchise Brands",
+        "description": "Headquarters license + branch usage"
+      }
+    }
+  },
+  "demo": {
+    "title": "Start Measuring Your Personnel Quality Today.",
+    "subtitle": "Setup in 1 day. First results in the first week.",
+    "success": {
+      "title": "Your Request Has Been Received!",
+      "message": "We will contact you shortly."
+    },
+    "form": {
+      "companyName": "Company Name",
+      "contactName": "Contact Name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyType": "Company Type",
+      "companyTypePlaceholder": "Select...",
+      "companyTypes": {
+        "single": "Single Branch",
+        "chain": "Chain",
+        "franchise": "Franchise"
+      },
+      "submit": "Request Free Demo",
+      "submitting": "Submitting..."
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "items": {
+      "1": {
+        "question": "Is this an interview system?",
+        "answer": "No. This is a decision support and assessment platform."
+      },
+      "2": {
+        "question": "Can it be used for existing employees?",
+        "answer": "Yes. Ideal for promotion, training, and risk analysis."
+      },
+      "3": {
+        "question": "Is it GDPR compliant?",
+        "answer": "Yes. Data storage, deletion, and export processes are included."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "AI-Powered Human Quality Platform",
+    "motto": "Your human resources are your brand's invisible storefront.",
+    "platform": "Platform",
+    "solutions": "Solutions",
+    "solutionsItems": {
+      "hiring": "Hiring",
+      "assessment": "Assessment",
+      "development": "Development",
+      "franchise": "Franchise Standards"
+    },
+    "legal": "Legal",
+    "legalItems": {
+      "about": "About Us",
+      "privacy": "Privacy Notice",
+      "privacyPolicy": "Privacy Policy",
+      "contact": "Contact"
+    },
+    "copyright": "© {{year}} TalentQX. All rights reserved."
+  }
+}

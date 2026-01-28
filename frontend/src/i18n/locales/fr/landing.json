@@ -1,0 +1,213 @@
+{
+  "hero": {
+    "title": "Connaître le bon employé,",
+    "titleHighlight": "Avant de recruter.",
+    "subtitle": "Plateforme de recrutement et d'évaluation des employés alimentée par l'IA pour les chaînes de magasins et les structures de franchise.",
+    "description": "Réduisez les mauvaises embauches, gérez vos standards de personnel de manière centralisée.",
+    "cta": "Demander une démo gratuite",
+    "howItWorks": "Comment ça marche?"
+  },
+  "problem": {
+    "title": "Mauvais personnel,",
+    "titleHighlight": "L'erreur opérationnelle la plus coûteuse.",
+    "intro": "La plupart des entreprises rencontrent ces problèmes:",
+    "points": {
+      "1": "Les CV se ressemblent tous",
+      "2": "Les entretiens varient selon la personne",
+      "3": "L'hygiène, la discipline et le rythme se dégradent sur le terrain",
+      "4": "Les mauvaises embauches coûtent des mois de pertes"
+    },
+    "costLabel": "Le coût réel d'un mauvais employé:",
+    "costRange": "€2 000 – €20 000",
+    "costNote": "Mais il est possible de mesurer ce risque avant l'embauche."
+  },
+  "solution": {
+    "title": "Un système qui lit",
+    "titleHighlight": "Les personnes, pas les CV.",
+    "description": "TalentQX évalue objectivement les candidats et les employés existants à l'aide de questions spécifiques au poste, de tests de scénario et d'analyse IA.",
+    "metricsTitle": "Ce que nous mesurons:",
+    "metrics": {
+      "jobFit": "Adéquation au poste",
+      "discipline": "Conscience de la discipline et de l'hygiène",
+      "stress": "Tolérance au stress et au rythme",
+      "risks": "Comportements à risque",
+      "culture": "Compatibilité avec la marque et l'équipe"
+    },
+    "result": "Résultat:",
+    "resultText": "De meilleures décisions. Des équipes plus fortes."
+  },
+  "forWho": {
+    "title": "Pour qui?",
+    "audiences": {
+      "franchise": {
+        "title": "Marques de franchise",
+        "description": "Standards de personnel centralisés, contrôle qualité par succursale."
+      },
+      "chain": {
+        "title": "Chaînes de magasins",
+        "description": "Évaluation standard pour les vendeurs, caissiers et directeurs de magasin."
+      },
+      "production": {
+        "title": "Sites de production et boulangeries",
+        "description": "Aperçu des risques d'hygiène, de conformité aux instructions et de qualité."
+      },
+      "logistics": {
+        "title": "Logistique et entrepôt",
+        "description": "Réduisez les risques opérationnels avec les chauffeurs et le personnel d'entrepôt."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "Comment ça marche?",
+    "subtitle": "De meilleures décisions en matière de personnel en 4 étapes",
+    "steps": {
+      "1": {
+        "title": "Définir le poste",
+        "description": "Identifier les compétences, les risques et les critères culturels."
+      },
+      "2": {
+        "title": "Évaluation en ligne",
+        "description": "Le candidat ou l'employé passe un test de scénario spécifique au rôle."
+      },
+      "3": {
+        "title": "Analyse IA",
+        "description": "Les réponses sont analysées, les scores et les risques sont extraits."
+      },
+      "4": {
+        "title": "Rapport d'aide à la décision",
+        "description": "Prenez des décisions objectives de recrutement, de formation ou de promotion."
+      }
+    }
+  },
+  "features": {
+    "title": "Fonctionnalités clés",
+    "list": {
+      "smartEngine": "Moteur de questions intelligent basé sur le poste",
+      "scenario": "Analyse de scénario et comportementale",
+      "redFlag": "Détection de signaux d'alerte (risques)",
+      "cheating": "Score de risque de triche et de mémorisation",
+      "franchise": "Flux d'approbation central de franchise",
+      "kvkk": "Gestion des données conforme au RGPD",
+      "cost": "Infrastructure IA économique"
+    }
+  },
+  "benefits": {
+    "title": "La qualité du personnel n'est plus",
+    "titleHighlight": "Une coïncidence.",
+    "list": {
+      "reduce": "Réduit les mauvaises embauches de 50%+",
+      "time": "Raccourcit le temps d'entretien de 70%",
+      "training": "Montre clairement les besoins de formation",
+      "promotion": "Objectivise les décisions de promotion",
+      "standards": "Protège les standards de franchise"
+    }
+  },
+  "testimonial": {
+    "quote": "Nous l'avons appliqué dans notre propre chaîne. Réduction des erreurs de personnel de",
+    "quoteHighlight": "40%",
+    "quoteEnd": "en 6 mois.",
+    "source": "— Référence d'utilisation interne"
+  },
+  "pricing": {
+    "title": "Plans & Tarifs",
+    "subtitle": "Tarification simple. Décisions sérieuses.",
+    "mostPopular": "Le plus populaire",
+    "perMonth": "par mois",
+    "plans": {
+      "mini": {
+        "name": "MINI",
+        "assessments": "100 évaluations / mois"
+      },
+      "midi": {
+        "name": "MIDI",
+        "assessments": "250 évaluations / mois"
+      },
+      "pro": {
+        "name": "PRO",
+        "assessments": "600 évaluations / mois"
+      }
+    },
+    "features": {
+      "pdfReports": "Rapports PDF inclus",
+      "noPerUser": "Pas de tarification par utilisateur"
+    }
+  },
+  "packages": {
+    "title": "Forfaits et modèle",
+    "note": "Les tarifs détaillés sont partagés après la démo.",
+    "types": {
+      "small": {
+        "title": "Petites entreprises",
+        "description": "Modèle d'évaluation par candidat"
+      },
+      "chain": {
+        "title": "Chaînes de magasins",
+        "description": "Abonnement par magasin"
+      },
+      "franchise": {
+        "title": "Marques de franchise",
+        "description": "Licence siège + utilisation succursale"
+      }
+    }
+  },
+  "demo": {
+    "title": "Commencez à mesurer la qualité de votre personnel dès aujourd'hui.",
+    "subtitle": "Configuration en 1 jour. Premiers résultats la première semaine.",
+    "success": {
+      "title": "Votre demande a été reçue!",
+      "message": "Nous vous contacterons sous peu."
+    },
+    "form": {
+      "companyName": "Nom de l'entreprise",
+      "contactName": "Nom du contact",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "companyType": "Type d'entreprise",
+      "companyTypePlaceholder": "Sélectionner...",
+      "companyTypes": {
+        "single": "Site unique",
+        "chain": "Chaîne",
+        "franchise": "Franchise"
+      },
+      "submit": "Demander une démo gratuite",
+      "submitting": "Envoi en cours..."
+    }
+  },
+  "faq": {
+    "title": "Questions fréquemment posées",
+    "items": {
+      "1": {
+        "question": "Est-ce un système d'entretien?",
+        "answer": "Non. C'est une plateforme d'aide à la décision et d'évaluation."
+      },
+      "2": {
+        "question": "Peut-il être utilisé pour les employés existants?",
+        "answer": "Oui. Idéal pour l'analyse de promotion, formation et risque."
+      },
+      "3": {
+        "question": "Est-il conforme au RGPD?",
+        "answer": "Oui. Les processus de stockage, suppression et export de données sont inclus."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Plateforme de qualité humaine alimentée par l'IA",
+    "motto": "Vos ressources humaines sont la vitrine invisible de votre marque.",
+    "platform": "Plateforme",
+    "solutions": "Solutions",
+    "solutionsItems": {
+      "hiring": "Recrutement",
+      "assessment": "Évaluation",
+      "development": "Développement",
+      "franchise": "Standards de franchise"
+    },
+    "legal": "Juridique",
+    "legalItems": {
+      "about": "À propos",
+      "privacy": "Avis de confidentialité",
+      "privacyPolicy": "Politique de confidentialité",
+      "contact": "Contact"
+    },
+    "copyright": "© {{year}} TalentQX. Tous droits réservés."
+  }
+}

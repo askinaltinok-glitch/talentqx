@@ -1,0 +1,172 @@
+{
+  "leads": {
+    "title": "Satış Konsolu",
+    "subtitle": "Potansiyel müşterilerinizi yönetin",
+    "newLead": "Yeni Lead",
+    "noLeads": "Lead bulunamadı",
+    "noLeadsHint": "Yeni lead ekleyerek başlayın",
+    "loading": "Yükleniyor...",
+    "activity": "aktivite",
+    "activities": "aktivite"
+  },
+  "status": {
+    "new": "Yeni",
+    "contacted": "İletişime Geçildi",
+    "demo": "Demo",
+    "pilot": "Pilot",
+    "negotiation": "Görüşme",
+    "won": "Kazanıldı",
+    "lost": "Kaybedildi"
+  },
+  "stats": {
+    "totalLeads": "Toplam Lead",
+    "hotLeads": "Sıcak Lead",
+    "overdue": "Gecikmiş",
+    "followUpNeeded": "Takip Gereken",
+    "wonThisMonth": "Bu Ay Kazanılan",
+    "conversion": "dönüşüm"
+  },
+  "filters": {
+    "search": "Firma, kişi veya e-posta ara...",
+    "all": "Tümü"
+  },
+  "followUp": {
+    "overdue": "Gecikmiş",
+    "today": "Bugün",
+    "thisWeek": "Bu Hafta",
+    "follow": "Takip"
+  },
+  "detail": {
+    "back": "Geri",
+    "changeStatus": "Durum Değiştir",
+    "addActivity": "Aktivite Ekle",
+    "sendPilotOffer": "Pilot Teklifi Gönder",
+    "followUp": "Takip",
+    "notFound": "Lead bulunamadı",
+    "goBack": "Geri dön"
+  },
+  "contact": {
+    "title": "İletişim Bilgileri",
+    "email": "E-posta",
+    "phone": "Telefon"
+  },
+  "company": {
+    "title": "Firma Bilgileri",
+    "type": "Firma Tipi",
+    "types": {
+      "single": "Tekil Şube",
+      "chain": "Zincir",
+      "franchise": "Franchise"
+    },
+    "size": "Firma Büyüklüğü",
+    "source": "Kaynak",
+    "leadScore": "Lead Skoru"
+  },
+  "financial": {
+    "title": "Finansal Bilgiler",
+    "estimatedValue": "Tahmini Değer",
+    "actualValue": "Gerçek Değer"
+  },
+  "dates": {
+    "title": "Önemli Tarihler",
+    "created": "Oluşturulma",
+    "firstContact": "İlk İletişim",
+    "demoDate": "Demo Tarihi",
+    "nextFollowUp": "Sonraki Takip"
+  },
+  "notes": {
+    "title": "Notlar"
+  },
+  "tabs": {
+    "activities": "Aktiviteler",
+    "checklist": "Checklist"
+  },
+  "activities": {
+    "noActivities": "Henüz aktivite yok",
+    "addFirst": "İlk aktiviteyi ekle",
+    "types": {
+      "note": "Not",
+      "call": "Arama",
+      "email": "E-posta",
+      "meeting": "Toplantı",
+      "demo": "Demo",
+      "statusChange": "Durum Değişikliği",
+      "task": "Görev"
+    }
+  },
+  "checklist": {
+    "overallProgress": "Genel İlerleme",
+    "stages": {
+      "discovery": "Keşif",
+      "demo": "Demo",
+      "pilot": "Pilot",
+      "closing": "Kapanış"
+    }
+  },
+  "modal": {
+    "newLead": {
+      "title": "Yeni Lead Ekle",
+      "companyName": "Firma Adı",
+      "contactName": "Yetkili Adı",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "companyType": "Firma Tipi",
+      "companySize": "Firma Büyüklüğü",
+      "industry": "Sektör",
+      "industryPlaceholder": "Perakende, Üretim, vb.",
+      "city": "Şehir",
+      "source": "Kaynak",
+      "sources": {
+        "website": "Website",
+        "referral": "Referans",
+        "linkedin": "LinkedIn",
+        "coldCall": "Soğuk Arama",
+        "event": "Etkinlik"
+      },
+      "notes": "Notlar",
+      "select": "Seçiniz",
+      "sizes": {
+        "1-10": "1-10 çalışan",
+        "11-50": "11-50 çalışan",
+        "51-200": "51-200 çalışan",
+        "200+": "200+ çalışan"
+      }
+    },
+    "activity": {
+      "title": "Aktivite Ekle",
+      "type": "Aktivite Tipi",
+      "subject": "Konu",
+      "description": "Açıklama",
+      "meetingLink": "Toplantı Linki (Zoom/Meet)",
+      "meetingLinkPlaceholder": "https://zoom.us/j/...",
+      "dateTime": "Tarih & Saat",
+      "duration": "Süre (dk)",
+      "dueDate": "Teslim Tarihi"
+    },
+    "status": {
+      "title": "Durum Değiştir",
+      "lostReason": "Kayıp Nedeni",
+      "lostReasonPlaceholder": "Müşteri neden kaybedildi?",
+      "update": "Güncelle"
+    },
+    "pilotOffer": {
+      "title": "Pilot Teklifi Gönder",
+      "recipient": "Alıcı:",
+      "openEmail": "E-posta Aç"
+    },
+    "followUp": {
+      "title": "Takip Hatırlatıcısı",
+      "quickSelect": "Hızlı Seçim",
+      "dateTime": "Tarih & Saat",
+      "currentReminder": "Mevcut hatırlatıcı:",
+      "removeReminder": "Hatırlatıcıyı Kaldır",
+      "presets": {
+        "tomorrow": "Yarın",
+        "3days": "3 Gün",
+        "1week": "1 Hafta",
+        "2weeks": "2 Hafta",
+        "1month": "1 Ay"
+      }
+    }
+  }
+}

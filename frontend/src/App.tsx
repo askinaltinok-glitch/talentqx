@@ -1,6 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { ROUTES } from './routes';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -24,44 +23,63 @@ import { PublicNotFound, AppNotFound } from './pages/NotFound';
 // Components
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
+import LanguageRedirect from './components/LanguageRedirect';
+
+// i18n
+import { SUPPORTED_LANGUAGES } from './i18n';
 
 function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
-        {/* Public Routes */}
-        <Route path={ROUTES.HOME} element={<LandingPage />} />
-        <Route path={ROUTES.LOGIN} element={<Login />} />
+        {/* Root redirect - detect language and redirect */}
+        <Route path="/" element={<LanguageRedirect />} />
 
-        {/* Protected Routes - HR Panel */}
-        <Route
-          path="/app"
-          element={
-            <RequireAuth>
-              <Layout />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="jobs" element={<Jobs />} />
-          <Route path="jobs/:id" element={<JobDetail />} />
-          <Route path="candidates" element={<Candidates />} />
-          <Route path="candidates/:id" element={<CandidateDetail />} />
-          <Route path="interviews/:id" element={<InterviewDetail />} />
-          {/* Workforce Assessment Routes */}
-          <Route path="employees" element={<Employees />} />
-          <Route path="employees/:id" element={<EmployeeDetail />} />
-          <Route path="assessments" element={<AssessmentResults />} />
-          {/* Sales Console Routes */}
-          <Route path="leads" element={<Leads />} />
-          <Route path="leads/:id" element={<LeadDetail />} />
-          {/* App 404 - catches unmatched /app/* routes */}
-          <Route path="*" element={<AppNotFound />} />
-        </Route>
+        {/* Language-prefixed routes */}
+        {SUPPORTED_LANGUAGES.map((lang) => (
+          <Route key={lang} path={`/${lang}`}>
+            {/* Public routes */}
+            <Route index element={<LandingPage />} />
+            <Route path="login" element={<Login />} />
 
-        {/* Public 404 - catches all other unmatched routes */}
-        <Route path="*" element={<PublicNotFound />} />
+            {/* Protected Routes - HR Panel */}
+            <Route
+              path="app"
+              element={
+                <RequireAuth>
+                  <Layout />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="jobs" element={<Jobs />} />
+              <Route path="jobs/:id" element={<JobDetail />} />
+              <Route path="candidates" element={<Candidates />} />
+              <Route path="candidates/:id" element={<CandidateDetail />} />
+              <Route path="interviews/:id" element={<InterviewDetail />} />
+              {/* Workforce Assessment Routes */}
+              <Route path="employees" element={<Employees />} />
+              <Route path="employees/:id" element={<EmployeeDetail />} />
+              <Route path="assessments" element={<AssessmentResults />} />
+              {/* Sales Console Routes */}
+              <Route path="leads" element={<Leads />} />
+              <Route path="leads/:id" element={<LeadDetail />} />
+              {/* App 404 - catches unmatched /app/* routes */}
+              <Route path="*" element={<AppNotFound />} />
+            </Route>
+
+            {/* Language-specific 404 */}
+            <Route path="*" element={<PublicNotFound />} />
+          </Route>
+        ))}
+
+        {/* Legacy routes - redirect to default language */}
+        <Route path="/login" element={<Navigate to="/en/login" replace />} />
+        <Route path="/app/*" element={<Navigate to="/en/app" replace />} />
+
+        {/* Global 404 - redirect to language detection */}
+        <Route path="*" element={<LanguageRedirect />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
-import { ROUTES } from '../routes';
+import { localizedPath } from '../routes';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function Login() {
+  const { t } = useTranslation('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +22,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      toast.success('Giris basarili!');
+      toast.success(t('login.success'));
 
       // Redirect to next parameter or default to dashboard
       const next = searchParams.get('next');
@@ -27,7 +30,7 @@ export default function Login() {
         // Only allow redirects to /app/* routes for security
         navigate(next);
       } else {
-        navigate(ROUTES.DASHBOARD);
+        navigate(localizedPath('/app'));
       }
     } catch (error) {
       toast.error(api.getErrorMessage(error));
@@ -39,11 +42,16 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-800 px-4">
       <div className="max-w-md w-full">
+        {/* Language Switcher */}
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher variant="dark" showFullName={false} />
+        </div>
+
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary-600">TalentQX</h1>
+            <h1 className="text-3xl font-bold text-primary-600">{t('login.title')}</h1>
             <p className="text-gray-500 mt-2">
-              AI Destekli Mulakat Platformu
+              {t('login.subtitle')}
             </p>
           </div>
 
@@ -53,7 +61,7 @@ export default function Login() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                E-posta
+                {t('login.email')}
               </label>
               <input
                 id="email"
@@ -62,7 +70,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="input"
-                placeholder="ornek@sirket.com"
+                placeholder={t('login.emailPlaceholder')}
               />
             </div>
 
@@ -71,7 +79,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Sifre
+                {t('login.password')}
               </label>
               <input
                 id="password"
@@ -80,7 +88,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="input"
-                placeholder="********"
+                placeholder={t('login.passwordPlaceholder')}
               />
             </div>
 
@@ -110,16 +118,16 @@ export default function Login() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  Giris Yapiliyor...
+                  {t('login.loading')}
                 </span>
               ) : (
-                'Giris Yap'
+                t('login.submit')
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo hesap:</p>
+            <p>{t('login.demoAccount')}</p>
             <p className="font-mono text-xs mt-1">
               admin@talentqx.com / password123
             </p>
@@ -127,7 +135,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-white/80 text-sm mt-6">
-          Askin Altinok - TalentQX v1.0
+          {t('login.footer')}
         </p>
       </div>
     </div>

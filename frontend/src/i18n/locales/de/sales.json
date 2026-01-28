@@ -1,0 +1,172 @@
+{
+  "leads": {
+    "title": "Vertriebskonsole",
+    "subtitle": "Verwalten Sie Ihre potenziellen Kunden",
+    "newLead": "Neuer Lead",
+    "noLeads": "Keine Leads gefunden",
+    "noLeadsHint": "Beginnen Sie mit dem Hinzufügen eines neuen Leads",
+    "loading": "Laden...",
+    "activity": "Aktivität",
+    "activities": "Aktivitäten"
+  },
+  "status": {
+    "new": "Neu",
+    "contacted": "Kontaktiert",
+    "demo": "Demo",
+    "pilot": "Pilot",
+    "negotiation": "Verhandlung",
+    "won": "Gewonnen",
+    "lost": "Verloren"
+  },
+  "stats": {
+    "totalLeads": "Gesamt Leads",
+    "hotLeads": "Heiße Leads",
+    "overdue": "Überfällig",
+    "followUpNeeded": "Nachverfolgung erforderlich",
+    "wonThisMonth": "Diesen Monat gewonnen",
+    "conversion": "Konversion"
+  },
+  "filters": {
+    "search": "Firma, Person oder E-Mail suchen...",
+    "all": "Alle"
+  },
+  "followUp": {
+    "overdue": "Überfällig",
+    "today": "Heute",
+    "thisWeek": "Diese Woche",
+    "follow": "Nachverfolgen"
+  },
+  "detail": {
+    "back": "Zurück",
+    "changeStatus": "Status ändern",
+    "addActivity": "Aktivität hinzufügen",
+    "sendPilotOffer": "Pilotangebot senden",
+    "followUp": "Nachverfolgen",
+    "notFound": "Lead nicht gefunden",
+    "goBack": "Zurück gehen"
+  },
+  "contact": {
+    "title": "Kontaktinformationen",
+    "email": "E-Mail",
+    "phone": "Telefon"
+  },
+  "company": {
+    "title": "Firmeninformationen",
+    "type": "Unternehmenstyp",
+    "types": {
+      "single": "Einzelstandort",
+      "chain": "Kette",
+      "franchise": "Franchise"
+    },
+    "size": "Unternehmensgröße",
+    "source": "Quelle",
+    "leadScore": "Lead-Score"
+  },
+  "financial": {
+    "title": "Finanzinformationen",
+    "estimatedValue": "Geschätzter Wert",
+    "actualValue": "Tatsächlicher Wert"
+  },
+  "dates": {
+    "title": "Wichtige Termine",
+    "created": "Erstellt",
+    "firstContact": "Erstkontakt",
+    "demoDate": "Demo-Datum",
+    "nextFollowUp": "Nächste Nachverfolgung"
+  },
+  "notes": {
+    "title": "Notizen"
+  },
+  "tabs": {
+    "activities": "Aktivitäten",
+    "checklist": "Checkliste"
+  },
+  "activities": {
+    "noActivities": "Noch keine Aktivitäten",
+    "addFirst": "Erste Aktivität hinzufügen",
+    "types": {
+      "note": "Notiz",
+      "call": "Anruf",
+      "email": "E-Mail",
+      "meeting": "Besprechung",
+      "demo": "Demo",
+      "statusChange": "Statusänderung",
+      "task": "Aufgabe"
+    }
+  },
+  "checklist": {
+    "overallProgress": "Gesamtfortschritt",
+    "stages": {
+      "discovery": "Entdeckung",
+      "demo": "Demo",
+      "pilot": "Pilot",
+      "closing": "Abschluss"
+    }
+  },
+  "modal": {
+    "newLead": {
+      "title": "Neuen Lead hinzufügen",
+      "companyName": "Firmenname",
+      "contactName": "Kontaktname",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "companyType": "Unternehmenstyp",
+      "companySize": "Unternehmensgröße",
+      "industry": "Branche",
+      "industryPlaceholder": "Einzelhandel, Fertigung, usw.",
+      "city": "Stadt",
+      "source": "Quelle",
+      "sources": {
+        "website": "Website",
+        "referral": "Empfehlung",
+        "linkedin": "LinkedIn",
+        "coldCall": "Kaltakquise",
+        "event": "Veranstaltung"
+      },
+      "notes": "Notizen",
+      "select": "Auswählen",
+      "sizes": {
+        "1-10": "1-10 Mitarbeiter",
+        "11-50": "11-50 Mitarbeiter",
+        "51-200": "51-200 Mitarbeiter",
+        "200+": "200+ Mitarbeiter"
+      }
+    },
+    "activity": {
+      "title": "Aktivität hinzufügen",
+      "type": "Aktivitätstyp",
+      "subject": "Betreff",
+      "description": "Beschreibung",
+      "meetingLink": "Besprechungslink (Zoom/Meet)",
+      "meetingLinkPlaceholder": "https://zoom.us/j/...",
+      "dateTime": "Datum & Uhrzeit",
+      "duration": "Dauer (Min)",
+      "dueDate": "Fälligkeitsdatum"
+    },
+    "status": {
+      "title": "Status ändern",
+      "lostReason": "Verlustgrund",
+      "lostReasonPlaceholder": "Warum wurde der Kunde verloren?",
+      "update": "Aktualisieren"
+    },
+    "pilotOffer": {
+      "title": "Pilotangebot senden",
+      "recipient": "Empfänger:",
+      "openEmail": "E-Mail öffnen"
+    },
+    "followUp": {
+      "title": "Nachverfolgungserinnerung",
+      "quickSelect": "Schnellauswahl",
+      "dateTime": "Datum & Uhrzeit",
+      "currentReminder": "Aktuelle Erinnerung:",
+      "removeReminder": "Erinnerung entfernen",
+      "presets": {
+        "tomorrow": "Morgen",
+        "3days": "3 Tage",
+        "1week": "1 Woche",
+        "2weeks": "2 Wochen",
+        "1month": "1 Monat"
+      }
+    }
+  }
+}

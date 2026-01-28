@@ -1,0 +1,213 @@
+{
+  "hero": {
+    "title": "Den richtigen Mitarbeiter kennen,",
+    "titleHighlight": "Bevor Sie einstellen.",
+    "subtitle": "KI-gestützte Rekrutierungs- und Mitarbeiterbewertungsplattform für Filialisten und Franchise-Strukturen.",
+    "description": "Reduzieren Sie Fehlbesetzungen, verwalten Sie Ihre Personalstandards zentral.",
+    "cta": "Kostenlose Demo anfordern",
+    "howItWorks": "Wie funktioniert es?"
+  },
+  "problem": {
+    "title": "Falsches Personal,",
+    "titleHighlight": "Der teuerste operative Fehler.",
+    "intro": "Die meisten Unternehmen haben diese Probleme:",
+    "points": {
+      "1": "Lebensläufe sehen alle gleich aus",
+      "2": "Interviews variieren je nach Person",
+      "3": "Hygiene, Disziplin und Tempo brechen vor Ort zusammen",
+      "4": "Fehlbesetzungen kosten monatelange Verluste"
+    },
+    "costLabel": "Die tatsächlichen Kosten eines falschen Mitarbeiters:",
+    "costRange": "€2.000 – €20.000",
+    "costNote": "Aber dieses Risiko kann vor der Einstellung gemessen werden."
+  },
+  "solution": {
+    "title": "Ein System, das",
+    "titleHighlight": "Menschen liest, nicht Lebensläufe.",
+    "description": "TalentQX bewertet Kandidaten und bestehende Mitarbeiter objektiv mit positionsspezifischen Fragen, Szenariotests und KI-Analyse.",
+    "metricsTitle": "Was wir messen:",
+    "metrics": {
+      "jobFit": "Jobeignung",
+      "discipline": "Disziplin & Hygienebewusstsein",
+      "stress": "Stress- und Tempotoleranz",
+      "risks": "Riskante Verhaltensweisen",
+      "culture": "Marken- und Teamkompatibilität"
+    },
+    "result": "Ergebnis:",
+    "resultText": "Bessere Entscheidungen. Stärkere Teams."
+  },
+  "forWho": {
+    "title": "Für wen?",
+    "audiences": {
+      "franchise": {
+        "title": "Franchise-Marken",
+        "description": "Zentrale Personalstandards, filialbasierte Qualitätskontrolle."
+      },
+      "chain": {
+        "title": "Filialisten",
+        "description": "Standardbewertung für Verkäufer, Kassierer und Filialleiter."
+      },
+      "production": {
+        "title": "Produktions- & Bäckereianlagen",
+        "description": "Vorschau auf Hygiene-, Anweisungseinhaltung und Qualitätsrisiken."
+      },
+      "logistics": {
+        "title": "Logistik & Lager",
+        "description": "Reduzieren Sie das Betriebsrisiko bei Fahrern und Lagerpersonal."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "Wie funktioniert es?",
+    "subtitle": "Bessere Personalentscheidungen in 4 Schritten",
+    "steps": {
+      "1": {
+        "title": "Position definieren",
+        "description": "Kompetenzen, Risiken und Kulturkriterien identifizieren."
+      },
+      "2": {
+        "title": "Online-Bewertung",
+        "description": "Kandidat oder Mitarbeiter absolviert rollenspezifischen Szenariotest."
+      },
+      "3": {
+        "title": "KI-Analyse",
+        "description": "Antworten werden analysiert, Scores und Risiken werden extrahiert."
+      },
+      "4": {
+        "title": "Entscheidungsunterstützungsbericht",
+        "description": "Treffen Sie objektive Einstellungs-, Schulungs- oder Beförderungsentscheidungen."
+      }
+    }
+  },
+  "features": {
+    "title": "Hauptfunktionen",
+    "list": {
+      "smartEngine": "Positionsbasierte intelligente Fragen-Engine",
+      "scenario": "Szenario- & Verhaltensanalyse",
+      "redFlag": "Red-Flag (Risiko) Erkennung",
+      "cheating": "Betrugs- & Auswendiglernen-Risikoscore",
+      "franchise": "Franchise-Zentrale Genehmigungsfluss",
+      "kvkk": "DSGVO-konforme Datenverwaltung",
+      "cost": "Kosteneffiziente KI-Infrastruktur"
+    }
+  },
+  "benefits": {
+    "title": "Personalqualität ist kein",
+    "titleHighlight": "Zufall mehr.",
+    "list": {
+      "reduce": "Reduziert Fehlbesetzungen um 50%+",
+      "time": "Verkürzt Interviewzeit um 70%",
+      "training": "Zeigt Schulungsbedarf klar auf",
+      "promotion": "Objektiviert Beförderungsentscheidungen",
+      "standards": "Schützt Franchise-Standards"
+    }
+  },
+  "testimonial": {
+    "quote": "Wir haben es in unserer eigenen Kette angewendet. Personalfehler in 6 Monaten um",
+    "quoteHighlight": "40%",
+    "quoteEnd": "reduziert.",
+    "source": "— Interne Nutzungsreferenz"
+  },
+  "pricing": {
+    "title": "Pläne & Preise",
+    "subtitle": "Einfache Preisgestaltung. Ernsthafte Entscheidungen.",
+    "mostPopular": "Am beliebtesten",
+    "perMonth": "pro Monat",
+    "plans": {
+      "mini": {
+        "name": "MINI",
+        "assessments": "100 Bewertungen / Monat"
+      },
+      "midi": {
+        "name": "MIDI",
+        "assessments": "250 Bewertungen / Monat"
+      },
+      "pro": {
+        "name": "PRO",
+        "assessments": "600 Bewertungen / Monat"
+      }
+    },
+    "features": {
+      "pdfReports": "PDF-Berichte inklusive",
+      "noPerUser": "Keine Preisgestaltung pro Benutzer"
+    }
+  },
+  "packages": {
+    "title": "Pakete & Modell",
+    "note": "Detaillierte Preise werden nach der Demo mitgeteilt.",
+    "types": {
+      "small": {
+        "title": "Kleine Unternehmen",
+        "description": "Bewertungsmodell pro Kandidat"
+      },
+      "chain": {
+        "title": "Filialisten",
+        "description": "Filialbasiertes Abonnement"
+      },
+      "franchise": {
+        "title": "Franchise-Marken",
+        "description": "Zentrallizenz + Filialnutzung"
+      }
+    }
+  },
+  "demo": {
+    "title": "Beginnen Sie noch heute, Ihre Personalqualität zu messen.",
+    "subtitle": "Einrichtung in 1 Tag. Erste Ergebnisse in der ersten Woche.",
+    "success": {
+      "title": "Ihre Anfrage wurde erhalten!",
+      "message": "Wir werden Sie in Kürze kontaktieren."
+    },
+    "form": {
+      "companyName": "Firmenname",
+      "contactName": "Kontaktname",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "companyType": "Unternehmenstyp",
+      "companyTypePlaceholder": "Auswählen...",
+      "companyTypes": {
+        "single": "Einzelstandort",
+        "chain": "Kette",
+        "franchise": "Franchise"
+      },
+      "submit": "Kostenlose Demo anfordern",
+      "submitting": "Wird gesendet..."
+    }
+  },
+  "faq": {
+    "title": "Häufig gestellte Fragen",
+    "items": {
+      "1": {
+        "question": "Ist das ein Interviewsystem?",
+        "answer": "Nein. Dies ist eine Entscheidungsunterstützungs- und Bewertungsplattform."
+      },
+      "2": {
+        "question": "Kann es für bestehende Mitarbeiter verwendet werden?",
+        "answer": "Ja. Ideal für Beförderungs-, Schulungs- und Risikoanalyse."
+      },
+      "3": {
+        "question": "Ist es DSGVO-konform?",
+        "answer": "Ja. Datenspeicherung, Löschung und Exportprozesse sind enthalten."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "KI-gestützte Personalqualitätsplattform",
+    "motto": "Ihre Humanressourcen sind das unsichtbare Schaufenster Ihrer Marke.",
+    "platform": "Plattform",
+    "solutions": "Lösungen",
+    "solutionsItems": {
+      "hiring": "Einstellung",
+      "assessment": "Bewertung",
+      "development": "Entwicklung",
+      "franchise": "Franchise-Standards"
+    },
+    "legal": "Rechtliches",
+    "legalItems": {
+      "about": "Über uns",
+      "privacy": "Datenschutzhinweis",
+      "privacyPolicy": "Datenschutzrichtlinie",
+      "contact": "Kontakt"
+    },
+    "copyright": "© {{year}} TalentQX. Alle Rechte vorbehalten."
+  }
+}
