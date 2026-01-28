@@ -660,3 +660,140 @@ export interface SimilarResponse {
   };
   flagged: boolean;
 }
+
+// ===========================================
+// SALES CONSOLE (MINI CRM) TYPES
+// ===========================================
+
+export type LeadStatus = 'new' | 'contacted' | 'demo' | 'pilot' | 'negotiation' | 'won' | 'lost';
+export type LeadCompanyType = 'single' | 'chain' | 'franchise';
+export type LeadActivityType = 'note' | 'call' | 'email' | 'meeting' | 'demo' | 'status_change' | 'task';
+export type LeadActivityOutcome = 'completed' | 'no_show' | 'rescheduled' | 'cancelled';
+export type LeadChecklistStage = 'discovery' | 'demo' | 'pilot' | 'closing';
+
+export interface Lead {
+  id: string;
+  company_name: string;
+  contact_name: string;
+  email: string;
+  phone?: string;
+  company_type?: LeadCompanyType;
+  company_size?: string;
+  industry?: string;
+  city?: string;
+  status: LeadStatus;
+  lost_reason?: string;
+  source: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  assigned_to?: string;
+  assigned_user?: User;
+  lead_score: number;
+  is_hot: boolean;
+  first_contact_at?: string;
+  demo_scheduled_at?: string;
+  demo_completed_at?: string;
+  pilot_started_at?: string;
+  pilot_ended_at?: string;
+  won_at?: string;
+  lost_at?: string;
+  next_follow_up_at?: string;
+  estimated_value?: number;
+  actual_value?: number;
+  notes?: string;
+  tags?: string[];
+  activities?: LeadActivity[];
+  activities_count?: number;
+  checklist_items?: LeadChecklistItem[];
+  status_label?: string;
+  days_in_pipeline?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  user_id?: string;
+  user?: User;
+  type: LeadActivityType;
+  subject?: string;
+  description?: string;
+  meeting_link?: string;
+  scheduled_at?: string;
+  duration_minutes?: number;
+  outcome?: LeadActivityOutcome;
+  old_status?: string;
+  new_status?: string;
+  is_completed: boolean;
+  due_at?: string;
+  type_label?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadChecklistItem {
+  id: string;
+  lead_id: string;
+  stage: LeadChecklistStage;
+  item: string;
+  is_completed: boolean;
+  completed_at?: string;
+  completed_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadPipelineStats {
+  by_status: Record<LeadStatus, { count: number; total_value: number }>;
+  total_leads: number;
+  hot_leads: number;
+  needs_follow_up: number;
+  won_this_month: number;
+  conversion_rate: number;
+}
+
+export interface LeadChecklistProgress {
+  by_stage: Record<LeadChecklistStage, { total: number; completed: number; percentage: number }>;
+  total: number;
+  completed: number;
+  overall_percentage: number;
+}
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: 'Yeni',
+  contacted: 'İletişime Geçildi',
+  demo: 'Demo',
+  pilot: 'Pilot',
+  negotiation: 'Görüşme',
+  won: 'Kazanıldı',
+  lost: 'Kaybedildi',
+};
+
+export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
+  new: 'bg-gray-100 text-gray-800',
+  contacted: 'bg-blue-100 text-blue-800',
+  demo: 'bg-purple-100 text-purple-800',
+  pilot: 'bg-orange-100 text-orange-800',
+  negotiation: 'bg-yellow-100 text-yellow-800',
+  won: 'bg-green-100 text-green-800',
+  lost: 'bg-red-100 text-red-800',
+};
+
+export const LEAD_ACTIVITY_TYPE_LABELS: Record<LeadActivityType, string> = {
+  note: 'Not',
+  call: 'Arama',
+  email: 'E-posta',
+  meeting: 'Toplantı',
+  demo: 'Demo',
+  status_change: 'Durum Değişikliği',
+  task: 'Görev',
+};
+
+export const LEAD_CHECKLIST_STAGE_LABELS: Record<LeadChecklistStage, string> = {
+  discovery: 'Keşif',
+  demo: 'Demo',
+  pilot: 'Pilot',
+  closing: 'Kapanış',
+};

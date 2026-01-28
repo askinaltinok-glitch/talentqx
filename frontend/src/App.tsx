@@ -15,6 +15,9 @@ import InterviewDetail from './pages/InterviewDetail';
 import Employees from './pages/Employees';
 import EmployeeDetail from './pages/EmployeeDetail';
 import AssessmentResults from './pages/AssessmentResults';
+// Sales Console Pages
+import Leads from './pages/Leads';
+import LeadDetail from './pages/LeadDetail';
 // NotFound Pages
 import { PublicNotFound, AppNotFound } from './pages/NotFound';
 
@@ -50,6 +53,9 @@ function App() {
           <Route path="employees" element={<Employees />} />
           <Route path="employees/:id" element={<EmployeeDetail />} />
           <Route path="assessments" element={<AssessmentResults />} />
+          {/* Sales Console Routes */}
+          <Route path="leads" element={<Leads />} />
+          <Route path="leads/:id" element={<LeadDetail />} />
           {/* App 404 - catches unmatched /app/* routes */}
           <Route path="*" element={<AppNotFound />} />
         </Route>

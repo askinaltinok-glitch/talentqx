@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\JobController;
 use App\Http\Controllers\Api\KVKKController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PositionTemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -169,6 +170,28 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('/anti-cheat/similar-responses', [InterviewController::class, 'similarResponses']);
+
+    // ===========================================
+    // SALES CONSOLE (MINI CRM)
+    // ===========================================
+
+    Route::prefix('leads')->group(function () {
+        Route::get('/', [LeadController::class, 'index']);
+        Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
+        Route::post('/', [LeadController::class, 'store']);
+        Route::get('/{lead}', [LeadController::class, 'show']);
+        Route::put('/{lead}', [LeadController::class, 'update']);
+        Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
+        Route::delete('/{lead}', [LeadController::class, 'destroy']);
+
+        // Activities
+        Route::post('/{lead}/activities', [LeadController::class, 'addActivity']);
+        Route::put('/{lead}/activities/{activity}', [LeadController::class, 'updateActivity']);
+
+        // Checklist
+        Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
+        Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
+    });
 });
 
 }); // End of v1 prefix group

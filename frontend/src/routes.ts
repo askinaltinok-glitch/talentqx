@@ -26,6 +26,10 @@ export const ROUTES = {
   EMPLOYEE_DETAIL: '/app/employees/:id',
   ASSESSMENTS: '/app/assessments',
   ASSESSMENTS_COMPARE: '/app/assessments/compare',
+
+  // Sales Console routes
+  LEADS: '/app/leads',
+  LEAD_DETAIL: '/app/leads/:id',
 } as const;
 
 // ============================================
@@ -68,6 +72,13 @@ export function assessmentsComparePath(ids: string[]): string {
 }
 
 /**
+ * Generate lead detail URL
+ */
+export function leadDetailPath(id: string): string {
+  return `/app/leads/${id}`;
+}
+
+/**
  * Generate login URL with optional redirect
  */
 export function loginPath(next?: string): string {
@@ -84,11 +95,14 @@ export function loginPath(next?: string): string {
 export const NAV_ITEMS = {
   main: [
     { name: 'Dashboard', href: ROUTES.DASHBOARD, end: true },
-    { name: 'Is Ilanlari', href: ROUTES.JOBS, end: false },
+    { name: 'İş İlanları', href: ROUTES.JOBS, end: false },
     { name: 'Adaylar', href: ROUTES.CANDIDATES, end: false },
   ],
   workforce: [
-    { name: 'Calisanlar', href: ROUTES.EMPLOYEES, end: false },
-    { name: 'Degerlendirmeler', href: ROUTES.ASSESSMENTS, end: false },
+    { name: 'Çalışanlar', href: ROUTES.EMPLOYEES, end: false },
+    { name: 'Değerlendirmeler', href: ROUTES.ASSESSMENTS, end: false },
+  ],
+  sales: [
+    { name: 'Potansiyel Müşteriler', href: ROUTES.LEADS, end: false },
   ],
 } as const;
