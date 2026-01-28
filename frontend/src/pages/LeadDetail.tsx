@@ -13,6 +13,9 @@ import {
   ChatBubbleLeftIcon,
   VideoCameraIcon,
   LinkIcon,
+  DocumentTextIcon,
+  BellIcon,
+  ClipboardDocumentIcon,
 } from '@heroicons/react/24/outline';
 import { FireIcon as FireIconSolid, CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 import api from '../services/api';
@@ -54,6 +57,8 @@ export default function LeadDetail() {
   const [loading, setLoading] = useState(true);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showPilotOfferModal, setShowPilotOfferModal] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'activities' | 'checklist'>('activities');
 
   useEffect(() => {
@@ -153,6 +158,21 @@ export default function LeadDetail() {
           <p className="text-gray-500 mt-1">{lead.contact_name}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFollowUpModal(true)}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2"
+            title="Takip Hatırlatıcısı"
+          >
+            <BellIcon className="h-4 w-4" />
+            Takip
+          </button>
+          <button
+            onClick={() => setShowPilotOfferModal(true)}
+            className="px-4 py-2 border border-orange-300 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 text-sm font-medium flex items-center gap-2"
+          >
+            <DocumentTextIcon className="h-4 w-4" />
+            Pilot Teklifi Gönder
+          </button>
           <button
             onClick={() => setShowStatusModal(true)}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
@@ -504,6 +524,24 @@ export default function LeadDetail() {
           onClose={() => setShowStatusModal(false)}
           onUpdated={() => {
             setShowStatusModal(false);
+            loadLead();
+          }}
+        />
+      )}
+
+      {showPilotOfferModal && (
+        <PilotOfferModal
+          lead={lead}
+          onClose={() => setShowPilotOfferModal(false)}
+        />
+      )}
+
+      {showFollowUpModal && (
+        <FollowUpModal
+          lead={lead}
+          onClose={() => setShowFollowUpModal(false)}
+          onUpdated={() => {
+            setShowFollowUpModal(false);
             loadLead();
           }}
         />
@@ -891,6 +929,318 @@ function StatusModal({
               >
                 {loading ? 'Kaydediliyor...' : 'Güncelle'}
               </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Pilot Offer Modal Component
+function PilotOfferModal({
+  lead,
+  onClose,
+}: {
+  lead: Lead;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const generateEmailTemplate = () => {
+    const contactName = lead.contact_name || 'Yetkili';
+    const companyName = lead.company_name;
+
+    return `Sayın ${contactName},
+
+${companyName} için hazırladığımız TalentQX Pilot Programı teklifini ekte bilgilerinize sunarız.
+
+## TalentQX Pilot Programı - 30 Gün
+
+**Neler Dahil:**
+- Tam platform erişimi
+- 3 role özel değerlendirme şablonu
+- 20 aday/çalışan değerlendirmesi
+- 1 saatlik İK ekibi eğitimi
+- E-posta ve telefon desteği
+- Pilot sonu ROI analizi raporu
+
+**Yatırım:** €490 + KDV
+
+**Avantajlar:**
+- Uzun vadeli taahhüt yok
+- Pilot ücreti yıllık abonelikten düşülür
+- 30 gün içinde karar verirseniz %15 indirim
+
+**Pilot Sonrası Seçenekler:**
+A) Tam Abonelik - Sorunsuz geçiş, pilot ücreti düşülür
+B) Pilot Uzatma - Ek 30 gün, daha fazla rol testi
+C) Sonlandırma - Hiçbir yükümlülük yok
+
+**KVKK/GDPR Uyumu:** Tam mevzuat uyumu, açık rıza yönetimi, veri silme hakkı
+
+**Sonraki Adımlar:**
+1. Pilot sözleşmesi imzası
+2. 48 saat içinde başlangıç toplantısı
+3. 3 iş günü içinde canlıya geçiş
+
+Herhangi bir sorunuz olursa beni arayabilirsiniz.
+
+Saygılarımla,
+
+---
+TalentQX Sales Team
+pilot@talentqx.com
+www.talentqx.com
+
+---
+"TalentQX – İşe Almadan Önce Çalışanlarınızı Tanıyın."`;
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generateEmailTemplate());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleOpenEmail = () => {
+    const subject = encodeURIComponent(`TalentQX Pilot Programı Teklifi - ${lead.company_name}`);
+    const body = encodeURIComponent(generateEmailTemplate());
+    window.open(`mailto:${lead.email}?subject=${subject}&body=${body}`, '_blank');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Pilot Teklifi Gönder</h2>
+            <span className="text-sm text-gray-500">{lead.company_name}</span>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-700">Alıcı:</span>
+              <span className="text-sm text-gray-900">{lead.email}</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+              {generateEmailTemplate()}
+            </pre>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Kapat
+            </button>
+            <button
+              onClick={handleCopy}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            >
+              <ClipboardDocumentIcon className="h-4 w-4" />
+              {copied ? 'Kopyalandı!' : 'Kopyala'}
+            </button>
+            <button
+              onClick={handleOpenEmail}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            >
+              <EnvelopeIcon className="h-4 w-4" />
+              E-posta Aç
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Follow-up Reminder Modal Component
+function FollowUpModal({
+  lead,
+  onClose,
+  onUpdated,
+}: {
+  lead: Lead;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [followUpDate, setFollowUpDate] = useState(
+    lead.next_follow_up_at
+      ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16)
+      : ''
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.patch(`/leads/${lead.id}`, {
+        next_follow_up_at: followUpDate || null,
+      });
+      onUpdated();
+    } catch (err) {
+      setError(api.getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClear = async () => {
+    setFollowUpDate('');
+    setLoading(true);
+    setError('');
+
+    try {
+      await api.patch(`/leads/${lead.id}`, {
+        next_follow_up_at: null,
+      });
+      onUpdated();
+    } catch (err) {
+      setError(api.getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quick date presets
+  const setPreset = (days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    date.setHours(9, 0, 0, 0);
+    setFollowUpDate(date.toISOString().slice(0, 16));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Takip Hatırlatıcısı</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hızlı Seçim
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreset(1)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Yarın
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreset(3)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  3 Gün
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreset(7)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  1 Hafta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreset(14)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  2 Hafta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreset(30)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  1 Ay
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tarih & Saat
+              </label>
+              <input
+                type="datetime-local"
+                value={followUpDate}
+                onChange={(e) => setFollowUpDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+
+            {lead.next_follow_up_at && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <BellIcon className="h-4 w-4 inline mr-1" />
+                  Mevcut hatırlatıcı:{' '}
+                  <strong>
+                    {new Date(lead.next_follow_up_at).toLocaleString('tr-TR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </strong>
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-4">
+              <div>
+                {lead.next_follow_up_at && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    disabled={loading}
+                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
+                  >
+                    Hatırlatıcıyı Kaldır
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !followUpDate}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
             </div>
           </form>
         </div>
