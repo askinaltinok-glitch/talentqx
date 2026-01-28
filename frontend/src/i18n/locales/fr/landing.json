@@ -113,6 +113,7 @@
     "subtitle": "Tarification simple. Décisions sérieuses.",
     "mostPopular": "Le plus populaire",
     "perMonth": "par mois",
+    "assessmentsPerMonth": "évaluations / mois",
     "plans": {
       "mini": {
         "name": "MINI",

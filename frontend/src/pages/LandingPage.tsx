@@ -29,10 +29,17 @@ import { localizedPath } from '../routes';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import pricingHero from '../assets/pricing-hero.jpg';
 
+const PRICING_PLANS = [
+  { key: "MINI", assessments: 100, tl: "9.900", eur: "199" },
+  { key: "MIDI", assessments: 250, tl: "19.900", eur: "399", popular: true },
+  { key: "PRO",  assessments: 600, tl: "49.900", eur: "999" },
+];
+
 export default function LandingPage() {
   const { t, i18n } = useTranslation('landing');
   const { t: tc } = useTranslation('common');
-  const currentLang = i18n.language;
+  const lang = (i18n?.language || "tr").slice(0, 2);
+  const isTR = lang === "tr";
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     company_name: '',
@@ -125,31 +132,6 @@ export default function LandingPage() {
     { questionKey: 'faq.items.1.question', answerKey: 'faq.items.1.answer' },
     { questionKey: 'faq.items.2.question', answerKey: 'faq.items.2.answer' },
     { questionKey: 'faq.items.3.question', answerKey: 'faq.items.3.answer' },
-  ];
-
-  // Pricing plans
-  const pricingPlans = [
-    {
-      nameKey: 'pricing.plans.mini.name',
-      assessmentsKey: 'pricing.plans.mini.assessments',
-      priceTL: '9.900 TL',
-      priceEUR: '199 €',
-      popular: false,
-    },
-    {
-      nameKey: 'pricing.plans.midi.name',
-      assessmentsKey: 'pricing.plans.midi.assessments',
-      priceTL: '19.900 TL',
-      priceEUR: '399 €',
-      popular: true,
-    },
-    {
-      nameKey: 'pricing.plans.pro.name',
-      assessmentsKey: 'pricing.plans.pro.assessments',
-      priceTL: '49.900 TL',
-      priceEUR: '999 €',
-      popular: false,
-    },
   ];
 
   // Company types for demo form
@@ -426,9 +408,9 @@ export default function LandingPage() {
 
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
-            {pricingPlans.map((plan, index) => (
+            {PRICING_PLANS.map((plan) => (
               <a
-                key={index}
+                key={plan.key}
                 href="#demo"
                 className={`relative p-8 rounded-2xl border-2 transition-all duration-300 cursor-pointer block ${
                   plan.popular
@@ -445,18 +427,24 @@ export default function LandingPage() {
                   </div>
                 )}
                 <div className="text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{t(plan.nameKey)}</h3>
-                  <p className="text-gray-600 mb-6">{t(plan.assessmentsKey)}</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.key}</h3>
+                  <p className="text-gray-600 mb-6">{plan.assessments} {t('pricing.assessmentsPerMonth')}</p>
                   <div className="mb-6">
-                    {currentLang === 'tr' ? (
+                    {isTR ? (
                       <>
-                        <p className="text-3xl font-bold text-gray-900">{plan.priceTL}</p>
-                        <p className="text-sm text-gray-400">≈ {plan.priceEUR}</p>
+                        <div className="text-4xl font-extrabold tracking-tight text-slate-900">
+                          {plan.tl} TL
+                        </div>
+                        <div className="mt-1 text-sm text-slate-500">{plan.eur} €</div>
                       </>
                     ) : (
-                      <p className="text-3xl font-bold text-gray-900">{plan.priceEUR}</p>
+                      <div className="text-4xl font-extrabold tracking-tight text-slate-900">
+                        {plan.eur} €
+                      </div>
                     )}
-                    <p className="text-sm text-gray-400 mt-1">{t('pricing.perMonth')}</p>
+                    <div className="mt-2 text-sm text-slate-500">
+                      {isTR ? "aylık" : "per month"}
+                    </div>
                   </div>
                   <span className="inline-block mt-2 text-primary-600 font-medium text-sm group-hover:underline">
                     {tc('nav.requestDemo')} →

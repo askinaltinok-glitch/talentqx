@@ -113,6 +113,7 @@
     "subtitle": "Basit fiyatlandırma. Ciddi kararlar.",
     "mostPopular": "En Popüler",
     "perMonth": "aylık",
+    "assessmentsPerMonth": "değerlendirme / ay",
     "plans": {
       "mini": {
         "name": "MINI",

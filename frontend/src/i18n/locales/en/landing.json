@@ -113,6 +113,7 @@
     "subtitle": "Simple pricing. Serious decisions.",
     "mostPopular": "Most Popular",
     "perMonth": "per month",
+    "assessmentsPerMonth": "assessments / month",
     "plans": {
       "mini": {
         "name": "MINI",
