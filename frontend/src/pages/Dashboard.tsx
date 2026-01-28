@@ -7,13 +7,20 @@ import {
   ChartBarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
+  ClockIcon,
+  EnvelopeIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
-import type { DashboardStats } from '../types';
+import type { DashboardStats, FollowUpStats } from '../types';
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from '../types';
+import { leadDetailPath } from '../routes';
 import ScoreCircle from '../components/ScoreCircle';
+import clsx from 'clsx';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,12 +29,41 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const data = await api.get<DashboardStats>('/dashboard/stats');
-      setStats(data);
+      const [dashboardData, followUpData] = await Promise.all([
+        api.get<DashboardStats>('/dashboard/stats'),
+        api.get<FollowUpStats>('/leads/follow-up-stats'),
+      ]);
+      setStats(dashboardData);
+      setFollowUpStats(followUpData);
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getFollowUpBadge = (nextFollowUpAt: string | undefined) => {
+    if (!nextFollowUpAt) return null;
+    const followUpDate = new Date(nextFollowUpAt);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+    if (followUpDate < startOfToday) {
+      return { label: 'Gecikmiş', color: 'bg-red-100 text-red-700' };
+    } else if (followUpDate <= endOfToday) {
+      return { label: 'Bugün', color: 'bg-yellow-100 text-yellow-700' };
+    }
+    return null;
+  };
+
+  const copyToClipboard = async (text: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -114,6 +150,82 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Today's Follow-ups Widget */}
+      {followUpStats && followUpStats.total_due > 0 && (
+        <div className="card p-6 border-l-4 border-l-yellow-500">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ClockIcon className="h-5 w-5 text-yellow-600" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                Bugün Takip Edilecekler
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              {followUpStats.overdue > 0 && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
+                  {followUpStats.overdue} Gecikmiş
+                </span>
+              )}
+              {followUpStats.today > 0 && (
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium">
+                  {followUpStats.today} Bugün
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {followUpStats.due_leads.map((lead) => {
+              const badge = getFollowUpBadge(lead.next_follow_up_at);
+              return (
+                <Link
+                  key={lead.id}
+                  to={leadDetailPath(lead.id)}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900 truncate">
+                        {lead.company_name}
+                      </span>
+                      {badge && (
+                        <span className={clsx('text-xs px-2 py-0.5 rounded-full', badge.color)}>
+                          {badge.label}
+                        </span>
+                      )}
+                      <span className={clsx('text-xs px-2 py-0.5 rounded-full', LEAD_STATUS_COLORS[lead.status])}>
+                        {LEAD_STATUS_LABELS[lead.status]}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">{lead.contact_name}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => copyToClipboard(lead.email, e)}
+                      className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded"
+                      title="E-posta kopyala"
+                    >
+                      <EnvelopeIcon className="h-4 w-4" />
+                    </button>
+                    <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {followUpStats.total_due > followUpStats.due_leads.length && (
+            <Link
+              to="/leads?filter=follow_up"
+              className="block text-center text-sm text-primary-600 hover:underline mt-3"
+            >
+              Tümünü görüntüle ({followUpStats.total_due} lead)
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Status Distribution & Red Flag Rate */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

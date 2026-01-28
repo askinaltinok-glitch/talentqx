@@ -325,4 +325,56 @@ class LeadController extends Controller
             'message' => 'Lead silindi',
         ]);
     }
+
+    /**
+     * Get follow-up stats and due leads
+     */
+    public function followUpStats(): JsonResponse
+    {
+        $now = now();
+        $startOfToday = $now->copy()->startOfDay();
+        $endOfToday = $now->copy()->endOfDay();
+
+        // Overdue: next_follow_up_at < start of today
+        $overdue = Lead::whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '<', $startOfToday)
+            ->whereNotIn('status', [Lead::STATUS_WON, Lead::STATUS_LOST])
+            ->count();
+
+        // Today: next_follow_up_at is today
+        $today = Lead::whereNotNull('next_follow_up_at')
+            ->whereBetween('next_follow_up_at', [$startOfToday, $endOfToday])
+            ->whereNotIn('status', [Lead::STATUS_WON, Lead::STATUS_LOST])
+            ->count();
+
+        // Upcoming: next_follow_up_at > end of today (next 7 days)
+        $upcoming = Lead::whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '>', $endOfToday)
+            ->where('next_follow_up_at', '<=', $now->copy()->addDays(7)->endOfDay())
+            ->whereNotIn('status', [Lead::STATUS_WON, Lead::STATUS_LOST])
+            ->count();
+
+        // Total due (overdue + today)
+        $totalDue = $overdue + $today;
+
+        // Get due leads list (overdue + today, max 10)
+        $dueLeads = Lead::select(['id', 'company_name', 'contact_name', 'email', 'status', 'next_follow_up_at'])
+            ->whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '<=', $endOfToday)
+            ->whereNotIn('status', [Lead::STATUS_WON, Lead::STATUS_LOST])
+            ->orderBy('next_follow_up_at', 'asc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'overdue' => $overdue,
+                'today' => $today,
+                'upcoming' => $upcoming,
+                'total_due' => $totalDue,
+                'due_leads' => $dueLeads,
+            ],
+        ]);
+    }
 }

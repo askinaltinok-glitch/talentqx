@@ -761,6 +761,14 @@ export interface LeadChecklistProgress {
   overall_percentage: number;
 }
 
+export interface FollowUpStats {
+  overdue: number;
+  today: number;
+  upcoming: number;
+  total_due: number;
+  due_leads: Pick<Lead, 'id' | 'company_name' | 'contact_name' | 'email' | 'status' | 'next_follow_up_at'>[];
+}
+
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   new: 'Yeni',
   contacted: 'İletişime Geçildi',

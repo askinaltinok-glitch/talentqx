@@ -10,21 +10,45 @@ import {
   ChevronRightIcon,
   BuildingOfficeIcon,
   CalendarIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { FireIcon as FireIconSolid } from '@heroicons/react/24/solid';
 import api from '../services/api';
 import { leadDetailPath } from '../routes';
-import type { Lead, LeadPipelineStats, LeadStatus } from '../types';
+import type { Lead, LeadPipelineStats, LeadStatus, FollowUpStats } from '../types';
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from '../types';
 import clsx from 'clsx';
 
 const PIPELINE_STAGES: LeadStatus[] = ['new', 'contacted', 'demo', 'pilot', 'negotiation', 'won', 'lost'];
 
+type FollowUpBadge = { label: string; color: string; priority: number } | null;
+
+const getFollowUpBadge = (nextFollowUpAt: string | undefined): FollowUpBadge => {
+  if (!nextFollowUpAt) return null;
+  const followUpDate = new Date(nextFollowUpAt);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000 - 1);
+  const endOfWeek = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  if (followUpDate < startOfToday) {
+    return { label: 'Gecikmiş', color: 'bg-red-100 text-red-700 border-red-200', priority: 1 };
+  } else if (followUpDate <= endOfToday) {
+    return { label: 'Bugün', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', priority: 2 };
+  } else if (followUpDate <= endOfWeek) {
+    return { label: 'Bu Hafta', color: 'bg-blue-100 text-blue-700 border-blue-200', priority: 3 };
+  }
+  return null;
+};
+
+type FilterType = LeadStatus | 'all' | 'hot' | 'follow_up' | 'overdue';
+
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<LeadPipelineStats | null>(null);
+  const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<LeadStatus | 'all' | 'hot' | 'follow_up'>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
 
@@ -37,26 +61,39 @@ export default function Leads() {
       setLoading(true);
       const params: Record<string, unknown> = {};
 
-      if (activeFilter !== 'all' && activeFilter !== 'hot' && activeFilter !== 'follow_up') {
+      if (activeFilter !== 'all' && activeFilter !== 'hot' && activeFilter !== 'follow_up' && activeFilter !== 'overdue') {
         params.status = activeFilter;
       }
       if (activeFilter === 'hot') {
         params.is_hot = true;
       }
-      if (activeFilter === 'follow_up') {
+      if (activeFilter === 'follow_up' || activeFilter === 'overdue') {
         params.needs_follow_up = true;
       }
       if (searchQuery) {
         params.search = searchQuery;
       }
 
-      const [leadsData, statsData] = await Promise.all([
+      const [leadsData, statsData, followUpData] = await Promise.all([
         api.get<Lead[]>('/leads', params),
         api.get<LeadPipelineStats>('/leads/pipeline-stats'),
+        api.get<FollowUpStats>('/leads/follow-up-stats'),
       ]);
 
-      setLeads(leadsData);
+      // If overdue filter, filter client-side for overdue only
+      let filteredLeads = leadsData;
+      if (activeFilter === 'overdue') {
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        filteredLeads = leadsData.filter(lead => {
+          if (!lead.next_follow_up_at) return false;
+          return new Date(lead.next_follow_up_at) < startOfToday;
+        });
+      }
+
+      setLeads(filteredLeads);
       setStats(statsData);
+      setFollowUpStats(followUpData);
     } catch (error) {
       console.error('Error loading leads:', error);
     } finally {
@@ -141,7 +178,7 @@ export default function Leads() {
 
       {/* Quick Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-lg border p-4">
             <div className="flex items-center gap-2 text-gray-500 text-sm">
               <BuildingOfficeIcon className="h-4 w-4" />
@@ -161,6 +198,19 @@ export default function Leads() {
               Sıcak Lead
             </div>
             <div className="text-2xl font-bold mt-1">{stats.hot_leads}</div>
+          </button>
+          <button
+            onClick={() => setActiveFilter('overdue')}
+            className={clsx(
+              'bg-white rounded-lg border p-4 text-left transition-all',
+              activeFilter === 'overdue' && 'ring-2 ring-red-500'
+            )}
+          >
+            <div className="flex items-center gap-2 text-red-600 text-sm">
+              <ExclamationCircleIcon className="h-4 w-4" />
+              Gecikmiş
+            </div>
+            <div className="text-2xl font-bold mt-1">{followUpStats?.overdue || 0}</div>
           </button>
           <button
             onClick={() => setActiveFilter('follow_up')}
@@ -275,12 +325,22 @@ export default function Leads() {
                       </span>
                     )}
                   </div>
-                  {lead.next_follow_up_at && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-yellow-600">
-                      <ClockIcon className="h-3.5 w-3.5" />
-                      Takip: {formatDate(lead.next_follow_up_at)}
-                    </div>
-                  )}
+                  {lead.next_follow_up_at && (() => {
+                    const badge = getFollowUpBadge(lead.next_follow_up_at);
+                    return (
+                      <div className="flex items-center gap-2 mt-1">
+                        {badge && (
+                          <span className={clsx('text-xs px-2 py-0.5 rounded-full border', badge.color)}>
+                            {badge.label}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <ClockIcon className="h-3.5 w-3.5" />
+                          Takip: {formatDate(lead.next_follow_up_at)}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Value & Date */}

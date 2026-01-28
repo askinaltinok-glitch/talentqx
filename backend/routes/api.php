@@ -178,6 +178,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('leads')->group(function () {
         Route::get('/', [LeadController::class, 'index']);
         Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
+        Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
         Route::post('/', [LeadController::class, 'store']);
         Route::get('/{lead}', [LeadController::class, 'show']);
         Route::put('/{lead}', [LeadController::class, 'update']);
