@@ -25,8 +25,8 @@ class InterviewSession extends Model
 
     protected $casts = [
         'started_at' => 'datetime',
-        'completed_at' => 'datetime',
-        'metadata' => 'array',
+        'finished_at' => 'datetime',
+        'meta' => 'array',
     ];
 
     // Status constants
@@ -50,9 +50,9 @@ class InterviewSession extends Model
         return $this->hasMany(InterviewReport::class, 'session_id');
     }
 
-    public function consent(): HasOne
+    public function consent(): BelongsTo
     {
-        return $this->hasOne(PrivacyConsent::class, 'interview_session_id');
+        return $this->belongsTo(PrivacyConsent::class, 'privacy_consent_id');
     }
 
     public function context(): BelongsTo
@@ -70,7 +70,7 @@ class InterviewSession extends Model
     {
         $this->update([
             'status' => self::STATUS_COMPLETED,
-            'completed_at' => now(),
+            'finished_at' => now(),
         ]);
     }
 }

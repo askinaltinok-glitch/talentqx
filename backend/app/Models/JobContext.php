@@ -45,7 +45,7 @@ class JobContext extends Model
     {
         return static::where('role_key', $roleKey)
             ->where('is_active', true)
-            ->orderBy('order')
+            ->orderBy('context_key')
             ->get();
     }
 

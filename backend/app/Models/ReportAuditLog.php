@@ -2,26 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ReportAuditLog extends Model
 {
-    use HasUuids;
+    public $timestamps = false;
 
     protected $fillable = [
         'report_id',
         'action',
-        'actor_type',
-        'actor_id',
+        'user_id',
         'ip_address',
         'user_agent',
         'metadata',
+        'created_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'created_at' => 'datetime',
     ];
 
     // Action constants
@@ -42,18 +42,17 @@ class ReportAuditLog extends Model
     public static function log(
         string $reportId,
         string $action,
-        ?string $actorType = null,
-        ?string $actorId = null,
+        ?string $userId = null,
         ?array $metadata = null
     ): self {
         return static::create([
             'report_id' => $reportId,
             'action' => $action,
-            'actor_type' => $actorType,
-            'actor_id' => $actorId,
+            'user_id' => $userId,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'metadata' => $metadata,
+            'created_at' => now(),
         ]);
     }
 }

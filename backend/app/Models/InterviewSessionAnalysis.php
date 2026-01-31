@@ -14,25 +14,40 @@ class InterviewSessionAnalysis extends Model
 
     protected $fillable = [
         'session_id',
-        'overall_score',
-        'dimension_scores',
-        'question_analyses',
-        'behavior_analysis',
-        'risk_flags',
-        'summary',
-        'recommendations',
-        'raw_response',
-        'model_version',
+        'ai_model',
+        'ai_model_version',
+        'prompt_version',
         'analyzed_at',
+        'processing_time_ms',
+        'overall_score',
+        'recommendation',
+        'confidence_percent',
+        'dimension_scores',
+        'behavior_analysis',
+        'question_analyses',
+        'strengths',
+        'improvement_areas',
+        'interview_notes',
+        'summary_text',
+        'hr_recommendations',
+        'raw_ai_response',
+        'tokens_used',
+        'cost_usd',
+        'status',
+        'error_message',
     ];
 
     protected $casts = [
         'overall_score' => 'decimal:2',
+        'confidence_percent' => 'integer',
+        'processing_time_ms' => 'integer',
+        'tokens_used' => 'integer',
+        'cost_usd' => 'decimal:6',
         'dimension_scores' => 'array',
         'question_analyses' => 'array',
         'behavior_analysis' => 'array',
-        'risk_flags' => 'array',
-        'recommendations' => 'array',
+        'strengths' => 'array',
+        'improvement_areas' => 'array',
         'analyzed_at' => 'datetime',
     ];
 
@@ -54,7 +69,7 @@ class InterviewSessionAnalysis extends Model
      */
     public function hasRiskFlags(): bool
     {
-        return !empty($this->risk_flags);
+        return !empty($this->getRedFlagsAttribute());
     }
 
     /**
@@ -69,5 +84,27 @@ class InterviewSessionAnalysis extends Model
             return 'potential_fit';
         }
         return 'weak_fit';
+    }
+
+    /**
+     * Get red flags from behavior analysis
+     */
+    public function getRedFlagsAttribute(): array
+    {
+        $flags = [];
+        $behavior = $this->behavior_analysis ?? [];
+
+        // Extract risk flags from behavior analysis
+        if (isset($behavior['risk_indicators'])) {
+            foreach ($behavior['risk_indicators'] as $indicator) {
+                $flags[] = [
+                    'type' => 'behavior',
+                    'severity' => $indicator['severity'] ?? 'medium',
+                    'description' => $indicator['description'] ?? '',
+                ];
+            }
+        }
+
+        return $flags;
     }
 }
