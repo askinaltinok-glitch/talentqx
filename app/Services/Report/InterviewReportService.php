@@ -372,18 +372,26 @@ class InterviewReportService
      *   - Logo is placed in the header, small and unobtrusive
      *   - TalentQX logo remains visible in footer
      *   - Text: "Prepared for {{Company Name}}" is shown
-     * - Fully white-labeled PDFs (TalentQX logo removed) are NOT supported in v1.x
+     *
+     * WHITE-LABEL POLICY v2.0 (Enterprise only):
+     * - TalentQX logo removed from cover and footer
+     * - Subtle "Powered by TalentQX" disclaimer remains in legal page
+     * - Customer assumes responsibility for internal distribution
+     * - Requires explicit contract clause acceptance
      */
     private function getDefaultBranding(): array
     {
         return [
-            // TalentQX branding (always visible)
+            // TalentQX branding (visible unless white_label is true)
             'primary_color' => '#1E3A5F',      // Navy blue - corporate standard
             'secondary_color' => '#2E5A8F',
 
             // Customer branding (optional - only if explicitly provided)
             'customer_logo_url' => null,       // Customer logo for header
             'customer_company_name' => null,   // Customer company name
+
+            // White-label mode (Enterprise only)
+            'white_label' => false,            // Remove TalentQX branding (except legal disclaimer)
 
             // Legacy fields for backwards compatibility
             'logo_url' => null,

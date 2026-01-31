@@ -575,26 +575,35 @@
     </div>
 
     <div class="cover">
-        {{-- TalentQX Logo - Always visible --}}
-        <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 20px;">TalentQX</div>
+        @if($branding['white_label'] ?? false)
+            {{-- WHITE-LABEL MODE: Customer branding only --}}
+            @if($branding['customer_logo_url'] ?? null)
+                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 60px; max-width: 200px; margin-bottom: 40px;">
+            @elseif($branding['customer_company_name'] ?? null)
+                <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;">{{ $branding['customer_company_name'] }}</div>
+            @endif
+        @else
+            {{-- STANDARD MODE: TalentQX branding --}}
+            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 20px;">TalentQX</div>
 
-        {{-- Customer branding (if provided) --}}
-        @if($branding['customer_logo_url'] ?? null)
-            <div style="margin-bottom: 30px;">
-                <p style="font-size: 10pt; color: var(--text-muted); margin-bottom: 8px;">
-                    {{ $locale === 'tr' ? 'Hazırlayan' : 'Prepared for' }}
-                </p>
-                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? 'Customer' }}" style="max-height: 40px; max-width: 150px;">
-                @if($branding['customer_company_name'] ?? null)
-                    <p style="font-size: 11pt; font-weight: 600; color: var(--text-dark); margin-top: 6px;">
-                        {{ $branding['customer_company_name'] }}
+            {{-- Customer branding (if provided) --}}
+            @if($branding['customer_logo_url'] ?? null)
+                <div style="margin-bottom: 30px;">
+                    <p style="font-size: 10pt; color: var(--text-muted); margin-bottom: 8px;">
+                        {{ $locale === 'tr' ? 'Hazırlayan' : 'Prepared for' }}
                     </p>
-                @endif
-            </div>
-        @elseif($branding['customer_company_name'] ?? null)
-            <p style="font-size: 11pt; color: var(--text-muted); margin-bottom: 30px;">
-                {{ $locale === 'tr' ? 'Hazırlayan:' : 'Prepared for:' }} <strong>{{ $branding['customer_company_name'] }}</strong>
-            </p>
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? 'Customer' }}" style="max-height: 40px; max-width: 150px;">
+                    @if($branding['customer_company_name'] ?? null)
+                        <p style="font-size: 11pt; font-weight: 600; color: var(--text-dark); margin-top: 6px;">
+                            {{ $branding['customer_company_name'] }}
+                        </p>
+                    @endif
+                </div>
+            @elseif($branding['customer_company_name'] ?? null)
+                <p style="font-size: 11pt; color: var(--text-muted); margin-bottom: 30px;">
+                    {{ $locale === 'tr' ? 'Hazırlayan:' : 'Prepared for:' }} <strong>{{ $branding['customer_company_name'] }}</strong>
+                </p>
+            @endif
         @endif
 
         <h1 class="cover-title">{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }}</h1>
@@ -649,9 +658,17 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
-            <span>TalentQX</span>
-            @if($branding['customer_company_name'] ?? null)
-                <span style="color: var(--text-light);">| {{ $branding['customer_company_name'] }}</span>
+            @if($branding['white_label'] ?? false)
+                {{-- WHITE-LABEL: Customer only --}}
+                @if($branding['customer_company_name'] ?? null)
+                    <span>{{ $branding['customer_company_name'] }}</span>
+                @endif
+            @else
+                {{-- STANDARD: TalentQX + Customer --}}
+                <span>TalentQX</span>
+                @if($branding['customer_company_name'] ?? null)
+                    <span style="color: var(--text-light);">| {{ $branding['customer_company_name'] }}</span>
+                @endif
             @endif
         </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 1 / 4</span>
@@ -666,13 +683,23 @@
 
     <div class="header">
         <div class="header-brand">
-            <span class="header-brand-text">TalentQX</span>
-            @if($branding['customer_logo_url'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-            @elseif($branding['customer_company_name'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+            @if($branding['white_label'] ?? false)
+                {{-- WHITE-LABEL: Customer only --}}
+                @if($branding['customer_logo_url'] ?? null)
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
+                @endif
+            @else
+                {{-- STANDARD: TalentQX + Customer --}}
+                <span class="header-brand-text">TalentQX</span>
+                @if($branding['customer_logo_url'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+                @endif
             @endif
         </div>
         <div class="header-meta">
@@ -803,7 +830,12 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
-            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+            @if(!($branding['white_label'] ?? false))
+                <span>TalentQX</span>
+            @elseif($branding['customer_company_name'] ?? null)
+                <span>{{ $branding['customer_company_name'] }}</span>
+            @endif
+            <span style="color: var(--text-light);">{{ $generatedAt->format('d.m.Y H:i') }}</span>
         </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 2 / 4</span>
     </div>
@@ -817,13 +849,23 @@
 
     <div class="header">
         <div class="header-brand">
-            <span class="header-brand-text">TalentQX</span>
-            @if($branding['customer_logo_url'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-            @elseif($branding['customer_company_name'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+            @if($branding['white_label'] ?? false)
+                {{-- WHITE-LABEL: Customer only --}}
+                @if($branding['customer_logo_url'] ?? null)
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
+                @endif
+            @else
+                {{-- STANDARD: TalentQX + Customer --}}
+                <span class="header-brand-text">TalentQX</span>
+                @if($branding['customer_logo_url'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+                @endif
             @endif
         </div>
         <div class="header-meta">
@@ -982,7 +1024,12 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
-            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+            @if(!($branding['white_label'] ?? false))
+                <span>TalentQX</span>
+            @elseif($branding['customer_company_name'] ?? null)
+                <span>{{ $branding['customer_company_name'] }}</span>
+            @endif
+            <span style="color: var(--text-light);">{{ $generatedAt->format('d.m.Y H:i') }}</span>
         </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 3 / 4</span>
     </div>
@@ -996,13 +1043,23 @@
 
     <div class="header">
         <div class="header-brand">
-            <span class="header-brand-text">TalentQX</span>
-            @if($branding['customer_logo_url'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-            @elseif($branding['customer_company_name'] ?? null)
-                <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+            @if($branding['white_label'] ?? false)
+                {{-- WHITE-LABEL: Customer only --}}
+                @if($branding['customer_logo_url'] ?? null)
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
+                @endif
+            @else
+                {{-- STANDARD: TalentQX + Customer --}}
+                <span class="header-brand-text">TalentQX</span>
+                @if($branding['customer_logo_url'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
+                @elseif($branding['customer_company_name'] ?? null)
+                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
+                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
+                @endif
             @endif
         </div>
         <div class="header-meta">
@@ -1101,16 +1158,29 @@
         <p>{{ $locale === 'tr' ? 'Oluşturulma' : 'Generated' }}: {{ $generatedAt->format('d.m.Y H:i:s') }} | ID: {{ $reportId }}</p>
         <p style="margin-top: 8px;">
             @if($branding['customer_company_name'] ?? null)
-                {{ $locale === 'tr' ? 'Hazırlayan:' : 'Prepared for:' }} {{ $branding['customer_company_name'] }} |
+                {{ $branding['customer_company_name'] }}
+                @if(!($branding['white_label'] ?? false))
+                    |
+                @endif
             @endif
-            <strong>TalentQX</strong>
+            {{-- "Powered by TalentQX" disclaimer - ALWAYS visible per policy v2.0 --}}
+            @if($branding['white_label'] ?? false)
+                <span style="font-size: 8pt; color: var(--text-light);">{{ $locale === 'tr' ? 'Destekleyen:' : 'Powered by' }} TalentQX</span>
+            @else
+                <strong>TalentQX</strong>
+            @endif
         </p>
     </div>
 
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
-            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+            @if(!($branding['white_label'] ?? false))
+                <span>TalentQX</span>
+            @elseif($branding['customer_company_name'] ?? null)
+                <span>{{ $branding['customer_company_name'] }}</span>
+            @endif
+            <span style="color: var(--text-light);">{{ $generatedAt->format('d.m.Y H:i') }}</span>
         </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 4 / 4</span>
     </div>
