@@ -808,3 +808,126 @@ export const LEAD_CHECKLIST_STAGE_KEYS: Record<LeadChecklistStage, string> = {
   pilot: 'checklist.stages.pilot',
   closing: 'checklist.stages.closing',
 };
+
+// ===========================================
+// PUBLIC INTERVIEW SESSION TYPES
+// ===========================================
+
+export type InterviewSessionStatus = 'started' | 'abandoned' | 'completed' | 'expired';
+
+export interface InterviewSessionQuestion {
+  id: number;
+  type: 'text' | 'voice_prompt' | 'scenario';
+  prompt: string;
+  order_no: number;
+  meta?: Record<string, unknown>;
+}
+
+export interface InterviewSessionAnswer {
+  id: number;
+  question_id: number;
+  question_prompt?: string;
+  answer_type: 'text' | 'voice';
+  raw_text?: string;
+  audio_path?: string;
+  duration_ms?: number;
+  response_time_ms?: number;
+  created_at: string;
+}
+
+export interface InterviewSession {
+  id: string;
+  candidate_id: string;
+  role_key: string;
+  context_key?: string;
+  locale: string;
+  status: InterviewSessionStatus;
+  started_at?: string;
+  finished_at?: string;
+  consent?: {
+    id: string;
+    regime: string;
+    policy_version: string;
+    accepted_at: string;
+  };
+  context?: JobContextInfo;
+  answers_count?: number;
+}
+
+export interface InterviewSessionCreatePayload {
+  candidate_id: string;
+  role_key: string;
+  context_key?: string;
+  locale?: string;
+  consent_accepted: boolean;
+  regime: string;
+  policy_version: string;
+  data_categories?: string[];
+  retention_days?: number;
+  automated_decision?: boolean;
+}
+
+export interface JobContextInfo {
+  context_key: string;
+  label_tr: string;
+  label_en: string;
+  risk_level: 'low' | 'medium' | 'high';
+  environment_tags?: string[];
+  weights?: Record<string, number>;
+}
+
+export interface InterviewSessionAnalysis {
+  id: string;
+  session_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  ai_model?: string;
+  prompt_version?: string;
+  overall_score?: number;
+  recommendation?: 'hire' | 'hold' | 'reject';
+  recommendation_label?: string;
+  confidence_percent?: number;
+  score_level?: 'excellent' | 'good' | 'average' | 'below_average';
+  dimension_scores?: Record<string, {
+    score: number;
+    evidence?: string[];
+    notes?: string;
+  }>;
+  behavior_analysis?: {
+    response_style?: string;
+    consistency_score?: number;
+    clarity_score?: number;
+    confidence_level?: string;
+    red_flags?: {
+      type: string;
+      description: string;
+      question_id?: number;
+      severity: 'low' | 'medium' | 'high';
+    }[];
+  };
+  question_analyses?: {
+    question_id: number;
+    score: number;
+    max_score: number;
+    analysis: string;
+    positive_points: string[];
+    concerns: string[];
+  }[];
+  strengths?: string[];
+  improvement_areas?: string[];
+  summary_text?: string;
+  hr_recommendations?: string;
+  has_red_flags?: boolean;
+  red_flags?: unknown[];
+  analyzed_at?: string;
+  processing_time_ms?: number;
+  tokens_used?: number;
+  cost_usd?: number;
+  error_message?: string;
+}
+
+export const ROLE_LABELS: Record<string, { tr: string; en: string }> = {
+  store_manager: { tr: 'Mağaza Müdürü', en: 'Store Manager' },
+  sales_rep: { tr: 'Satış Temsilcisi', en: 'Sales Representative' },
+  production_supervisor: { tr: 'Üretim Şefi', en: 'Production Supervisor' },
+  office_ops: { tr: 'Ofis Operasyon', en: 'Office Operations' },
+};

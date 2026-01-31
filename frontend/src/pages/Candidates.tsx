@@ -6,6 +6,7 @@ import {
   ExclamationTriangleIcon,
   ShieldExclamationIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Candidate, Job } from '../types';
 import { candidateDetailPath } from '../routes';
@@ -14,6 +15,7 @@ import ScoreCircle from '../components/ScoreCircle';
 import RecommendationBadge from '../components/RecommendationBadge';
 
 export default function Candidates() {
+  const { t } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -73,9 +75,9 @@ export default function Candidates() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Adaylar</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('candidates.title')}</h1>
         <p className="text-gray-500 mt-1">
-          Tum aday basvurulari ve degerlendirmeleri
+          {t('candidates.subtitle')}
         </p>
       </div>
 
@@ -90,7 +92,7 @@ export default function Candidates() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && loadCandidates()}
-                placeholder="Isim veya e-posta ara..."
+                placeholder={t('candidates.searchPlaceholder')}
                 className="input pl-10"
               />
             </div>
@@ -101,7 +103,7 @@ export default function Candidates() {
             onChange={(e) => updateFilter('job_id', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Is Ilanlari</option>
+            <option value="">{t('candidates.allJobs')}</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
                 {job.title}
@@ -114,14 +116,14 @@ export default function Candidates() {
             onChange={(e) => updateFilter('status', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Durumlar</option>
-            <option value="applied">Basvurdu</option>
-            <option value="interview_pending">Mulakat Bekliyor</option>
-            <option value="interview_completed">Mulakat Tamamlandi</option>
-            <option value="under_review">Incelemede</option>
-            <option value="shortlisted">Kisa Liste</option>
-            <option value="hired">Ise Alindi</option>
-            <option value="rejected">Reddedildi</option>
+            <option value="">{t('candidates.allStatuses')}</option>
+            <option value="applied">{t('candidates.applied')}</option>
+            <option value="interview_pending">{t('candidates.interviewPending')}</option>
+            <option value="interview_completed">{t('candidates.interviewCompleted')}</option>
+            <option value="under_review">{t('candidates.underReview')}</option>
+            <option value="shortlisted">{t('candidates.shortlisted')}</option>
+            <option value="hired">{t('candidates.hired')}</option>
+            <option value="rejected">{t('candidates.rejected')}</option>
           </select>
 
           <button
@@ -133,7 +135,7 @@ export default function Candidates() {
             }`}
           >
             <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
-            Kirmizi Bayraklar
+            {t('candidates.redFlags')}
           </button>
         </div>
       </div>
@@ -147,10 +149,10 @@ export default function Candidates() {
         <div className="card p-12 text-center">
           <FunnelIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Aday bulunamadi
+            {t('candidates.noCandidates')}
           </h3>
           <p className="text-gray-500">
-            Secili filtrelere uygun aday bulunmuyor.
+            {t('candidates.noCandidatesDesc')}
           </p>
         </div>
       ) : (
@@ -159,22 +161,22 @@ export default function Candidates() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Aday
+                  {t('candidates.candidate')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pozisyon
+                  {t('candidates.position')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Durum
+                  {t('candidates.status')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Puan
+                  {t('candidates.score')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Oneri
+                  {t('candidates.recommendation')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kopya Riski
+                  {t('candidates.cheatingRisk')}
                 </th>
               </tr>
             </thead>

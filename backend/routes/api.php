@@ -3,13 +3,17 @@
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CandidateController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
+use App\Http\Controllers\Api\InterviewSessionController;
 use App\Http\Controllers\Api\JobController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\KVKKController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PositionTemplateController;
+use App\Http\Controllers\Api\PrivacyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,6 +49,41 @@ Route::prefix('v1')->group(function () {
             Route::post('/{token}/responses', [AssessmentController::class, 'publicSubmitResponse']);
             Route::post('/{token}/complete', [AssessmentController::class, 'publicComplete']);
         });
+
+    // ===========================================
+    // PUBLIC PRIVACY & CONTACT ROUTES
+    // ===========================================
+
+    // Privacy endpoints (public)
+    Route::prefix('privacy')->group(function () {
+        Route::get('/meta', [PrivacyController::class, 'meta']);
+        Route::get('/policy/{regime}/{locale?}', [PrivacyController::class, 'policy']);
+    });
+
+    // Contact form endpoints (public)
+    Route::prefix('contact')->group(function () {
+        Route::post('/', [ContactController::class, 'submit']);
+        Route::post('/newsletter', [ContactController::class, 'newsletter']);
+    });
+
+    // ===========================================
+    // INTERVIEW SESSION ROUTES (Public, token-less)
+    // ===========================================
+    Route::prefix('interview-sessions')->group(function () {
+        Route::post('/start', [InterviewSessionController::class, 'start']);
+        Route::get('/questions', [InterviewSessionController::class, 'questions']);
+        Route::post('/{sessionId}/answer', [InterviewSessionController::class, 'submitAnswer']);
+        Route::post('/{sessionId}/complete', [InterviewSessionController::class, 'complete']);
+        Route::get('/{sessionId}/status', [InterviewSessionController::class, 'status']);
+    });
+
+    // ===========================================
+    // REPORT ROUTES (Public download with report ID)
+    // ===========================================
+    Route::prefix('reports')->group(function () {
+        Route::get('/{reportId}/download', [ReportController::class, 'download']);
+        Route::get('/{reportId}/status', [ReportController::class, 'status']);
+    });
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -111,6 +150,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/stats', [EmployeeController::class, 'stats']);
         Route::get('/retention-stats', [EmployeeController::class, 'retentionStats']);
         Route::post('/bulk-import', [EmployeeController::class, 'bulkImport']);
+        Route::get('/latest-import-batch', [EmployeeController::class, 'getLatestImportBatch']);
+        Route::post('/bulk-import/rollback', [EmployeeController::class, 'rollbackImport']);
         Route::get('/{id}', [EmployeeController::class, 'show']);
         Route::put('/{id}', [EmployeeController::class, 'update']);
         Route::delete('/{id}', [EmployeeController::class, 'destroy']);
@@ -157,6 +198,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/erasure-requests', [KVKKController::class, 'listErasureRequests']);
     });
 
+    // Privacy consent stats (protected)
+    Route::get('/privacy/consents/stats', [PrivacyController::class, 'stats']);
+
     // Job retention policy update
     Route::put('/jobs/{id}/retention', [KVKKController::class, 'updateRetention']);
 
@@ -170,6 +214,15 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('/anti-cheat/similar-responses', [InterviewController::class, 'similarResponses']);
+
+    // ===========================================
+    // INTERVIEW REPORTS (Protected)
+    // ===========================================
+    Route::prefix('reports')->group(function () {
+        Route::post('/generate', [ReportController::class, 'generate']);
+        Route::get('/session/{sessionId}', [ReportController::class, 'listForSession']);
+        Route::delete('/{reportId}', [ReportController::class, 'delete']);
+    });
 
     // ===========================================
     // SALES CONSOLE (MINI CRM)

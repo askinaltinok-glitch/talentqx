@@ -14,6 +14,8 @@ import InterviewDetail from './pages/InterviewDetail';
 import Employees from './pages/Employees';
 import EmployeeDetail from './pages/EmployeeDetail';
 import AssessmentResults from './pages/AssessmentResults';
+import PublicAssessment from './pages/PublicAssessment';
+import PublicInterview from './pages/PublicInterview';
 // Sales Console Pages
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
@@ -35,6 +37,14 @@ function App() {
       <Routes>
         {/* Root redirect - detect language and redirect */}
         <Route path="/" element={<LanguageRedirect />} />
+
+        {/* Public Assessment Route (no auth required) */}
+        <Route path="/assessment/:token" element={<PublicAssessment />} />
+        <Route path="/a/:token" element={<PublicAssessment />} />
+
+        {/* Public Interview Route (no auth required) */}
+        <Route path="/interview/:role" element={<PublicInterview />} />
+        <Route path="/i/:role" element={<PublicInterview />} />
 
         {/* Language-prefixed routes */}
         {SUPPORTED_LANGUAGES.map((lang) => (

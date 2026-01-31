@@ -1,0 +1,11 @@
+{
+    "name": "talentqx-api-scripts",
+    "version": "1.0.0",
+    "description": "PDF generation scripts for TalentQX",
+    "scripts": {
+        "render-pdf": "node scripts/render-pdf.js"
+    },
+    "dependencies": {
+        "playwright": "^1.40.0"
+    }
+}

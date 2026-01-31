@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import type { ApiResponse, ApiError } from '../types';
+import type { ApiResponse } from '../types';
 import { ROUTES } from '../routes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -80,10 +80,21 @@ class ApiService {
 
   getErrorMessage(error: unknown): string {
     if (axios.isAxiosError(error)) {
-      const apiError = error.response?.data?.error as ApiError | undefined;
-      return apiError?.message || error.message || 'Bir hata olustu';
+      // Laravel returns { message: "...", errors: {...} }
+      const responseData = error.response?.data;
+      if (responseData?.message) {
+        return responseData.message;
+      }
+      if (responseData?.errors) {
+        // Get first error message from errors object
+        const firstError = Object.values(responseData.errors)[0];
+        if (Array.isArray(firstError) && firstError.length > 0) {
+          return firstError[0];
+        }
+      }
+      return error.message || 'Bir hata oluştu';
     }
-    return 'Beklenmeyen bir hata olustu';
+    return 'Beklenmeyen bir hata oluştu';
   }
 }
 

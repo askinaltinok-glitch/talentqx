@@ -126,12 +126,6 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>{t('login.demoAccount')}</p>
-            <p className="font-mono text-xs mt-1">
-              admin@talentqx.com / password123
-            </p>
-          </div>
         </div>
 
         <p className="text-center text-white/80 text-sm mt-6">

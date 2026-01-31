@@ -61,7 +61,7 @@ class AssessmentEvaluationService
         // For now, return structure for manual/AI evaluation
         return [
             'question_order' => $questionOrder,
-            'competency_code' => $question['competency_code'],
+            'competency_code' => $question['competency_code'] ?? ($question['competency_codes'][0] ?? null),
             'response' => $response,
             'evaluation_criteria' => $question['evaluation_criteria'],
             'red_flag_triggers' => $question['red_flag_triggers'],
@@ -115,7 +115,8 @@ PROMPT;
             $question = collect($this->template['questions'])
                 ->firstWhere('order', $resp['question_order']);
 
-            $prompt .= "\n### SORU {$resp['question_order']} ({$question['competency_code']})\n";
+            $competencyCode = $question['competency_code'] ?? ($question['competency_codes'][0] ?? 'N/A');
+            $prompt .= "\n### SORU {$resp['question_order']} ({$competencyCode})\n";
             $prompt .= "**Soru:** {$question['text']}\n\n";
             $prompt .= "**Aday Yanıtı:** {$resp['response']}\n\n";
             $prompt .= "**Puanlama Kriterleri:**\n";
@@ -211,8 +212,8 @@ OUTPUT;
                 $question = collect($this->template['questions'])
                     ->firstWhere('order', $questionOrder);
                 if ($question) {
-                    $compCode = $question['competency_code'];
-                    if (isset($competencyScores[$compCode])) {
+                    $compCode = $question['competency_code'] ?? ($question['competency_codes'][0] ?? null);
+                    if ($compCode && isset($competencyScores[$compCode])) {
                         // Cap at 50% for critical flags
                         if ($flag['severity'] === 'critical') {
                             $competencyScores[$compCode]['score'] = min(

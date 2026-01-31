@@ -230,14 +230,20 @@ class AssessmentController extends Controller
             ], 410);
         }
 
-        // Hide correct answers from questions
+        // Hide correct answers and scoring info from questions
         $template = $session->template->toArray();
         $template['questions'] = collect($template['questions'])->map(function ($q) {
             unset($q['correct_answer']);
-            $q['options'] = collect($q['options'])->map(function ($o) {
-                unset($o['score']);
-                return $o;
-            })->toArray();
+            unset($q['scoring_rubric']); // Hide scoring rubric for free_text
+            unset($q['scoring_criteria']); // Legacy field
+
+            // Handle multiple choice questions with options
+            if (isset($q['options']) && is_array($q['options'])) {
+                $q['options'] = collect($q['options'])->map(function ($o) {
+                    unset($o['score']);
+                    return $o;
+                })->toArray();
+            }
             return $q;
         })->toArray();
 

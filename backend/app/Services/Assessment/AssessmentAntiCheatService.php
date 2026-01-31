@@ -103,7 +103,7 @@ class AssessmentAntiCheatService
                     'type' => 'unrealistic_wpm',
                     'question_order' => $questionOrder,
                     'severity' => 'high',
-                    'description' => "Soru {$questionOrder}: {$wpm:.0f} kelime/dakika (kopyala-yapistir olabilir)",
+                    'description' => "Soru {$questionOrder}: " . round($wpm) . " kelime/dakika (kopyala-yapistir olabilir)",
                     'wpm' => round($wpm, 2),
                 ];
                 $suspiciousCount++;
@@ -191,7 +191,7 @@ class AssessmentAntiCheatService
                         'type' => 'similar_response',
                         'question_order' => $questionOrder,
                         'severity' => $similarity >= 95 ? 'critical' : 'high',
-                        'description' => "Soru {$questionOrder}: %{$similarity:.1f} benzerlik (Calisan: {$otherSession->employee->full_name})",
+                        'description' => "Soru {$questionOrder}: %" . number_format($similarity, 1) . " benzerlik (Calisan: {$otherSession->employee->full_name})",
                         'similarity_percent' => round($similarity, 2),
                         'other_session_id' => $otherSession->id,
                     ];
@@ -251,7 +251,7 @@ class AssessmentAntiCheatService
                 $flags[] = [
                     'type' => 'uniform_sentence_length',
                     'severity' => 'medium',
-                    'description' => "Cumle uzunluklari cok tekduze (varyans: {$variance:.2f})",
+                    'description' => "Cumle uzunluklari cok tekduze (varyans: " . number_format($variance, 2) . ")",
                     'variance' => round($variance, 2),
                 ];
                 $riskScore += 30;

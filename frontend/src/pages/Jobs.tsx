@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Job, PositionTemplate } from '../types';
 import { jobDetailPath } from '../routes';
@@ -8,6 +9,7 @@ import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
 
 export default function Jobs() {
+  const { t } = useTranslation('common');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [templates, setTemplates] = useState<PositionTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,9 +48,9 @@ export default function Jobs() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Is Ilanlari</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('jobs.title')}</h1>
           <p className="text-gray-500 mt-1">
-            Tum is ilanlari ve mulakat sureclerini yonetin
+            {t('jobs.subtitle')}
           </p>
         </div>
         <button
@@ -56,7 +58,7 @@ export default function Jobs() {
           className="btn-primary"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Yeni Is Ilani
+          {t('jobs.newJob')}
         </button>
       </div>
 
@@ -68,11 +70,11 @@ export default function Jobs() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Durumlar</option>
-            <option value="draft">Taslak</option>
-            <option value="active">Aktif</option>
-            <option value="paused">Durduruldu</option>
-            <option value="closed">Kapali</option>
+            <option value="">{t('jobs.allStatuses')}</option>
+            <option value="draft">{t('jobs.draft')}</option>
+            <option value="active">{t('jobs.active')}</option>
+            <option value="paused">{t('jobs.paused')}</option>
+            <option value="closed">{t('jobs.closed')}</option>
           </select>
         </div>
       </div>
@@ -86,17 +88,17 @@ export default function Jobs() {
         <div className="card p-12 text-center">
           <MagnifyingGlassIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Is ilani bulunamadi
+            {t('jobs.noJobs')}
           </h3>
           <p className="text-gray-500 mb-4">
-            Henuz is ilani olusturmadiniz veya filtrelere uygun ilan yok.
+            {t('jobs.noJobsDesc')}
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
-            Ilk Is Ilanini Olustur
+            {t('jobs.createFirstJob')}
           </button>
         </div>
       ) : (
@@ -116,7 +118,7 @@ export default function Jobs() {
                     <StatusBadge status={job.status} size="sm" />
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    {job.template?.name} &bull; {job.location || 'Konum belirtilmemis'}
+                    {job.template?.name} &bull; {job.location || t('jobs.noLocationSpecified')}
                   </p>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
@@ -124,13 +126,13 @@ export default function Jobs() {
                     <p className="text-2xl font-bold text-gray-900">
                       {job.candidates_count || 0}
                     </p>
-                    <p className="text-gray-500">Aday</p>
+                    <p className="text-gray-500">{t('jobs.candidate')}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-primary-600">
                       {job.interviews_completed || 0}
                     </p>
-                    <p className="text-gray-500">Mulakat</p>
+                    <p className="text-gray-500">{t('jobs.interview')}</p>
                   </div>
                 </div>
               </div>
@@ -147,7 +149,7 @@ export default function Jobs() {
           onCreated={(job) => {
             setJobs([job, ...jobs]);
             setShowCreateModal(false);
-            toast.success('Is ilani olusturuldu!');
+            toast.success(t('jobs.jobCreated'));
           }}
         />
       )}
@@ -162,6 +164,7 @@ interface CreateJobModalProps {
 }
 
 function CreateJobModal({ templates, onClose, onCreated }: CreateJobModalProps) {
+  const { t } = useTranslation('common');
   const [title, setTitle] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [location, setLocation] = useState('');
@@ -194,23 +197,23 @@ function CreateJobModal({ templates, onClose, onCreated }: CreateJobModalProps) 
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">
-            Yeni Is Ilani Olustur
+            {t('jobs.createJobModal')}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pozisyon Sablonu
+                {t('jobs.positionTemplate')}
               </label>
               <select
                 value={templateId}
                 onChange={(e) => setTemplateId(e.target.value)}
                 className="input"
               >
-                <option value="">Sablon Secin</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
+                <option value="">{t('jobs.selectTemplate')}</option>
+                {templates.map((tmpl) => (
+                  <option key={tmpl.id} value={tmpl.id}>
+                    {tmpl.name}
                   </option>
                 ))}
               </select>
@@ -218,7 +221,7 @@ function CreateJobModal({ templates, onClose, onCreated }: CreateJobModalProps) 
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Is Ilani Basligi *
+                {t('jobs.jobTitleLabel')}
               </label>
               <input
                 type="text"
@@ -226,20 +229,20 @@ function CreateJobModal({ templates, onClose, onCreated }: CreateJobModalProps) 
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 className="input"
-                placeholder="ornegin: Tezgahtar - Kadikoy Subesi"
+                placeholder={t('jobs.jobTitlePlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Konum
+                {t('jobs.locationLabel')}
               </label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="input"
-                placeholder="ornegin: Istanbul, Kadikoy"
+                placeholder={t('jobs.locationPlaceholder')}
               />
             </div>
 
@@ -249,14 +252,14 @@ function CreateJobModal({ templates, onClose, onCreated }: CreateJobModalProps) 
                 onClick={onClose}
                 className="btn-secondary"
               >
-                Iptal
+                {t('buttons.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !title}
                 className="btn-primary"
               >
-                {isLoading ? 'Olusturuluyor...' : 'Olustur'}
+                {isLoading ? t('jobs.creating') : t('jobs.create')}
               </button>
             </div>
           </form>

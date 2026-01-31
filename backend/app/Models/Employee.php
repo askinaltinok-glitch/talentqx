@@ -15,6 +15,7 @@ class Employee extends Model
 
     protected $fillable = [
         'company_id',
+        'import_batch_id',
         'employee_code',
         'first_name',
         'last_name',
@@ -46,6 +47,11 @@ class Employee extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function importBatch(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeImportBatch::class, 'import_batch_id');
     }
 
     public function assessmentSessions(): HasMany

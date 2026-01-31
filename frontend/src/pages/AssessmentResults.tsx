@@ -9,6 +9,7 @@ import {
   CurrencyDollarIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { AssessmentResult, AssessmentDashboardStats, AssessmentCostStats } from '../types';
 import { employeeDetailPath, assessmentsComparePath } from '../routes';
@@ -28,13 +29,6 @@ const levelColors: Record<string, string> = {
   mukemmel: 'bg-green-100 text-green-800',
 };
 
-const promotionLabels: Record<string, string> = {
-  not_ready: 'Hazir Degil',
-  developing: 'Gelisiyor',
-  ready: 'Hazir',
-  highly_ready: 'Cok Hazir',
-};
-
 const cheatingColors: Record<string, string> = {
   low: 'bg-green-100 text-green-800',
   medium: 'bg-yellow-100 text-yellow-800',
@@ -42,6 +36,7 @@ const cheatingColors: Record<string, string> = {
 };
 
 export default function AssessmentResults() {
+  const { t } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
   const [results, setResults] = useState<AssessmentResult[]>([]);
   const [stats, setStats] = useState<AssessmentDashboardStats | null>(null);
@@ -55,6 +50,13 @@ export default function AssessmentResults() {
   const promotableOnly = searchParams.get('promotable_only') === 'true';
   const minScore = searchParams.get('min_score') || '';
   const cheatingLevel = searchParams.get('cheating_level') || '';
+
+  const promotionLabels: Record<string, string> = {
+    not_ready: t('assessments.notReady'),
+    developing: t('assessments.developing'),
+    ready: t('assessments.ready'),
+    highly_ready: t('assessments.highlyReady'),
+  };
 
   useEffect(() => {
     loadResults();
@@ -129,21 +131,21 @@ export default function AssessmentResults() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Degerlendirme Sonuclari</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('assessments.title')}</h1>
           <p className="text-gray-500 mt-1">
-            Tum calisan degerlendirme sonuclari ve analizleri
+            {t('assessments.subtitle')}
           </p>
         </div>
         <div className="flex gap-3">
           {selectedResults.length >= 2 && (
             <button onClick={compareSelected} className="btn-secondary">
               <ChartBarIcon className="h-5 w-5 mr-2" />
-              Karsilastir ({selectedResults.length})
+              {t('assessments.compare')} ({selectedResults.length})
             </button>
           )}
           <button className="btn-primary">
             <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
-            Rapor Indir
+            {t('assessments.downloadReport')}
           </button>
         </div>
       </div>
@@ -152,32 +154,32 @@ export default function AssessmentResults() {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="card p-4">
-            <div className="text-sm text-gray-500">Toplam Degerlendirme</div>
+            <div className="text-sm text-gray-500">{t('assessments.totalAssessments')}</div>
             <div className="text-2xl font-bold text-gray-900">{stats.total_sessions}</div>
           </div>
           <div className="card p-4">
-            <div className="text-sm text-gray-500">Tamamlanan</div>
+            <div className="text-sm text-gray-500">{t('assessments.completed')}</div>
             <div className="text-2xl font-bold text-green-600">{stats.completed_sessions}</div>
           </div>
           <div className="card p-4">
-            <div className="text-sm text-gray-500">Bekleyen</div>
+            <div className="text-sm text-gray-500">{t('assessments.pending')}</div>
             <div className="text-2xl font-bold text-yellow-600">{stats.pending_sessions}</div>
           </div>
           <div className="card p-4">
-            <div className="text-sm text-gray-500">Ortalama Puan</div>
+            <div className="text-sm text-gray-500">{t('assessments.averageScore')}</div>
             <div className="text-2xl font-bold text-blue-600">{stats.average_score}</div>
           </div>
           <div className="card p-4">
             <div className="text-sm text-gray-500 flex items-center gap-1">
               <ShieldExclamationIcon className="h-4 w-4 text-red-500" />
-              Yuksek Kopya Riski
+              {t('assessments.highCheatingRisk')}
             </div>
             <div className="text-2xl font-bold text-red-600">{stats.high_cheating_risk_count || 0}</div>
           </div>
           <div className="card p-4">
             <div className="text-sm text-gray-500 flex items-center gap-1">
               <ExclamationCircleIcon className="h-4 w-4 text-orange-500" />
-              Analiz Hatasi
+              {t('assessments.analysisFailed')}
             </div>
             <div className="text-2xl font-bold text-orange-600">{stats.analysis_failed_count || 0}</div>
           </div>
@@ -189,27 +191,27 @@ export default function AssessmentResults() {
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-3">
             <CurrencyDollarIcon className="h-5 w-5 text-green-600" />
-            <h3 className="font-semibold text-gray-900">AI Maliyet Istatistikleri</h3>
+            <h3 className="font-semibold text-gray-900">{t('assessments.aiCostStats')}</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
             <div>
-              <div className="text-gray-500">Toplam Maliyet</div>
+              <div className="text-gray-500">{t('assessments.totalCost')}</div>
               <div className="font-bold text-green-600">${costStats.total_cost_usd.toFixed(4)}</div>
             </div>
             <div>
-              <div className="text-gray-500">Bu Ay</div>
+              <div className="text-gray-500">{t('assessments.thisMonth')}</div>
               <div className="font-bold text-blue-600">${costStats.monthly_cost_usd.toFixed(4)}</div>
             </div>
             <div>
-              <div className="text-gray-500">Oturum Basina Ort.</div>
+              <div className="text-gray-500">{t('assessments.avgPerSession')}</div>
               <div className="font-bold">${costStats.average_cost_per_session.toFixed(4)}</div>
             </div>
             <div>
-              <div className="text-gray-500">Maliyet Limitli</div>
+              <div className="text-gray-500">{t('assessments.costLimited')}</div>
               <div className="font-bold text-yellow-600">{costStats.cost_limited_sessions}</div>
             </div>
             <div>
-              <div className="text-gray-500">Toplam Token</div>
+              <div className="text-gray-500">{t('assessments.totalTokens')}</div>
               <div className="font-bold">{costStats.token_usage.total_tokens.toLocaleString()}</div>
             </div>
           </div>
@@ -220,7 +222,7 @@ export default function AssessmentResults() {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Risk Dagilimi</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('assessments.riskDistribution')}</h3>
             <div className="space-y-2">
               {Object.entries(stats.risk_distribution).map(([level, count]) => (
                 <div key={level} className="flex items-center gap-3">
@@ -242,7 +244,7 @@ export default function AssessmentResults() {
             </div>
           </div>
           <div className="card p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Seviye Dagilimi</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('assessments.levelDistribution')}</h3>
             <div className="space-y-2">
               {Object.entries(stats.level_distribution).map(([level, count]) => (
                 <div key={level} className="flex items-center gap-3">
@@ -271,11 +273,11 @@ export default function AssessmentResults() {
             onChange={(e) => updateFilter('risk_level', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Risk Seviyeleri</option>
-            <option value="low">Dusuk Risk</option>
-            <option value="medium">Orta Risk</option>
-            <option value="high">Yuksek Risk</option>
-            <option value="critical">Kritik Risk</option>
+            <option value="">{t('assessments.allRiskLevels')}</option>
+            <option value="low">{t('assessments.lowRisk')}</option>
+            <option value="medium">{t('assessments.mediumRisk')}</option>
+            <option value="high">{t('assessments.highRisk')}</option>
+            <option value="critical">{t('assessments.criticalRisk')}</option>
           </select>
 
           <select
@@ -283,12 +285,12 @@ export default function AssessmentResults() {
             onChange={(e) => updateFilter('level_label', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Seviyeler</option>
-            <option value="basarisiz">Basarisiz</option>
-            <option value="gelisime_acik">Gelisime Acik</option>
-            <option value="yeterli">Yeterli</option>
-            <option value="iyi">Iyi</option>
-            <option value="mukemmel">Mukemmel</option>
+            <option value="">{t('assessments.allLevels')}</option>
+            <option value="basarisiz">{t('assessments.failed')}</option>
+            <option value="gelisime_acik">{t('assessments.needsImprovement')}</option>
+            <option value="yeterli">{t('assessments.adequate')}</option>
+            <option value="iyi">{t('assessments.good')}</option>
+            <option value="mukemmel">{t('assessments.excellent')}</option>
           </select>
 
           <select
@@ -296,7 +298,7 @@ export default function AssessmentResults() {
             onChange={(e) => updateFilter('min_score', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Min Puan</option>
+            <option value="">{t('assessments.minScore')}</option>
             <option value="50">50+</option>
             <option value="60">60+</option>
             <option value="70">70+</option>
@@ -309,7 +311,7 @@ export default function AssessmentResults() {
             className={`btn-secondary ${promotableOnly ? 'bg-green-50 border-green-200 text-green-700' : ''}`}
           >
             <ArrowUpIcon className="h-5 w-5 mr-2" />
-            Terfi Uygun
+            {t('assessments.promotionReady')}
           </button>
 
           <button
@@ -317,7 +319,7 @@ export default function AssessmentResults() {
             className={`btn-secondary ${riskLevel === 'high' || riskLevel === 'critical' ? 'bg-red-50 border-red-200 text-red-700' : ''}`}
           >
             <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
-            Yuksek Riskli
+            {t('assessments.highRiskOnly')}
           </button>
 
           <select
@@ -325,10 +327,10 @@ export default function AssessmentResults() {
             onChange={(e) => updateFilter('cheating_level', e.target.value)}
             className="input w-auto"
           >
-            <option value="">Tum Kopya Risk Seviyeleri</option>
-            <option value="low">Dusuk Kopya Riski</option>
-            <option value="medium">Orta Kopya Riski</option>
-            <option value="high">Yuksek Kopya Riski</option>
+            <option value="">{t('assessments.allCheatingLevels')}</option>
+            <option value="low">{t('assessments.lowCheatingRisk')}</option>
+            <option value="medium">{t('assessments.mediumCheatingRisk')}</option>
+            <option value="high">{t('assessments.highCheatingRiskOption')}</option>
           </select>
 
           <button
@@ -336,7 +338,7 @@ export default function AssessmentResults() {
             className={`btn-secondary ${cheatingLevel === 'high' ? 'bg-red-50 border-red-200 text-red-700' : ''}`}
           >
             <ShieldExclamationIcon className="h-5 w-5 mr-2" />
-            Kopya Suphesi
+            {t('assessments.cheatingSupect')}
           </button>
         </div>
       </div>
@@ -350,10 +352,10 @@ export default function AssessmentResults() {
         <div className="card p-12 text-center">
           <ChartBarIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Sonuc bulunamadi
+            {t('assessments.noResults')}
           </h3>
           <p className="text-gray-500">
-            Secili filtrelere uygun degerlendirme sonucu bulunmuyor.
+            {t('assessments.noResultsDesc')}
           </p>
         </div>
       ) : (
@@ -376,28 +378,28 @@ export default function AssessmentResults() {
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Calisan
+                  {t('assessments.employee')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rol
+                  {t('assessments.role')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Puan
+                  {t('assessments.score')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Seviye
+                  {t('assessments.level')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Risk
+                  {t('assessments.risk')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Terfi
+                  {t('assessments.promotion')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kopya Riski
+                  {t('assessments.cheatingRisk')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tarih
+                  {t('assessments.date')}
                 </th>
               </tr>
             </thead>
@@ -481,12 +483,12 @@ export default function AssessmentResults() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       {result.status === 'analysis_failed' && (
-                        <ExclamationCircleIcon className="h-4 w-4 text-red-500" title="Analiz basarisiz" />
+                        <ExclamationCircleIcon className="h-4 w-4 text-red-500" title={t('assessments.analysisFailed2')} />
                       )}
                       {result.cost_limited && (
-                        <CurrencyDollarIcon className="h-4 w-4 text-yellow-500" title="Maliyet limiti asildi" />
+                        <CurrencyDollarIcon className="h-4 w-4 text-yellow-500" title={t('assessments.costLimitExceeded')} />
                       )}
-                      {new Date(result.analyzed_at).toLocaleDateString('tr-TR')}
+                      {new Date(result.analyzed_at).toLocaleDateString()}
                     </div>
                   </td>
                 </tr>

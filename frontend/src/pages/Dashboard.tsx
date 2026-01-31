@@ -20,7 +20,8 @@ import ScoreCircle from '../components/ScoreCircle';
 import clsx from 'clsx';
 
 export default function Dashboard() {
-  const { t } = useTranslation('sales');
+  const { t } = useTranslation('common');
+  const { t: tSales } = useTranslation('sales');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,9 +53,9 @@ export default function Dashboard() {
     const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000 - 1);
 
     if (followUpDate < startOfToday) {
-      return { label: 'Gecikmiş', color: 'bg-red-100 text-red-700' };
+      return { label: t('dashboard.overdue'), color: 'bg-red-100 text-red-700' };
     } else if (followUpDate <= endOfToday) {
-      return { label: 'Bugün', color: 'bg-yellow-100 text-yellow-700' };
+      return { label: t('dashboard.today'), color: 'bg-yellow-100 text-yellow-700' };
     }
     return null;
   };
@@ -80,40 +81,40 @@ export default function Dashboard() {
   if (!stats) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Veriler yuklenemedi.</p>
+        <p className="text-gray-500">{t('dashboard.loadError')}</p>
       </div>
     );
   }
 
   const statCards = [
     {
-      name: 'Toplam Is Ilani',
+      name: t('dashboard.totalJobs'),
       value: stats.total_jobs,
-      subValue: `${stats.active_jobs} aktif`,
+      subValue: `${stats.active_jobs} ${t('dashboard.active')}`,
       icon: BriefcaseIcon,
       color: 'bg-blue-500',
       link: localizedPath('/app/jobs'),
     },
     {
-      name: 'Toplam Aday',
+      name: t('dashboard.totalCandidates'),
       value: stats.total_candidates,
-      subValue: `${stats.by_status.hired || 0} ise alindi`,
+      subValue: `${stats.by_status.hired || 0} ${t('dashboard.hired')}`,
       icon: UsersIcon,
       color: 'bg-green-500',
       link: localizedPath('/app/candidates'),
     },
     {
-      name: 'Tamamlanan Mulakat',
+      name: t('dashboard.completedInterviews'),
       value: stats.interviews_completed,
-      subValue: `${stats.interviews_pending} bekliyor`,
+      subValue: `${stats.interviews_pending} ${t('dashboard.pending')}`,
       icon: VideoCameraIcon,
       color: 'bg-purple-500',
       link: localizedPath('/app/candidates?status=interview_completed'),
     },
     {
-      name: 'Ortalama Puan',
+      name: t('dashboard.averageScore'),
       value: stats.average_score.toFixed(1),
-      subValue: `%${(stats.hire_rate * 100).toFixed(0)} ise alim orani`,
+      subValue: `%${(stats.hire_rate * 100).toFixed(0)} ${t('dashboard.hireRate')}`,
       icon: ChartBarIcon,
       color: 'bg-yellow-500',
       link: localizedPath('/app/candidates'),
@@ -123,9 +124,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <p className="text-gray-500 mt-1">
-          Genel bakis ve istatistikler
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -160,18 +161,18 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <ClockIcon className="h-5 w-5 text-yellow-600" />
               <h2 className="text-lg font-semibold text-gray-900">
-                Bugün Takip Edilecekler
+                {t('dashboard.todayFollowUps')}
               </h2>
             </div>
             <div className="flex items-center gap-2 text-sm">
               {followUpStats.overdue > 0 && (
                 <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
-                  {followUpStats.overdue} Gecikmiş
+                  {followUpStats.overdue} {t('dashboard.overdue')}
                 </span>
               )}
               {followUpStats.today > 0 && (
                 <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium">
-                  {followUpStats.today} Bugün
+                  {followUpStats.today} {t('dashboard.today')}
                 </span>
               )}
             </div>
@@ -197,7 +198,7 @@ export default function Dashboard() {
                         </span>
                       )}
                       <span className={clsx('text-xs px-2 py-0.5 rounded-full', LEAD_STATUS_COLORS[lead.status])}>
-                        {t(`status.${lead.status}`)}
+                        {tSales(`status.${lead.status}`)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 truncate">{lead.contact_name}</p>
@@ -207,7 +208,7 @@ export default function Dashboard() {
                     <button
                       onClick={(e) => copyToClipboard(lead.email, e)}
                       className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded"
-                      title="E-posta kopyala"
+                      title={t('dashboard.copyEmail')}
                     >
                       <EnvelopeIcon className="h-4 w-4" />
                     </button>
@@ -223,7 +224,7 @@ export default function Dashboard() {
               to={localizedPath('/app/leads?filter=follow_up')}
               className="block text-center text-sm text-primary-600 hover:underline mt-3"
             >
-              Tümünü görüntüle ({followUpStats.total_due} lead)
+              {t('dashboard.viewAll')} ({followUpStats.total_due} lead)
             </Link>
           )}
         </div>
@@ -234,17 +235,17 @@ export default function Dashboard() {
         {/* Status Distribution */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Aday Durumlari
+            {t('dashboard.candidateStatuses')}
           </h2>
           <div className="space-y-3">
             {[
-              { key: 'applied', label: 'Basvurdu', color: 'bg-gray-400' },
-              { key: 'interview_pending', label: 'Mulakat Bekliyor', color: 'bg-yellow-400' },
-              { key: 'interview_completed', label: 'Mulakat Tamamlandi', color: 'bg-blue-400' },
-              { key: 'under_review', label: 'Incelemede', color: 'bg-purple-400' },
-              { key: 'shortlisted', label: 'Kisa Liste', color: 'bg-indigo-400' },
-              { key: 'hired', label: 'Ise Alindi', color: 'bg-green-400' },
-              { key: 'rejected', label: 'Reddedildi', color: 'bg-red-400' },
+              { key: 'applied', label: t('dashboard.applied'), color: 'bg-gray-400' },
+              { key: 'interview_pending', label: t('dashboard.interviewPending'), color: 'bg-yellow-400' },
+              { key: 'interview_completed', label: t('dashboard.interviewCompleted'), color: 'bg-blue-400' },
+              { key: 'under_review', label: t('dashboard.underReview'), color: 'bg-purple-400' },
+              { key: 'shortlisted', label: t('dashboard.shortlisted'), color: 'bg-indigo-400' },
+              { key: 'hired', label: t('dashboard.hiredStatus'), color: 'bg-green-400' },
+              { key: 'rejected', label: t('dashboard.rejected'), color: 'bg-red-400' },
             ].map((status) => {
               const count = stats.by_status[status.key as keyof typeof stats.by_status] || 0;
               const percentage = stats.total_candidates > 0
@@ -272,7 +273,7 @@ export default function Dashboard() {
         {/* Key Metrics */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Temel Metrikler
+            {t('dashboard.keyMetrics')}
           </h2>
           <div className="grid grid-cols-2 gap-6">
             <div className="flex flex-col items-center">
@@ -280,7 +281,7 @@ export default function Dashboard() {
                 score={stats.average_score}
                 size="lg"
                 showLabel
-                label="Ort. Mulakat Puani"
+                label={t('dashboard.avgInterviewScore')}
               />
             </div>
             <div className="flex flex-col items-center">
@@ -288,7 +289,7 @@ export default function Dashboard() {
                 score={stats.hire_rate * 100}
                 size="lg"
                 showLabel
-                label="Ise Alim Orani"
+                label={t('dashboard.hireRateLabel')}
               />
             </div>
           </div>
@@ -297,7 +298,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
-                <span className="text-sm text-gray-600">Kirmizi Bayrak Orani</span>
+                <span className="text-sm text-gray-600">{t('dashboard.redFlagRate')}</span>
               </div>
               <span className="text-lg font-bold text-red-600">
                 %{(stats.red_flag_rate * 100).toFixed(0)}
@@ -306,7 +307,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center gap-2">
                 <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                <span className="text-sm text-gray-600">Basarili Degerlendirme</span>
+                <span className="text-sm text-gray-600">{t('dashboard.successfulAssessment')}</span>
               </div>
               <span className="text-lg font-bold text-green-600">
                 %{((1 - stats.red_flag_rate) * 100).toFixed(0)}
@@ -319,17 +320,17 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div className="card p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Hizli Islemler
+          {t('dashboard.quickActions')}
         </h2>
         <div className="flex flex-wrap gap-3">
           <Link to={localizedPath('/app/jobs')} className="btn-primary">
-            Yeni Is Ilani Olustur
+            {t('dashboard.createJobListing')}
           </Link>
           <Link to={localizedPath('/app/candidates')} className="btn-secondary">
-            Adaylari Goruntule
+            {t('dashboard.viewCandidates')}
           </Link>
           <Link to={localizedPath('/app/candidates?has_red_flags=true')} className="btn-secondary">
-            Kirmizi Bayrakli Adaylar
+            {t('dashboard.redFlagCandidates')}
           </Link>
         </div>
       </div>

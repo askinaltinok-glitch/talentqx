@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -27,7 +29,21 @@ import {
 } from '@heroicons/react/24/outline';
 import { localizedPath } from '../routes';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import PrivacyModal from '../components/PrivacyModal';
 import pricingHero from '../assets/pricing-hero.jpg';
+
+interface PrivacyMeta {
+  regime: 'KVKK' | 'GDPR' | 'GLOBAL';
+  locale: string;
+  country: string;
+  policy_version: string;
+  regime_info: {
+    name: string;
+    full_name: string;
+    authority: string;
+    authority_url: string | null;
+  };
+}
 
 const PRICING_PLANS = [
   { key: "MINI", assessments: 100, tl: "9.900", eur: "199" },
@@ -47,9 +63,14 @@ export default function LandingPage() {
     email: '',
     phone: '',
     company_type: '',
+    company_website: '', // Honeypot field - should remain empty
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [privacyMeta, setPrivacyMeta] = useState<PrivacyMeta | null>(null);
+  const formStartTime = useRef<number>(Date.now());
 
   // How it works steps
   const steps = [
@@ -147,13 +168,80 @@ export default function LandingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate consent
+    if (!consentAccepted) {
+      toast.error(tc('privacy.consentRequired'));
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setFormData({ company_name: '', contact_name: '', email: '', phone: '', company_type: '' });
+
+    // Calculate form fill time in seconds
+    const formFillTime = Math.floor((Date.now() - formStartTime.current) / 1000);
+
+    try {
+      await api.post('/contact', {
+        form_type: 'demo',
+        contact_name: formData.contact_name,
+        email: formData.email,
+        company_name: formData.company_name,
+        phone: formData.phone,
+        company_type: formData.company_type,
+        locale: lang,
+        // Privacy consent
+        consent_accepted: consentAccepted,
+        policy_version: privacyMeta?.policy_version || '2026-01',
+        // Security fields
+        company_website: formData.company_website, // Honeypot
+        _formTime: formFillTime, // Form fill time for bot detection
+      });
+
+      setSubmitSuccess(true);
+      setFormData({ company_name: '', contact_name: '', email: '', phone: '', company_type: '', company_website: '' });
+      setConsentAccepted(false);
+      toast.success(t('demo.success.message'));
+    } catch (error) {
+      // Always show success message to not reveal honeypot/rate limit detection
+      setSubmitSuccess(true);
+      toast.success(t('demo.success.message'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Fetch privacy meta on mount
+  useEffect(() => {
+    api.get('/privacy/meta')
+      .then((res) => {
+        const data = res as { data?: { success?: boolean; data?: PrivacyMeta } };
+        if (data.data?.success && data.data?.data) {
+          setPrivacyMeta(data.data.data);
+        }
+      })
+      .catch(() => {
+        // Fallback - will use defaults
+      });
+  }, []);
+
+  // Reset form start time when form becomes visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          formStartTime.current = Date.now();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const demoSection = document.getElementById('demo');
+    if (demoSection) {
+      observer.observe(demoSection);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -523,6 +611,20 @@ export default function LandingPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8">
+              {/* Honeypot field - hidden from users, bots will fill it */}
+              <div className="absolute -left-[9999px]" aria-hidden="true">
+                <label htmlFor="company_website">Website</label>
+                <input
+                  type="text"
+                  id="company_website"
+                  name="company_website"
+                  value={formData.company_website}
+                  onChange={handleFormChange}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -602,11 +704,41 @@ export default function LandingPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Privacy Consent Checkbox */}
+                <div className="md:col-span-2 mt-2">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={consentAccepted}
+                      onChange={(e) => setConsentAccepted(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-600 leading-relaxed">
+                      {tc('privacy.consentText')}{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowPrivacyModal(true);
+                        }}
+                        className="text-primary-600 hover:text-primary-700 underline font-medium"
+                      >
+                        {tc('privacy.privacyNotice')}
+                      </button>
+                      {privacyMeta && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                          {privacyMeta.regime}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </div>
               </div>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="mt-8 w-full btn-primary py-4 text-lg"
+                disabled={isSubmitting || !consentAccepted}
+                className="mt-8 w-full btn-primary py-4 text-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? t('demo.form.submitting') : t('demo.form.submit')}
               </button>
@@ -691,6 +823,18 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Privacy Modal */}
+      <PrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onAccept={() => {
+          setConsentAccepted(true);
+          setShowPrivacyModal(false);
+        }}
+        requireScrollToEnd={true}
+        privacyMeta={privacyMeta}
+      />
     </div>
   );
 }

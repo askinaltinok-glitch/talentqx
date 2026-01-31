@@ -49,20 +49,21 @@ if [ "$SKIP_BACKEND" = false ]; then
     echo -e "${YELLOW}[2/5] Backend deploy...${NC}"
 
     # Sync backend files (exclude vendor, storage, .env)
-    rsync -av --delete \
+    rsync -av \
         --exclude='vendor' \
-        --exclude='storage/app' \
-        --exclude='storage/logs' \
-        --exclude='storage/framework/cache' \
-        --exclude='storage/framework/sessions' \
-        --exclude='storage/framework/views' \
+        --exclude='storage' \
         --exclude='.env' \
         --exclude='node_modules' \
+        --exclude='bootstrap/cache/*.php' \
         "$BACKEND_SRC/" "$BACKEND_PROD/"
 
     # Composer install (production)
     cd "$BACKEND_PROD"
-    $PHP_BIN composer.phar install --no-dev --optimize-autoloader --no-interaction
+    if [ -f "composer.phar" ]; then
+        $PHP_BIN composer.phar install --no-dev --optimize-autoloader --no-interaction
+    else
+        composer install --no-dev --optimize-autoloader --no-interaction
+    fi
 
     # Laravel optimizations
     $PHP_BIN artisan config:cache

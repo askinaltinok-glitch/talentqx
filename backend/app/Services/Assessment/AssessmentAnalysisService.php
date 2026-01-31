@@ -355,7 +355,8 @@ PROMPT;
 
             $prompt .= "--- SORU {$order} ---\n";
             $prompt .= "Tur: {$question['type']}\n";
-            $prompt .= "Yetkinlik: {$question['competency_code']}\n";
+            $competencyCode = $question['competency_code'] ?? ($question['competency_codes'][0] ?? 'N/A');
+            $prompt .= "Yetkinlik: {$competencyCode}\n";
             $prompt .= "Soru: {$question['text']}\n";
 
             if (isset($question['options']) && is_array($question['options'])) {
