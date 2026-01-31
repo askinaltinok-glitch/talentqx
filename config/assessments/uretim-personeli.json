@@ -1,0 +1,371 @@
+{
+  "role": {
+    "code": "uretim-personeli",
+    "name": "Üretim Personeli",
+    "category": "manufacturing",
+    "description": "Üretim hattında görev yapan, makine operasyonu ve montaj işlemlerinden sorumlu personel"
+  },
+  "competencies": [
+    {
+      "code": "SAFETY_AWARENESS",
+      "name": "İş Güvenliği Bilinci",
+      "weight": 25,
+      "description": "Kişisel koruyucu ekipman kullanımı, güvenlik prosedürlerine uyum, tehlike farkındalığı"
+    },
+    {
+      "code": "QUALITY_FOCUS",
+      "name": "Kalite Odaklılık",
+      "weight": 20,
+      "description": "Üretim standartlarına uyum, hata önleme, kalite kontrol bilinci"
+    },
+    {
+      "code": "DISCIPLINE",
+      "name": "Disiplin ve Düzen",
+      "weight": 15,
+      "description": "Dakiklik, kurallara uyum, düzenli çalışma, temizlik"
+    },
+    {
+      "code": "TEAMWORK",
+      "name": "Takım Çalışması",
+      "weight": 15,
+      "description": "Vardiya arkadaşlarıyla uyum, iletişim, yardımlaşma"
+    },
+    {
+      "code": "RESPONSIBILITY",
+      "name": "Sorumluluk",
+      "weight": 15,
+      "description": "İş sahiplenme, hata bildirme, görev bilinci"
+    },
+    {
+      "code": "ADAPTABILITY",
+      "name": "Uyum ve Öğrenme",
+      "weight": 10,
+      "description": "Yeni makinelere uyum, talimat takibi, değişime açıklık"
+    }
+  ],
+  "red_flags": [
+    {
+      "code": "SAFETY_NEGLIGENCE",
+      "label": "Güvenlik İhmali",
+      "severity": "critical",
+      "indicators": [
+        "KKD kullanmayı reddetme",
+        "güvenlik prosedürlerini gereksiz bulma",
+        "tehlikeyi önemsizleştirme",
+        "kaza riskini normalleştirme"
+      ]
+    },
+    {
+      "code": "QUALITY_SABOTAGE",
+      "label": "Kalite Sabotajı",
+      "severity": "critical",
+      "indicators": [
+        "hatalı ürünü bilerek geçirme",
+        "kalite kontrolü atlatma",
+        "üretim sayısı için kaliteden ödün verme",
+        "hataları gizleme"
+      ]
+    },
+    {
+      "code": "SUBSTANCE_ABUSE_SIGNS",
+      "label": "Madde Kullanımı İşaretleri",
+      "severity": "critical",
+      "indicators": [
+        "alkollü gelmeyi normalleştirme",
+        "uyuşturucu kullanımını mazur görme",
+        "dikkat dağınıklığını önemsememe",
+        "iş yerinde madde kullanımı"
+      ]
+    },
+    {
+      "code": "CONFLICT_PRONE",
+      "label": "Çatışmaya Meyil",
+      "severity": "high",
+      "indicators": [
+        "iş arkadaşlarıyla kavga",
+        "amire karşı gelme",
+        "takım uyumsuzluğu",
+        "fiziksel tehdit"
+      ]
+    },
+    {
+      "code": "ATTENDANCE_ISSUES",
+      "label": "Devamsızlık Eğilimi",
+      "severity": "medium",
+      "indicators": [
+        "sürekli mazeret üretme",
+        "geç kalmayı normalleştirme",
+        "mesaiye kalmayı reddetme",
+        "haber vermeden gelmeme"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "order": 1,
+      "competency_code": "SAFETY_AWARENESS",
+      "type": "scenario",
+      "text": "Üretim hattında çalışırken koruyucu gözlüğünüzün camı çizilmiş ve net göremiyorsunuz. Ancak yedek gözlük almak için depodan gitmeniz gerekiyor ve bu 10 dakika sürecek. Üretim hedefi de sıkışık. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Derhal durur, yedek gözlük alır, amire bildirir, güvenliği üretimden önce tutar, gerekirse hattı durdurur",
+        "4": "Yedek gözlük almaya gider, amire bilgi verir, güvenliği öncelikler",
+        "3": "Yedek gözlük alır ama şikayet eder, zaman kaybından rahatsız olur",
+        "2": "Biraz daha dayanmaya çalışır, mola gelince değiştirir",
+        "1": "Gözlüğü çıkarıp çalışmaya devam eder",
+        "0": "Güvenlik ekipmanını gereksiz bulur, 'bir şey olmaz' der"
+      },
+      "red_flag_triggers": [
+        "KKD'yi çıkarma",
+        "güvenliği gereksiz bulma",
+        "tehlikeyi önemsizleştirme"
+      ]
+    },
+    {
+      "order": 2,
+      "competency_code": "QUALITY_FOCUS",
+      "type": "scenario",
+      "text": "Ürettiğiniz parçalardan birinde küçük bir çizik fark ediyorsunuz. Teknik olarak tolerans sınırları içinde ama gözle görülebilir. Kalite kontrol muhtemelen fark etmeyecek. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Parçayı ayırır, kalite kontrole bildirir, sebebini araştırır, benzer hataları önlemek için önlem önerir",
+        "4": "Parçayı ayırır, amire veya kalite kontrole bildirir",
+        "3": "Parçayı ayrı bir yere koyar, vardiya sonunda bildirir",
+        "2": "Tereddüt eder, kalite kontrolün karar vermesini bekler",
+        "1": "Geçirir, 'nasılsa fark etmezler' der",
+        "0": "Gizler veya üstünü kapatmaya çalışır"
+      },
+      "red_flag_triggers": [
+        "bilerek geçirme",
+        "gizleme",
+        "kaliteyi önemsememe",
+        "hata kapatma"
+      ]
+    },
+    {
+      "order": 3,
+      "competency_code": "RESPONSIBILITY",
+      "type": "scenario",
+      "text": "Makineyi kullanırken yanlış ayar yaptığınızı fark ediyorsunuz ve son 30 dakikada üretilen parçaların hepsi hatalı olabilir. Henüz kimse fark etmedi. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Hemen makineyi durdurur, amire bildirir, hatalı parçaları işaretler, hatanın nedenini açıklar, tekrarını önlemek için öneri sunar",
+        "4": "Makineyi durdurur, amire bildirir, hatalı parçaları ayırır",
+        "3": "Amire bildirir ama gecikmeli, önce kendisi düzeltmeye çalışır",
+        "2": "Sessizce düzeltir, kimseye söylemez, hatalı parçaları karıştırır",
+        "1": "Başkasını suçlamaya çalışır",
+        "0": "Görmezden gelir, devam eder"
+      },
+      "red_flag_triggers": [
+        "gizleme",
+        "suçlama",
+        "görmezden gelme",
+        "hatalı parçayı karıştırma"
+      ]
+    },
+    {
+      "order": 4,
+      "competency_code": "TEAMWORK",
+      "type": "scenario",
+      "text": "Vardiya arkadaşınız işini yetiştiremiyor ve yardım istiyor. Ancak sizin de kendi hedefiniz var ve yardım ederseniz kendi hedefinizi kaçırabilirsiniz. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Önce kendi işini hızlandırır, sonra yardım eder, gerekirse amire bilgi verir, takım hedefini önceler",
+        "4": "Durumu amire bildirir, birlikte çözüm arar, elinden geleni yapar",
+        "3": "Biraz yardım eder ama kendi işini de aksatmamaya çalışır",
+        "2": "Yardım etmez ama nazikçe reddeder",
+        "1": "Kaba bir şekilde reddeder, 'benim sorunum değil' der",
+        "0": "Dalga geçer veya işini zorlaştırır"
+      },
+      "red_flag_triggers": [
+        "dalga geçme",
+        "sabotaj",
+        "takım karşıtlığı",
+        "kaba reddetme"
+      ]
+    },
+    {
+      "order": 5,
+      "competency_code": "DISCIPLINE",
+      "type": "scenario",
+      "text": "Sabah vardiyasına 5 dakika geç kaldınız. Giriş kartını basmadan önce tuvalete gittiğiniz için amiriniz geç kaldığınızı fark etmedi. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Amire gidip geç kaldığını bildirir, özür diler, sebep açıklar, telafi etmeyi teklif eder",
+        "4": "Amire bildirir, özür diler",
+        "3": "Bir dahakine dikkat eder ama bu sefer söylemez",
+        "2": "Fark edilmediği için söylemez, 'zaten 5 dakika' der",
+        "1": "Normalleştirir, herkesin geç kaldığını düşünür",
+        "0": "Sistemi kandırmaya devam eder, giriş kartını başkasına bastırır"
+      },
+      "red_flag_triggers": [
+        "sistemi kandırma",
+        "kart hile",
+        "sürekli geç kalma normalleştirme"
+      ]
+    },
+    {
+      "order": 6,
+      "competency_code": "SAFETY_AWARENESS",
+      "type": "scenario",
+      "text": "Bir iş arkadaşınızın makineyi koruma kalkanı olmadan kullandığını görüyorsunuz. 'Daha rahat çalışıyorum' diyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Nazikçe uyarır, tehlikeyi açıklar, kalkanı takmasını ister, gerekirse amire bildirir, güvenlik kültürünü savunur",
+        "4": "Uyarır ve kalkanı takmasını ister, tehlikeyi anlatır",
+        "3": "Uyarır ama ısrar etmez, 'kendi bileceği iş' der",
+        "2": "Görmezden gelir, 'bana ne' mantığıyla",
+        "1": "Kendisi de koruma kalkanını çıkarır",
+        "0": "Güvenlik kurallarını eleştirir, arkadaşını destekler"
+      },
+      "red_flag_triggers": [
+        "güvenlik kurallarını eleştirme",
+        "tehlikeli davranışı destekleme",
+        "koruma çıkarma"
+      ]
+    },
+    {
+      "order": 7,
+      "competency_code": "ADAPTABILITY",
+      "type": "scenario",
+      "text": "Yeni bir makine geldi ve bu makineyi kullanmanız isteniyor. Daha önce hiç kullanmadınız ve karmaşık görünüyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Heyecanla öğrenmeye istekli olur, eğitim ister, notlar alır, pratik yapar, sorular sorar",
+        "4": "Eğitim alır, öğrenmeye çalışır, zorlandığı yerleri sorar",
+        "3": "Kabul eder ama isteksiz, öğrenir ama zorlanır",
+        "2": "Şikayet eder, eski makinede kalmak ister",
+        "1": "Reddetmeye çalışır, 'bu benim işim değil' der",
+        "0": "Öğrenmeyi reddeder, sabotaj yapar"
+      },
+      "red_flag_triggers": [
+        "öğrenmeyi reddetme",
+        "sabotaj",
+        "değişime direnç"
+      ]
+    },
+    {
+      "order": 8,
+      "competency_code": "DISCIPLINE",
+      "type": "scenario",
+      "text": "Vardiya arasında 15 dakikalık mola hakkınız var. Ancak iş arkadaşlarınız genellikle 20-25 dakika mola yapıyor ve amir ses çıkarmıyor. Siz ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "15 dakikada döner, kurallara uyar, başkaları uzatsa bile kendi disiplinini korur",
+        "4": "15 dakikada döner, bazen 1-2 dakika gecikse de genellikle kurallara uyar",
+        "3": "Ortalamanın biraz altında kalır, 18-20 dakikada döner",
+        "2": "Herkes gibi 20-25 dakika yapar, 'herkes yapıyor' der",
+        "1": "Daha uzun mola yapar, 'nasılsa ses çıkmıyor' der",
+        "0": "30+ dakika mola yapar, işi savsaklar"
+      },
+      "red_flag_triggers": [
+        "aşırı uzun mola",
+        "iş savsaklama",
+        "kurallara uymama"
+      ]
+    },
+    {
+      "order": 9,
+      "competency_code": "QUALITY_FOCUS",
+      "type": "scenario",
+      "text": "Günlük üretim hedefinize ulaşmak için 100 parça daha üretmeniz gerekiyor ama vardiya bitimine 1 saat kaldı. Normal hızda 80 parça üretebilirsiniz. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Kaliteden ödün vermeden maksimum hızda çalışır, amire durumu bildirir, gerçekçi hedef önerir, kaliteyi korur",
+        "4": "Elinden gelenin en iyisini yapar, kaliteyi korur, hedefi tutturamayabileceğini bildirir",
+        "3": "Hızlanır ama biraz kalite düşebilir, kontrolleri azaltır",
+        "2": "Kaliteyi ihmal eder, sadece sayıya odaklanır",
+        "1": "Hatalı ürün geçirir, kalite kontrolü atlar",
+        "0": "Sahte sayı girer veya başkasının üretimine yazar"
+      },
+      "red_flag_triggers": [
+        "sahte sayı",
+        "kalite sabotajı",
+        "hile"
+      ]
+    },
+    {
+      "order": 10,
+      "competency_code": "RESPONSIBILITY",
+      "type": "scenario",
+      "text": "Cumartesi fazla mesai yapmanız isteniyor ama o gün ailevi bir planınız var. Ancak üretim gerçekten sıkışık ve her ele ihtiyaç var. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Durumu açıkça anlatır, mümkünse alternatif sunar (yarım gün, başka gün), uzlaşma arar, takım ihtiyacını anlar",
+        "4": "Ailevi durumu açıklar, mümkünse katılmaya çalışır veya alternatif önerir",
+        "3": "Gelemeyeceğini söyler ama nazikçe, özür diler",
+        "2": "Bahane uydurur, gerçek sebebi söylemez",
+        "1": "Haber vermeden gelmez",
+        "0": "Başkalarını da kışkırtır, 'gelmeyin' der"
+      },
+      "red_flag_triggers": [
+        "haber vermeden gelmeme",
+        "kışkırtma",
+        "sabotaj"
+      ]
+    }
+  ],
+  "scoring": {
+    "max_score_per_question": 5,
+    "total_questions": 10,
+    "max_total_score": 50,
+    "overall_score_calculation": "weighted_average_of_competencies",
+    "pass_threshold": 60,
+    "levels": [
+      { "min": 0, "max": 39, "label": "Yetersiz", "numeric": 1, "recommendation": "reject" },
+      { "min": 40, "max": 54, "label": "Geliştirilmeli", "numeric": 2, "recommendation": "conditional" },
+      { "min": 55, "max": 69, "label": "Yeterli", "numeric": 3, "recommendation": "hire_with_training" },
+      { "min": 70, "max": 84, "label": "İyi", "numeric": 4, "recommendation": "hire" },
+      { "min": 85, "max": 100, "label": "Mükemmel", "numeric": 5, "recommendation": "priority_hire" }
+    ]
+  },
+  "output_format": {
+    "competency_scores": {
+      "description": "Her yetkinlik için 0-100 arası skor ve feedback",
+      "example": {
+        "SAFETY_AWARENESS": { "score": 85, "feedback": "Güvenlik bilinci yüksek" },
+        "QUALITY_FOCUS": { "score": 75, "feedback": "Kalite standartlarına dikkat ediyor" }
+      }
+    },
+    "overall_score": {
+      "description": "Ağırlıklı ortalama, 0-100 arası",
+      "calculation": "sum(competency_score * weight) / sum(weights)"
+    },
+    "risk_flags": {
+      "description": "Tespit edilen kırmızı bayraklar",
+      "example": [
+        {
+          "code": "SAFETY_NEGLIGENCE",
+          "severity": "critical",
+          "detected_in_question": 1,
+          "evidence": "KKD kullanımını gereksiz bulan ifade kullandı"
+        }
+      ]
+    },
+    "manager_summary": {
+      "description": "Yönetici için 2-3 cümlelik özet",
+      "template": "{name}, {overall_level} seviyesinde performans gösterdi. Güçlü yönleri: {strengths}. Dikkat edilmesi gerekenler: {concerns}. Öneri: {recommendation}."
+    },
+    "hiring_recommendation": {
+      "options": ["hire", "hire_with_training", "conditional", "reject"],
+      "description": "İşe alım kararı önerisi"
+    },
+    "development_suggestions": {
+      "description": "Düşük skorlu yetkinlikler için gelişim önerileri"
+    }
+  },
+  "evaluation_guidelines": {
+    "general_principles": [
+      "Kelimesi kelimesine eşleşme arama, davranışsal niyeti değerlendir",
+      "Üretim ortamı bağlamını göz önünde bulundur",
+      "İş güvenliği konusunda tolerans gösterme - en ufak ihmal bile bayrak",
+      "Somut örnekler ve adımlar içeren yanıtları yüksek puanla",
+      "Belirsiz veya genel yanıtları orta puanla",
+      "Tehlikeli veya etik dışı yaklaşımları düşük puanla ve bayrakla",
+      "Bir kırmızı bayrak tespit edilirse, ilgili yetkinlik skorunu maksimum %50'ye düşür",
+      "Critical bayrak tespit edilirse işe alım önerisi otomatik 'reject' olsun"
+    ],
+    "language_considerations": [
+      "Türkçe yanıtlar bekleniyor",
+      "Yazım hataları skorlamayı etkilememeli",
+      "Konuşma dili kabul edilebilir",
+      "Önemli olan içerik ve yaklaşım"
+    ],
+    "industry_specific": [
+      "Üretim hattı terminolojisini anla",
+      "Vardiya sistemi bilgisi",
+      "KKD (Kişisel Koruyucu Donanım) farkındalığı",
+      "Kalite kontrol süreçleri bilgisi"
+    ]
+  }
+}

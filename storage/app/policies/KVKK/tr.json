@@ -1,0 +1,43 @@
+{
+  "title": "Kişisel Verilerin Korunması Aydınlatma Metni",
+  "version": "2026-01",
+  "last_updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "1. Veri Sorumlusu",
+      "content": "TalentQX olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") kapsamında veri sorumlusu sıfatıyla kişisel verilerinizi işlemekteyiz.\n\nVeri Sorumlusu: TalentQX Teknoloji A.Ş.\nAdres: [Şirket Adresi]\nE-posta: privacy@talentqx.com"
+    },
+    {
+      "title": "2. İşlenen Kişisel Veriler",
+      "content": "Aşağıdaki kişisel verileriniz işlenmektedir:\n\n• Kimlik Bilgileri: Ad, soyad\n• İletişim Bilgileri: E-posta adresi, telefon numarası\n• Şirket Bilgileri: Şirket adı, pozisyon, çalışan sayısı\n• Değerlendirme Verileri: Yetkinlik değerlendirmesi yanıtları, analiz sonuçları\n• Teknik Veriler: IP adresi, tarayıcı bilgileri, erişim kayıtları"
+    },
+    {
+      "title": "3. Kişisel Verilerin İşlenme Amaçları",
+      "content": "Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:\n\n• Hizmetlerimizin sunulması ve yönetilmesi\n• Demo ve iletişim taleplerinizin değerlendirilmesi\n• Yetkinlik değerlendirmelerinin gerçekleştirilmesi ve analiz edilmesi\n• Yasal yükümlülüklerimizin yerine getirilmesi\n• Hizmet kalitesinin artırılması ve istatistiksel analizler\n• Güvenlik ve dolandırıcılık önleme faaliyetleri"
+    },
+    {
+      "title": "4. Kişisel Verilerin Aktarılması",
+      "content": "Kişisel verileriniz, KVKK'nın 8. ve 9. maddelerinde belirtilen koşullar çerçevesinde:\n\n• Yasal yükümlülükler kapsamında kamu kurumlarına\n• Hizmet sağlayıcılarımıza (bulut hizmetleri, analiz araçları)\n• Grup şirketlerimize\n\naktarılabilmektedir. Yurt dışına veri aktarımı yapılması halinde, KVKK'nın öngördüğü güvenceler sağlanmaktadır."
+    },
+    {
+      "title": "5. Kişisel Veri İşlemenin Hukuki Sebepleri",
+      "content": "Kişisel verileriniz aşağıdaki hukuki sebeplere dayanılarak işlenmektedir:\n\n• Açık rızanız (KVKK m. 5/1)\n• Sözleşmenin kurulması veya ifası (KVKK m. 5/2-c)\n• Hukuki yükümlülüklerimizin yerine getirilmesi (KVKK m. 5/2-ç)\n• Meşru menfaatlerimiz (KVKK m. 5/2-f)"
+    },
+    {
+      "title": "6. Veri Saklama Süreleri",
+      "content": "Kişisel verileriniz, işleme amacının gerektirdiği süre boyunca ve yasal saklama süreleri gözetilerek muhafaza edilmektedir:\n\n• İletişim verileri: Son iletişimden itibaren 2 yıl\n• Değerlendirme verileri: Değerlendirme tarihinden itibaren 3 yıl\n• Yasal yükümlülük kapsamındaki veriler: İlgili mevzuatın öngördüğü süreler"
+    },
+    {
+      "title": "7. KVKK Kapsamındaki Haklarınız",
+      "content": "KVKK'nın 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:\n\n• Kişisel verilerinizin işlenip işlenmediğini öğrenme\n• İşlenmişse buna ilişkin bilgi talep etme\n• İşlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme\n• Yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme\n• Eksik veya yanlış işlenmiş olması halinde düzeltilmesini isteme\n• Silinmesini veya yok edilmesini isteme\n• Düzeltme, silme veya yok etme işlemlerinin aktarıldığı üçüncü kişilere bildirilmesini isteme\n• İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme\n• Kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme"
+    },
+    {
+      "title": "8. Başvuru Yöntemi",
+      "content": "Yukarıda belirtilen haklarınızı kullanmak için:\n\nE-posta: privacy@talentqx.com\n\nadresine, kimliğinizi tespit edici bilgiler ile birlikte yazılı olarak başvurabilirsiniz. Başvurunuz en geç 30 gün içinde değerlendirilerek sonuçlandırılacaktır."
+    },
+    {
+      "title": "9. Değişiklikler",
+      "content": "Bu aydınlatma metni, yasal düzenlemeler veya hizmetlerimizdeki değişiklikler nedeniyle güncellenebilir. Güncel metin her zaman web sitemizde yayınlanacaktır."
+    }
+  ]
+}

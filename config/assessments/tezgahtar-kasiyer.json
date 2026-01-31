@@ -1,0 +1,369 @@
+{
+  "role": {
+    "code": "tezgahtar-kasiyer",
+    "name": "Tezgahtar / Kasiyer",
+    "category": "retail",
+    "description": "Perakende satış ve kasa işlemlerinden sorumlu personel"
+  },
+  "competencies": [
+    {
+      "code": "CUSTOMER_SERVICE",
+      "name": "Müşteri Hizmeti",
+      "weight": 20,
+      "description": "Müşterilerle etkili iletişim, nazik davranış, çözüm odaklılık"
+    },
+    {
+      "code": "HYGIENE",
+      "name": "Hijyen ve Temizlik",
+      "weight": 15,
+      "description": "Kişisel hijyen, çalışma alanı temizliği, gıda güvenliği farkındalığı"
+    },
+    {
+      "code": "STRESS_HANDLING",
+      "name": "Stres Yönetimi",
+      "weight": 15,
+      "description": "Yoğun dönemlerde sakin kalma, baskı altında performans"
+    },
+    {
+      "code": "INTEGRITY",
+      "name": "Dürüstlük ve Güvenilirlik",
+      "weight": 20,
+      "description": "Para işlemlerinde doğruluk, hırsızlık önleme, etik davranış"
+    },
+    {
+      "code": "RESPONSIBILITY",
+      "name": "Sorumluluk",
+      "weight": 15,
+      "description": "İş sahiplenme, dakiklik, görev bilinci"
+    },
+    {
+      "code": "TEAMWORK",
+      "name": "Takım Çalışması",
+      "weight": 15,
+      "description": "İş arkadaşlarıyla uyum, yardımlaşma, iletişim"
+    }
+  ],
+  "red_flags": [
+    {
+      "code": "THEFT_TENDENCY",
+      "label": "Hırsızlık Eğilimi",
+      "severity": "critical",
+      "indicators": [
+        "kasa açığını normalleştirme",
+        "para eksikliğini önemsizleştirme",
+        "küçük hırsızlıkları mazur görme",
+        "kontrol mekanizmalarını eleştirme"
+      ]
+    },
+    {
+      "code": "CUSTOMER_AGGRESSION",
+      "label": "Müşteriye Karşı Saldırganlık",
+      "severity": "high",
+      "indicators": [
+        "müşteriye bağırma",
+        "hakaret içeren ifadeler",
+        "fiziksel tehdit",
+        "sabırsız ve kaba tutum"
+      ]
+    },
+    {
+      "code": "HYGIENE_NEGLIGENCE",
+      "label": "Hijyen İhmali",
+      "severity": "high",
+      "indicators": [
+        "el yıkamayı gereksiz bulma",
+        "kirli ürünü satışa sunma",
+        "temizlik kurallarını önemsememe",
+        "gıda güvenliğini ciddiye almama"
+      ]
+    },
+    {
+      "code": "RESPONSIBILITY_AVOIDANCE",
+      "label": "Sorumluluktan Kaçınma",
+      "severity": "medium",
+      "indicators": [
+        "hataları başkasına yükleme",
+        "görev almaktan kaçınma",
+        "sürekli mazeret üretme",
+        "sorunları görmezden gelme"
+      ]
+    },
+    {
+      "code": "CONFLICT_PRONE",
+      "label": "Çatışmaya Meyil",
+      "severity": "medium",
+      "indicators": [
+        "iş arkadaşlarıyla sürekli sorun",
+        "yöneticiye karşı gelme",
+        "takım uyumsuzluğu",
+        "dedikodu yapma"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "order": 1,
+      "competency_code": "CUSTOMER_SERVICE",
+      "type": "scenario",
+      "text": "Bir müşteri satın aldığı ürünün bozuk olduğunu iddia ederek çok sinirli bir şekilde size geliyor ve yüksek sesle şikayet ediyor. Diğer müşteriler de durumu izliyor. Bu durumda ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Müşteriyi sakinleştirir, özür diler, kenara alır, sorunu dinler, çözüm sunar (değişim/iade), müşteri memnuniyetini sağlar",
+        "4": "Müşteriyi dinler, özür diler, yöneticiye yönlendirir, profesyonel kalır",
+        "3": "Özür diler ama çözüm sunmada yetersiz kalır, yöneticiyi bekler",
+        "2": "Savunmaya geçer, müşteriyi suçlar ama kontrol altında tutar",
+        "1": "Müşteriyle tartışır, diğer müşterilerin önünde sahne yaratır",
+        "0": "Müşteriyi görmezden gelir veya hakaret eder"
+      },
+      "red_flag_triggers": [
+        "müşteriye bağırma",
+        "hakaret",
+        "fiziksel tehdit",
+        "görmezden gelme"
+      ]
+    },
+    {
+      "order": 2,
+      "competency_code": "INTEGRITY",
+      "type": "scenario",
+      "text": "Gün sonunda kasayı sayarken 50 TL eksik olduğunu fark ediyorsunuz. Gün boyunca herhangi bir hata yaptığınızı hatırlamıyorsunuz. Bu durumda ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Hemen yöneticiye bildirir, dürüstçe durumu açıklar, kamera kayıtlarının incelenmesini ister, işlemleri gözden geçirmeyi teklif eder",
+        "4": "Yöneticiye bildirir, durumu açıklar, soruşturmaya yardımcı olur",
+        "3": "Yöneticiye bildirir ama tedirgin, açıklama yapmakta zorlanır",
+        "2": "Bildirmeyi geciktirir, önce kendisi çözmeye çalışır",
+        "1": "Durumu gizlemeye çalışır veya başkasını suçlar",
+        "0": "Eksikliği kapatmaya çalışır veya fark etmemiş gibi davranır"
+      },
+      "red_flag_triggers": [
+        "gizleme",
+        "kapatma",
+        "suçlama",
+        "normalleştirme",
+        "önemsizleştirme"
+      ]
+    },
+    {
+      "order": 3,
+      "competency_code": "HYGIENE",
+      "type": "scenario",
+      "text": "Bir ürünün son kullanma tarihinin bugün olduğunu fark ediyorsunuz. Rafta aynı üründen çok sayıda var ve bunların hepsi bugün veya yarın son kullanma tarihli. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Hepsini raftan çeker, yöneticiye bildirir, etiket/işaretleme yapılmasını önerir, müşteri güvenliğini ön planda tutar",
+        "4": "Yöneticiye bildirir, talimat bekler, satıştan çeker",
+        "3": "Sadece bugünkülerü çeker, yarınkileri bırakır, yöneticiye bildirir",
+        "2": "Görmezden gelir, müşteri alırsa uyarır",
+        "1": "Ürünleri arkaya koyar, eski tarihlileri öne dizme",
+        "0": "Hiçbir şey yapmaz, müşteri sağlığını önemsemez"
+      },
+      "red_flag_triggers": [
+        "satmaya devam",
+        "görmezden gelme",
+        "gizleme",
+        "müşteri sağlığını önemsememe"
+      ]
+    },
+    {
+      "order": 4,
+      "competency_code": "STRESS_HANDLING",
+      "type": "scenario",
+      "text": "Cumartesi günü mağaza çok kalabalık. Kasada uzun kuyruk oluşmuş, POS cihazı yavaş çalışıyor ve bir müşteri sürekli acele etmenizi istiyor. Aynı anda iş arkadaşınız da sizden yardım istiyor. Bu durumu nasıl yönetirsiniz?",
+      "evaluation_criteria": {
+        "5": "Sakin kalır, müşterilere durumu açıklar, öncelikleri belirler, iş arkadaşına 'birazdan' der, hızlı ama doğru çalışır",
+        "4": "Sakin kalır, müşterilerden özür diler, işini yapmaya devam eder",
+        "3": "Biraz stresli ama kontrol altında, işini sürdürür",
+        "2": "Stres belirtileri gösterir, hatalar yapmaya başlar",
+        "1": "Panikler, müşterilere kaba davranır, iş arkadaşını suçlar",
+        "0": "Kasayı terk eder veya tamamen kontrolü kaybeder"
+      },
+      "red_flag_triggers": [
+        "kasayı terk",
+        "müşteriye bağırma",
+        "panik",
+        "kontrolü kaybetme"
+      ]
+    },
+    {
+      "order": 5,
+      "competency_code": "RESPONSIBILITY",
+      "type": "scenario",
+      "text": "İş arkadaşınız bugün gelmedi ve siz onun bölümünü de kapatmanız gerekiyor. Normalde yapmadığınız işler var ve yoğun bir gün. Bu duruma nasıl yaklaşırsınız?",
+      "evaluation_criteria": {
+        "5": "İşi sahiplenir, öğrenmeye istekli, yöneticiden kısa bilgi alır, ekstra çaba gösterir, şikayet etmez",
+        "4": "İşi kabul eder, elinden gelenin en iyisini yapar, destek ister",
+        "3": "İşi yapar ama isteksiz, sürekli yardım ister",
+        "2": "Şikayet eder, minimum çaba gösterir",
+        "1": "Reddetmeye çalışır, işi savsaklar",
+        "0": "Kesinlikle reddeder veya işi bırakır"
+      },
+      "red_flag_triggers": [
+        "reddetme",
+        "bırakma",
+        "sürekli şikayet",
+        "sabotaj"
+      ]
+    },
+    {
+      "order": 6,
+      "competency_code": "TEAMWORK",
+      "type": "scenario",
+      "text": "Bir iş arkadaşınızın sürekli işten kaytardığını ve sizin daha fazla iş yaptığınızı düşünüyorsunuz. Bu durum sizi rahatsız ediyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Önce iş arkadaşıyla özel olarak konuşur, durumu anlamaya çalışır, çözüm bulamazsa yöneticiye profesyonelce bildirir",
+        "4": "Yöneticiye durumu sakin bir şekilde iletir, kişisel saldırı yapmaz",
+        "3": "Sessiz kalır ama işini yapmaya devam eder",
+        "2": "Arkasından konuşur, dedikodu yapar",
+        "1": "İş arkadaşıyla tartışır, sahne yaratır",
+        "0": "İntikam alır, onun işini de yapmayı reddeder, takımı bozar"
+      },
+      "red_flag_triggers": [
+        "intikam",
+        "sabotaj",
+        "fiziksel çatışma",
+        "takımı bozma"
+      ]
+    },
+    {
+      "order": 7,
+      "competency_code": "INTEGRITY",
+      "type": "scenario",
+      "text": "Bir yakın arkadaşınız mağazaya müşteri olarak geliyor ve size 'Bana indirim yapsana, kimse fark etmez' diyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Nazikçe ama kesinlikle reddeder, kuralları açıklar, arkadaşlığın işi etkilemeyeceğini belirtir, gerekirse yöneticiye bildirir",
+        "4": "Reddeder, kuralları açıklar, kararlı durur",
+        "3": "Reddeder ama rahatsız olur, arkadaşına kızar",
+        "2": "Tereddüt eder, belki bir kerelik yaparım der",
+        "1": "Küçük bir indirim yapar, 'kimse görmez' mantığıyla",
+        "0": "İndirim yapar veya ürün verir, bunu normal görür"
+      },
+      "red_flag_triggers": [
+        "indirim yapma",
+        "ürün verme",
+        "normalleştirme",
+        "kuralları çiğneme"
+      ]
+    },
+    {
+      "order": 8,
+      "competency_code": "CUSTOMER_SERVICE",
+      "type": "scenario",
+      "text": "Yaşlı bir müşteri teknolojik bir ürün hakkında size soru soruyor. Çok yavaş konuşuyor ve aynı soruları tekrar tekrar soruyor. Arkada başka müşteriler bekliyor. Nasıl davranırsınız?",
+      "evaluation_criteria": {
+        "5": "Sabırla dinler, yavaş ve net açıklar, müşterinin anladığından emin olur, bekleyen müşterilere göz teması ile 'hemen sizinle ilgileneceğim' mesajı verir",
+        "4": "Sabırlı davranır, açıklamaya çalışır, müşteri memnun ayrılır",
+        "3": "Biraz sabırsız ama profesyonel kalır",
+        "2": "Açıkça sabırsızlık gösterir, acele ettirir",
+        "1": "Müşteriyi başka birine yönlendirir, ilgilenmek istemez",
+        "0": "Müşteriye kaba davranır, aşağılar veya görmezden gelir"
+      },
+      "red_flag_triggers": [
+        "aşağılama",
+        "kaba davranış",
+        "yaş ayrımcılığı",
+        "görmezden gelme"
+      ]
+    },
+    {
+      "order": 9,
+      "competency_code": "HYGIENE",
+      "type": "scenario",
+      "text": "Moladan dönüyorsunuz ve elinizi yıkamadan kasaya geçmeniz gerekiyor çünkü müşteriler bekliyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Kesinlikle önce elini yıkar, müşterilerden 30 saniye özür diler, hijyenin öncelik olduğunu bilir",
+        "4": "Elini yıkar, hızlıca döner",
+        "3": "Dezenfektan kullanır, tam yıkama yapmaz ama temizler",
+        "2": "Tereddüt eder, bazen yıkar bazen yıkamaz",
+        "1": "Yıkamadan geçer, 'bir şey olmaz' der",
+        "0": "Hiç önemsemez, hijyeni gereksiz bulur"
+      },
+      "red_flag_triggers": [
+        "hijyeni gereksiz bulma",
+        "hiç yıkamama",
+        "önemsememe"
+      ]
+    },
+    {
+      "order": 10,
+      "competency_code": "RESPONSIBILITY",
+      "type": "scenario",
+      "text": "Mesai saatiniz bitti ama kasa devir işlemi yapılmadı ve sizi devralacak kişi 15 dakika geç kalacak. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Bekler, işini tamamlar, kasayı düzgün devreder, mesai dışı çalışmayı yöneticiye bildirir",
+        "4": "Bekler ve işini tamamlar",
+        "3": "Şikayet ederek bekler ama işini yapar",
+        "2": "Yöneticiye bildirip gitmek ister",
+        "1": "Kasayı açık bırakıp gider",
+        "0": "Kasayı kontrolsüz bırakır, parayı masada bırakır"
+      },
+      "red_flag_triggers": [
+        "kasayı kontrolsüz bırakma",
+        "parayı açıkta bırakma",
+        "terk etme"
+      ]
+    }
+  ],
+  "scoring": {
+    "max_score_per_question": 5,
+    "total_questions": 10,
+    "max_total_score": 50,
+    "overall_score_calculation": "weighted_average_of_competencies",
+    "pass_threshold": 60,
+    "levels": [
+      { "min": 0, "max": 39, "label": "Yetersiz", "numeric": 1, "recommendation": "reject" },
+      { "min": 40, "max": 54, "label": "Geliştirilmeli", "numeric": 2, "recommendation": "conditional" },
+      { "min": 55, "max": 69, "label": "Yeterli", "numeric": 3, "recommendation": "hire_with_training" },
+      { "min": 70, "max": 84, "label": "İyi", "numeric": 4, "recommendation": "hire" },
+      { "min": 85, "max": 100, "label": "Mükemmel", "numeric": 5, "recommendation": "priority_hire" }
+    ]
+  },
+  "output_format": {
+    "competency_scores": {
+      "description": "Her yetkinlik için 0-100 arası skor ve feedback",
+      "example": {
+        "CUSTOMER_SERVICE": { "score": 80, "feedback": "Müşteri odaklı yaklaşım gösteriyor" },
+        "INTEGRITY": { "score": 90, "feedback": "Dürüstlük konusunda güçlü duruş" }
+      }
+    },
+    "overall_score": {
+      "description": "Ağırlıklı ortalama, 0-100 arası",
+      "calculation": "sum(competency_score * weight) / sum(weights)"
+    },
+    "risk_flags": {
+      "description": "Tespit edilen kırmızı bayraklar",
+      "example": [
+        {
+          "code": "THEFT_TENDENCY",
+          "severity": "critical",
+          "detected_in_question": 2,
+          "evidence": "Kasa açığını normalleştiren ifade kullandı"
+        }
+      ]
+    },
+    "manager_summary": {
+      "description": "Yönetici için 2-3 cümlelik özet",
+      "template": "{name}, {overall_level} seviyesinde performans gösterdi. Güçlü yönleri: {strengths}. Dikkat edilmesi gerekenler: {concerns}. Öneri: {recommendation}."
+    },
+    "hiring_recommendation": {
+      "options": ["hire", "hire_with_training", "conditional", "reject"],
+      "description": "İşe alım kararı önerisi"
+    },
+    "development_suggestions": {
+      "description": "Düşük skorlu yetkinlikler için gelişim önerileri"
+    }
+  },
+  "evaluation_guidelines": {
+    "general_principles": [
+      "Kelimesi kelimesine eşleşme arama, davranışsal niyeti değerlendir",
+      "Kültürel bağlamı göz önünde bulundur (Türk iş kültürü)",
+      "Somut örnekler ve adımlar içeren yanıtları yüksek puanla",
+      "Belirsiz veya genel yanıtları orta puanla",
+      "Tehlikeli veya etik dışı yaklaşımları düşük puanla ve bayrakla",
+      "Bir kırmızı bayrak tespit edilirse, ilgili yetkinlik skorunu maksimum %50'ye düşür"
+    ],
+    "language_considerations": [
+      "Türkçe yanıtlar bekleniyor",
+      "Yazım hataları skorlamayı etkilememeli",
+      "Konuşma dili kabul edilebilir",
+      "Önemli olan içerik ve yaklaşım"
+    ]
+  }
+}

@@ -1,0 +1,397 @@
+{
+  "role": {
+    "code": "magaza-muduru",
+    "name": "Mağaza Müdürü",
+    "category": "retail_management",
+    "description": "Mağaza operasyonlarından, ekip yönetiminden, satış hedeflerinden ve müşteri deneyiminden sorumlu yönetici"
+  },
+  "competencies": [
+    {
+      "code": "LEADERSHIP",
+      "name": "Liderlik",
+      "weight": 25,
+      "description": "Ekibi yönlendirme, motive etme, örnek olma, vizyoner düşünme"
+    },
+    {
+      "code": "TEAM_MANAGEMENT",
+      "name": "Ekip Yönetimi",
+      "weight": 20,
+      "description": "İşe alım, eğitim, performans değerlendirme, çatışma yönetimi, vardiya planlama"
+    },
+    {
+      "code": "BUSINESS_ACUMEN",
+      "name": "Ticari Zeka",
+      "weight": 20,
+      "description": "Satış hedefleri, bütçe yönetimi, stok kontrolü, karlılık odaklılık"
+    },
+    {
+      "code": "CUSTOMER_FOCUS",
+      "name": "Müşteri Odaklılık",
+      "weight": 15,
+      "description": "Müşteri deneyimi, şikayet yönetimi, hizmet kalitesi standartları"
+    },
+    {
+      "code": "PROBLEM_SOLVING",
+      "name": "Problem Çözme ve Karar Verme",
+      "weight": 10,
+      "description": "Kriz yönetimi, hızlı ve doğru karar alma, analitik düşünme"
+    },
+    {
+      "code": "INTEGRITY",
+      "name": "Dürüstlük ve Etik",
+      "weight": 10,
+      "description": "Şeffaflık, adil davranış, şirket değerlerine bağlılık, güvenilirlik"
+    }
+  ],
+  "red_flags": [
+    {
+      "code": "POWER_ABUSE",
+      "label": "Güç İstismarı",
+      "severity": "critical",
+      "indicators": [
+        "çalışanlara baskı yapma",
+        "mobbing eğilimi",
+        "otoriteyi kötüye kullanma",
+        "korku ile yönetim",
+        "keyfi cezalandırma"
+      ]
+    },
+    {
+      "code": "FINANCIAL_MISCONDUCT",
+      "label": "Mali Usulsüzlük",
+      "severity": "critical",
+      "indicators": [
+        "kasa manipülasyonu",
+        "sahte indirim",
+        "stok hırsızlığını örtbas",
+        "bütçe sahtekarlığı",
+        "kişisel çıkar sağlama"
+      ]
+    },
+    {
+      "code": "HARASSMENT_TENDENCY",
+      "label": "Taciz Eğilimi",
+      "severity": "critical",
+      "indicators": [
+        "cinsel içerikli espri",
+        "fiziksel temas",
+        "ayrımcı davranış",
+        "kişisel sınırları aşma",
+        "güç kullanarak ilişki kurma"
+      ]
+    },
+    {
+      "code": "BLAME_SHIFTING",
+      "label": "Suçu Başkasına Atma",
+      "severity": "high",
+      "indicators": [
+        "hataları ekibe yükleme",
+        "sorumluluktan kaçma",
+        "başarıyı sahiplenip başarısızlığı dağıtma",
+        "günah keçisi yaratma"
+      ]
+    },
+    {
+      "code": "CUSTOMER_DISREGARD",
+      "label": "Müşteriyi Önemsememe",
+      "severity": "high",
+      "indicators": [
+        "müşteri şikayetini ciddiye almama",
+        "müşteriye karşı kaba",
+        "hizmet kalitesini önemsememe",
+        "müşteri memnuniyetini görmezden gelme"
+      ]
+    },
+    {
+      "code": "TOXIC_CULTURE",
+      "label": "Toksik Kültür Oluşturma",
+      "severity": "high",
+      "indicators": [
+        "dedikodu yapma/yayma",
+        "ekibi bölme",
+        "favoritizm",
+        "şeffaf olmama",
+        "güvensizlik ortamı"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "order": 1,
+      "competency_code": "LEADERSHIP",
+      "type": "scenario",
+      "text": "Mağazanız iki aydır satış hedeflerinin gerisinde kalıyor. Ekip motivasyonu düşük ve bazı çalışanlar 'hedefler gerçekçi değil' diyor. Bu durumu nasıl ele alırsınız?",
+      "evaluation_criteria": {
+        "5": "Önce verileri analiz eder, ekiple birebir görüşür, sorunların kök nedenini bulur, gerçekçi aksiyon planı oluşturur, hedefe giden yolu küçük başarılara böler, ekibi motive eder, üst yönetime şeffaf rapor verir",
+        "4": "Ekiple toplantı yapar, sorunları dinler, birlikte çözüm arar, hedefleri gözden geçirir, motive etmeye çalışır",
+        "3": "Hedefleri hatırlatır, daha çok çalışmalarını ister, bazı değişiklikler yapar",
+        "2": "Baskı uygular, 'hedef hedeftir' der, motivasyon yerine otorite kullanır",
+        "1": "Ekibi suçlar, tehdit eder, cezalandırıcı yaklaşır",
+        "0": "Üst yönetime ekibi şikayet eder, sorumluluğu reddeder"
+      },
+      "red_flag_triggers": [
+        "ekibi suçlama",
+        "tehdit",
+        "baskı",
+        "cezalandırma",
+        "sorumluluktan kaçma"
+      ]
+    },
+    {
+      "order": 2,
+      "competency_code": "TEAM_MANAGEMENT",
+      "type": "scenario",
+      "text": "İki çalışanınız arasında ciddi bir çatışma var. Birbirlerini suçluyorlar ve bu durum mağaza ortamını olumsuz etkiliyor. Diğer çalışanlar taraf tutmaya başladı. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Her iki tarafla ayrı ayrı görüşür, tarafsız dinler, ortak toplantı düzenler, uzlaşma arar, net kurallar koyar, takibi sağlar, gerekirse HR'ı dahil eder",
+        "4": "Her iki tarafı dinler, arabuluculuk yapar, çözüm için çalışır",
+        "3": "Bir toplantı yapar, 'anlaşın' der, takip etmez",
+        "2": "Birine taraf tutar, diğerini uyarır",
+        "1": "Görmezden gelir, 'kendi halledsinler' der",
+        "0": "Çatışmayı körükler, birini diğerine karşı kullanır"
+      },
+      "red_flag_triggers": [
+        "taraf tutma",
+        "çatışmayı körükleme",
+        "bölme",
+        "manipülasyon"
+      ]
+    },
+    {
+      "order": 3,
+      "competency_code": "INTEGRITY",
+      "type": "scenario",
+      "text": "Bir çalışanınızın kasadan küçük miktarlar aldığından şüpheleniyorsunuz ama kesin kanıtınız yok. Sadece bazı tutarsızlıklar var. Bu durumu nasıl ele alırsınız?",
+      "evaluation_criteria": {
+        "5": "Kanıt toplar (kamera, kasa sayımları), HR/güvenlikle görüşür, prosedüre uygun hareket eder, suçlama yapmadan soruşturma yürütür, adil davranır",
+        "4": "Kanıt aramaya devam eder, HR'a bilgi verir, prosedüre uyar",
+        "3": "Çalışanla konuşur, dolaylı uyarı verir, izler",
+        "2": "Doğrudan suçlar, kanıtsız işlem yapar",
+        "1": "Görmezden gelir, 'küçük miktar' der",
+        "0": "Örtbas eder veya kendisi de benzer şeyler yapar"
+      },
+      "red_flag_triggers": [
+        "örtbas",
+        "suç ortaklığı",
+        "görmezden gelme",
+        "adaletsiz suçlama"
+      ]
+    },
+    {
+      "order": 4,
+      "competency_code": "CUSTOMER_FOCUS",
+      "type": "scenario",
+      "text": "Bir müşteri sosyal medyada mağazanız hakkında çok olumsuz bir yorum paylaştı. İddialarının bir kısmı doğru, bir kısmı abartılı. Yorum viral olmaya başladı. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Hızlıca yanıt verir, özür diler, müşteriyle özel iletişime geçer, sorunu çözer, ekiple değerlendirme yapar, sistemik iyileştirme önerir, üst yönetime bilgi verir",
+        "4": "Müşteriyle iletişime geçer, özür diler, çözüm sunar, durumu yönetir",
+        "3": "Yanıt verir ama savunmacı, kısmi özür diler",
+        "2": "Tartışmaya girer, haklılığını savunur",
+        "1": "Görmezden gelir, 'geçer' der",
+        "0": "Müşteriyi aşağılar veya tehdit eder"
+      },
+      "red_flag_triggers": [
+        "müşteriyi aşağılama",
+        "tehdit",
+        "görmezden gelme",
+        "agresif savunma"
+      ]
+    },
+    {
+      "order": 5,
+      "competency_code": "BUSINESS_ACUMEN",
+      "type": "scenario",
+      "text": "Mağazanızda stok fazlası var ve ürünler satılmıyor. Depo dolu, yeni ürünler gelecek ama yer yok. Bölge müdürü 'eritin' diyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Stok analizi yapar, ürün bazlı strateji geliştirir (promosyon, paket, çapraz satış), ekibi eğitir, görsel düzenleme yapar, günlük takip eder, sonuçları raporlar",
+        "4": "Promosyon planlar, ekibi bilgilendirir, satış stratejisi uygular",
+        "3": "İndirim yapar, bekler",
+        "2": "Bölge müdürüne 'yapamıyoruz' der, çözüm önermez",
+        "1": "Ürünleri gizler veya kayıp gösterir",
+        "0": "Stoku çöpe atar veya zimmetine geçirir"
+      },
+      "red_flag_triggers": [
+        "kayıp gösterme",
+        "zimmet",
+        "çöpe atma",
+        "hile"
+      ]
+    },
+    {
+      "order": 6,
+      "competency_code": "TEAM_MANAGEMENT",
+      "type": "scenario",
+      "text": "Yeni bir çalışan aldınız ve 3. haftasında performansı çok düşük. Diğer çalışanlar 'biz de mi böyle başlamıştık' diye şikayet ediyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Performans kriterlerini netleştirir, yeni çalışanla birebir görüşür, ek eğitim verir, mentor atar, SMART hedefler koyar, düzenli geri bildirim verir, deneme süresini takip eder",
+        "4": "Görüşme yapar, eksikleri belirler, gelişim planı oluşturur",
+        "3": "Uyarır, daha fazla çalışmasını söyler",
+        "2": "Diğer çalışanların önünde eleştirir",
+        "1": "Direk işten çıkarır, şans vermez",
+        "0": "Mobbing yapar, istifa ettirmeye çalışır"
+      },
+      "red_flag_triggers": [
+        "halka açık aşağılama",
+        "mobbing",
+        "zorla istifa"
+      ]
+    },
+    {
+      "order": 7,
+      "competency_code": "PROBLEM_SOLVING",
+      "type": "scenario",
+      "text": "Cumartesi öğleden sonra, en yoğun saatlerde klima bozuldu. Mağaza çok sıcak, müşteriler şikayet ediyor, çalışanlar da bunalmış durumda. Teknik servis 'en erken pazartesi' diyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Acil çözümler üretir (vantilatör, kapı açık, su ikramı), müşterilere özür diler, çalışanlara mola verir, alternatif servis arar, gerekirse mesai düzenler, üst yönetime bildirir, müşteri şikayetlerini yönetir",
+        "4": "Geçici çözümler bulur, müşterilere açıklama yapar, ekibi rahatlatır",
+        "3": "Teknik servisi zorlar, bekler",
+        "2": "'Yapacak bir şey yok' der, şikayet eder",
+        "1": "Mağazayı kapatmak ister, sorumluluk almaz",
+        "0": "Durumu görmezden gelir, çalışanları azarlar"
+      },
+      "red_flag_triggers": [
+        "sorumluluk almama",
+        "çalışanlara bağırma",
+        "görmezden gelme"
+      ]
+    },
+    {
+      "order": 8,
+      "competency_code": "LEADERSHIP",
+      "type": "scenario",
+      "text": "Bölge müdürü, sizin katılmadığınız bir kararı uygulamanızı istiyor. Kararın mağazanız için uygun olmadığını düşünüyorsunuz ve ekibiniz de tepkili. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Bölge müdürüyle özel görüşür, endişelerini veri ve örneklerle sunar, alternatif önerir, karara uyulursa profesyonelce uygular, ekibe kararın arkasında durur",
+        "4": "Görüşünü iletir, alternatif önerir, sonuçta kararı uygular",
+        "3": "Uygular ama isteksizce, ekibe yakınır",
+        "2": "Ekibin önünde bölge müdürünü eleştirir",
+        "1": "Açıkça karşı gelir, uygulamayı sabote eder",
+        "0": "Ekibi kışkırtır, isyan oluşturur"
+      },
+      "red_flag_triggers": [
+        "sabotaj",
+        "kışkırtma",
+        "üst yönetime karşı isyan",
+        "itaatsizlik"
+      ]
+    },
+    {
+      "order": 9,
+      "competency_code": "INTEGRITY",
+      "type": "scenario",
+      "text": "Çok başarılı bir çalışanınız var ama son zamanlarda diğer çalışanlara kaba davranıyor. Satış performansı mükemmel ama ekip şikayet ediyor. Ne yaparsınız?",
+      "evaluation_criteria": {
+        "5": "Performansı takdir eder ama davranış standartlarını da netleştirir, özel görüşme yapar, beklentileri açıkça iletir, değişim için süre verir, takip eder, değişmezse sonuçları uygular",
+        "4": "Görüşme yapar, davranış beklentilerini iletir, takip eder",
+        "3": "Hafifçe uyarır ama 'performansı iyi' diye tolere eder",
+        "2": "Görmezden gelir, 'satış yapıyor ya' der",
+        "1": "Şikayet edenleri suçlar, yıldızı korur",
+        "0": "Toksik davranışı destekler, benzer davranır"
+      },
+      "red_flag_triggers": [
+        "toksik davranışı destekleme",
+        "şikayetçileri suçlama",
+        "çifte standart"
+      ]
+    },
+    {
+      "order": 10,
+      "competency_code": "BUSINESS_ACUMEN",
+      "type": "scenario",
+      "text": "Mağazanızın personel bütçesi kısıtlandı ve bir kişiyi çıkarmanız veya çalışma saatlerini azaltmanız gerekiyor. Ekibinizde herkes çalışkan. Bu kararı nasıl alır ve uygularsınız?",
+      "evaluation_criteria": {
+        "5": "Objektif kriterler belirler, performans verilerini analiz eder, alternatifler araştırır (gönüllü azaltma, vardiya düzenleme), HR ile çalışır, kararı profesyonelce iletir, ekibe şeffaf davranır",
+        "4": "Veri bazlı karar alır, HR ile koordine çalışır, profesyonel iletir",
+        "3": "Zor kararı alır ama süreç yönetiminde eksikler var",
+        "2": "Rastgele veya kişisel tercihe göre karar verir",
+        "1": "Kararı başkasına atar, sorumluluk almaz",
+        "0": "Haksız yere işten çıkarır, mobbing yapar"
+      },
+      "red_flag_triggers": [
+        "haksız işten çıkarma",
+        "mobbing",
+        "keyfi karar",
+        "ayrımcılık"
+      ]
+    }
+  ],
+  "scoring": {
+    "max_score_per_question": 5,
+    "total_questions": 10,
+    "max_total_score": 50,
+    "overall_score_calculation": "weighted_average_of_competencies",
+    "pass_threshold": 65,
+    "levels": [
+      { "min": 0, "max": 39, "label": "Yetersiz", "numeric": 1, "recommendation": "reject" },
+      { "min": 40, "max": 54, "label": "Geliştirilmeli", "numeric": 2, "recommendation": "conditional" },
+      { "min": 55, "max": 69, "label": "Yeterli", "numeric": 3, "recommendation": "hire_with_development" },
+      { "min": 70, "max": 84, "label": "İyi", "numeric": 4, "recommendation": "hire" },
+      { "min": 85, "max": 100, "label": "Mükemmel", "numeric": 5, "recommendation": "priority_hire" }
+    ]
+  },
+  "output_format": {
+    "competency_scores": {
+      "description": "Her yetkinlik için 0-100 arası skor ve feedback",
+      "example": {
+        "LEADERSHIP": { "score": 80, "feedback": "Güçlü liderlik özellikleri gösteriyor" },
+        "TEAM_MANAGEMENT": { "score": 75, "feedback": "Ekip yönetiminde etkili" }
+      }
+    },
+    "overall_score": {
+      "description": "Ağırlıklı ortalama, 0-100 arası",
+      "calculation": "sum(competency_score * weight) / sum(weights)"
+    },
+    "risk_flags": {
+      "description": "Tespit edilen kırmızı bayraklar",
+      "example": [
+        {
+          "code": "POWER_ABUSE",
+          "severity": "critical",
+          "detected_in_question": 1,
+          "evidence": "Ekibe baskı ve tehdit içeren ifadeler kullandı"
+        }
+      ]
+    },
+    "manager_summary": {
+      "description": "Üst yönetim için 2-3 cümlelik özet",
+      "template": "{name}, yönetici pozisyonu için {overall_level} seviyesinde değerlendirildi. Güçlü yönleri: {strengths}. Dikkat edilmesi gerekenler: {concerns}. Öneri: {recommendation}."
+    },
+    "hiring_recommendation": {
+      "options": ["hire", "hire_with_development", "conditional", "reject"],
+      "description": "İşe alım/terfi kararı önerisi"
+    },
+    "development_suggestions": {
+      "description": "Yönetici gelişim alanları ve öneriler"
+    }
+  },
+  "evaluation_guidelines": {
+    "general_principles": [
+      "Yönetici pozisyonu için daha yüksek standartlar uygula",
+      "Liderlik tarzını değerlendir: koç mu, patron mu?",
+      "İnsan odaklı mı, sadece sonuç odaklı mı?",
+      "Etik duruşu kritik önem taşır",
+      "Kriz yönetimi ve baskı altında karar verme becerisi",
+      "Critical bayrak tespit edilirse otomatik reject",
+      "High bayrakta skor 70+ olsa bile hire_with_development maksimum"
+    ],
+    "leadership_qualities": [
+      "Vizyon ve strateji oluşturma",
+      "Ekibi motive etme ve geliştirme",
+      "Hesap verebilirlik ve sorumluluk",
+      "İletişim ve şeffaflık",
+      "Adalet ve tutarlılık"
+    ],
+    "red_flag_sensitivity": [
+      "Güç istismarı işaretlerine karşı çok hassas ol",
+      "Mobbing eğilimi kritik",
+      "Mali usulsüzlük toleranssız",
+      "Müşteri ve çalışan haklarına saygı şart"
+    ],
+    "language_considerations": [
+      "Türkçe yanıtlar bekleniyor",
+      "Yönetsel terminoloji kullanımı olumlu",
+      "Yapısal ve organize düşünce olumlu",
+      "Empatik dil olumlu"
+    ]
+  }
+}

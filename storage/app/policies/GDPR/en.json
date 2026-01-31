@@ -1,0 +1,51 @@
+{
+  "title": "Privacy Notice (GDPR)",
+  "version": "2026-01",
+  "last_updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "1. Data Controller",
+      "content": "TalentQX is the data controller for your personal data under the General Data Protection Regulation (EU) 2016/679 (\"GDPR\").\n\nData Controller: TalentQX Technology Inc.\nAddress: [Company Address]\nData Protection Officer: privacy@talentqx.com"
+    },
+    {
+      "title": "2. Personal Data We Collect",
+      "content": "We collect and process the following categories of personal data:\n\n• Identity Data: Name, surname, job title\n• Contact Data: Email address, phone number\n• Professional Data: Company name, industry, employee count\n• Assessment Data: Competency assessment responses and results\n• Technical Data: IP address, browser type, device information, cookies\n• Usage Data: How you interact with our services"
+    },
+    {
+      "title": "3. Legal Basis for Processing",
+      "content": "We process your personal data based on:\n\n• Consent (Art. 6(1)(a)): For marketing communications and optional features\n• Contract Performance (Art. 6(1)(b)): To provide our services\n• Legitimate Interests (Art. 6(1)(f)): For service improvement, security, and analytics\n• Legal Obligation (Art. 6(1)(c)): To comply with applicable laws"
+    },
+    {
+      "title": "4. Purposes of Processing",
+      "content": "Your personal data is processed for:\n\n• Service delivery and account management\n• Processing demo and contact requests\n• Conducting competency assessments and generating reports\n• Communication about our services\n• Analytics and service improvement\n• Security and fraud prevention\n• Legal compliance"
+    },
+    {
+      "title": "5. Data Retention",
+      "content": "We retain your personal data only for as long as necessary:\n\n• Contact inquiries: 2 years from last interaction\n• Assessment data: 3 years from completion (or as agreed in contract)\n• Marketing consent: Until withdrawn\n• Legal records: As required by applicable law\n\nAfter retention periods expire, data is securely deleted or anonymized."
+    },
+    {
+      "title": "6. International Transfers",
+      "content": "Your data may be transferred outside the European Economic Area (EEA). We ensure appropriate safeguards through:\n\n• Standard Contractual Clauses (SCCs) approved by the European Commission\n• Adequacy decisions where applicable\n• Other lawful transfer mechanisms under GDPR"
+    },
+    {
+      "title": "7. Your Rights",
+      "content": "Under GDPR, you have the right to:\n\n• Access: Obtain confirmation and a copy of your personal data\n• Rectification: Correct inaccurate or incomplete data\n• Erasure: Request deletion of your data (\"right to be forgotten\")\n• Restriction: Limit processing in certain circumstances\n• Data Portability: Receive your data in a structured, machine-readable format\n• Object: Object to processing based on legitimate interests\n• Withdraw Consent: Withdraw consent at any time without affecting prior processing\n• Automated Decisions: Not be subject to solely automated decisions with legal effects"
+    },
+    {
+      "title": "8. Data Security",
+      "content": "We implement appropriate technical and organizational measures to protect your data:\n\n• Encryption in transit and at rest\n• Access controls and authentication\n• Regular security assessments\n• Employee training on data protection\n• Incident response procedures"
+    },
+    {
+      "title": "9. Cookies",
+      "content": "We use cookies and similar technologies. Essential cookies are used for service functionality. Analytics and marketing cookies require your consent. You can manage preferences through our cookie settings."
+    },
+    {
+      "title": "10. Contact & Complaints",
+      "content": "To exercise your rights or for privacy inquiries:\n\nEmail: privacy@talentqx.com\n\nWe will respond within 30 days. You also have the right to lodge a complaint with your local Data Protection Authority."
+    },
+    {
+      "title": "11. Changes to This Notice",
+      "content": "We may update this privacy notice periodically. Material changes will be communicated via email or website notice. The current version is always available on our website."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "title": "Privacy Policy",
+  "version": "2026-01",
+  "last_updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "1. Introduction",
+      "content": "TalentQX (\"we\", \"our\", \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you use our services.\n\nBy using our services, you agree to the collection and use of information in accordance with this policy."
+    },
+    {
+      "title": "2. Information We Collect",
+      "content": "We collect the following types of information:\n\n• Personal Information: Name, email address, phone number, company name\n• Professional Information: Job title, department, employee count\n• Assessment Data: Responses to competency assessments and resulting analytics\n• Technical Information: IP address, browser type, device information\n• Usage Information: How you interact with our platform"
+    },
+    {
+      "title": "3. How We Use Your Information",
+      "content": "We use your information to:\n\n• Provide, maintain, and improve our services\n• Process and respond to your inquiries\n• Conduct assessments and generate reports\n• Send service-related communications\n• Analyze usage patterns and improve user experience\n• Ensure security and prevent fraud\n• Comply with legal obligations"
+    },
+    {
+      "title": "4. Information Sharing",
+      "content": "We may share your information with:\n\n• Service Providers: Third parties who help us operate our services\n• Business Partners: With your consent for integrated services\n• Legal Requirements: When required by law or to protect our rights\n• Business Transfers: In connection with mergers or acquisitions\n\nWe do not sell your personal information to third parties."
+    },
+    {
+      "title": "5. Data Security",
+      "content": "We implement industry-standard security measures:\n\n• Encryption of data in transit and at rest\n• Secure access controls\n• Regular security audits\n• Employee security training\n\nWhile we strive to protect your data, no method of transmission over the Internet is 100% secure."
+    },
+    {
+      "title": "6. Data Retention",
+      "content": "We retain your data for as long as necessary to:\n\n• Provide our services\n• Comply with legal obligations\n• Resolve disputes\n• Enforce our agreements\n\nWhen no longer needed, we securely delete or anonymize your data."
+    },
+    {
+      "title": "7. Your Choices and Rights",
+      "content": "You may:\n\n• Access: Request a copy of your personal data\n• Update: Correct inaccurate information\n• Delete: Request deletion of your data\n• Opt-out: Unsubscribe from marketing communications\n\nTo exercise these rights, contact us at privacy@talentqx.com"
+    },
+    {
+      "title": "8. Cookies",
+      "content": "We use cookies to enhance your experience. You can control cookies through your browser settings. Disabling cookies may limit functionality."
+    },
+    {
+      "title": "9. Children's Privacy",
+      "content": "Our services are not intended for individuals under 18 years of age. We do not knowingly collect data from children."
+    },
+    {
+      "title": "10. International Users",
+      "content": "Your data may be processed in countries other than your own. We ensure appropriate safeguards are in place for international transfers."
+    },
+    {
+      "title": "11. Contact Us",
+      "content": "For privacy-related questions:\n\nEmail: privacy@talentqx.com\n\nWe will respond to your inquiry within a reasonable timeframe."
+    },
+    {
+      "title": "12. Changes to This Policy",
+      "content": "We may update this policy periodically. We will notify you of significant changes by email or through our platform. Your continued use after changes constitutes acceptance."
+    }
+  ]
+}

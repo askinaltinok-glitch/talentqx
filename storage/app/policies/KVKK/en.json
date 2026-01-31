@@ -1,0 +1,43 @@
+{
+  "title": "Personal Data Protection Notice (KVKK)",
+  "version": "2026-01",
+  "last_updated": "2026-01-30",
+  "sections": [
+    {
+      "title": "1. Data Controller",
+      "content": "TalentQX processes your personal data as a data controller under the Turkish Personal Data Protection Law No. 6698 (\"KVKK\").\n\nData Controller: TalentQX Technology Inc.\nAddress: [Company Address]\nEmail: privacy@talentqx.com"
+    },
+    {
+      "title": "2. Personal Data Processed",
+      "content": "The following personal data is processed:\n\n• Identity Information: Name, surname\n• Contact Information: Email address, phone number\n• Company Information: Company name, position, employee count\n• Assessment Data: Competency assessment responses, analysis results\n• Technical Data: IP address, browser information, access logs"
+    },
+    {
+      "title": "3. Purposes of Processing",
+      "content": "Your personal data is processed for:\n\n• Providing and managing our services\n• Evaluating demo and contact requests\n• Conducting and analyzing competency assessments\n• Fulfilling our legal obligations\n• Improving service quality and statistical analysis\n• Security and fraud prevention activities"
+    },
+    {
+      "title": "4. Data Transfers",
+      "content": "Your personal data may be transferred to:\n\n• Public authorities within the scope of legal obligations\n• Our service providers (cloud services, analytics tools)\n• Our group companies\n\nwithin the conditions specified in Articles 8 and 9 of KVKK. For international transfers, safeguards required by KVKK are provided."
+    },
+    {
+      "title": "5. Legal Basis for Processing",
+      "content": "Your personal data is processed based on:\n\n• Your explicit consent (KVKK Art. 5/1)\n• Contract performance (KVKK Art. 5/2-c)\n• Legal obligations (KVKK Art. 5/2-d)\n• Legitimate interests (KVKK Art. 5/2-f)"
+    },
+    {
+      "title": "6. Data Retention",
+      "content": "Your personal data is retained for the duration required by the processing purpose and legal retention periods:\n\n• Contact data: 2 years from last communication\n• Assessment data: 3 years from assessment date\n• Legal obligation data: As required by applicable legislation"
+    },
+    {
+      "title": "7. Your Rights Under KVKK",
+      "content": "Under Article 11 of KVKK, you have the right to:\n\n• Learn whether your personal data is processed\n• Request information if processed\n• Learn the purpose of processing and whether data is used accordingly\n• Know third parties to whom data is transferred\n• Request rectification if data is incomplete or inaccurate\n• Request erasure or destruction\n• Request notification of rectification/erasure to third parties\n• Object to automated decision-making\n• Claim compensation for damages due to unlawful processing"
+    },
+    {
+      "title": "8. How to Exercise Your Rights",
+      "content": "To exercise your rights:\n\nEmail: privacy@talentqx.com\n\nPlease include identity verification information in your written request. Your request will be evaluated and concluded within 30 days."
+    },
+    {
+      "title": "9. Changes",
+      "content": "This notice may be updated due to legal changes or service modifications. The current version will always be published on our website."
+    }
+  ]
+}
