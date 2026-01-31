@@ -1,0 +1,64 @@
+{
+  "version": "1.0",
+  "rules": {
+    "strong_fit": { "min": 75, "max": 100 },
+    "potential_fit": { "min": 60, "max": 74 },
+    "weak_fit": { "min": 0, "max": 59 }
+  },
+  "templates": {
+    "strong_fit": {
+      "tr": {
+        "executive_summary": "Aday, {context_label} pozisyonu icin guclu bir uyum gostermektedir. Degerlendirme sonuclari, adayin bu roldeki temel gereksinimleri karsilama potansiyeline sahip oldugunu ortaya koymaktadir.",
+        "context_comparison_comment": "Yapilan karsilastirmada {high_context_label} en yuksek uyumu gosterirken, diger baglamlarda da olumlu sinyaller gozlemlenmistir.",
+        "radar_strengths": "Ozellikle {top_strengths} alanlarinda belirgin gucluluk tespit edilmistir. Bu yetkinlikler, pozisyonun temel gereksinimlerini karsilamaktadir.",
+        "radar_balance": "Genel yetkinlik profili dengeli bir dagilim gostermektedir.",
+        "risk_comment": "Degerlendirme surecinde onemli bir risk sinyali tespit edilmemistir.",
+        "closing_comment": "Bu rapor, ise alim surecinde karar destek amacli hazirlanmistir. Nihai karar, ek mulakat ve referans kontrolu ile desteklenmelidir."
+      },
+      "en": {
+        "executive_summary": "The candidate demonstrates strong alignment for the {context_label} position. Assessment results indicate the candidate has the potential to meet the core requirements of this role.",
+        "context_comparison_comment": "In the comparison, {high_context_label} shows the highest fit, with positive signals observed in other contexts as well.",
+        "radar_strengths": "Notable strength was identified particularly in {top_strengths} areas. These competencies meet the core requirements of the position.",
+        "radar_balance": "The overall competency profile shows a balanced distribution.",
+        "risk_comment": "No significant risk signals were detected during the assessment.",
+        "closing_comment": "This report is prepared for decision support in the hiring process. Final decisions should be supported by additional interviews and reference checks."
+      }
+    },
+    "potential_fit": {
+      "tr": {
+        "executive_summary": "Aday, {context_label} pozisyonu icin potansiyel gostermektedir. Bazi alanlarda gelisim firsatlari mevcut olup, uygun destek ve egitimle basarili olabilir.",
+        "context_comparison_comment": "{high_context_label} en uygun baglam olarak one cikarken, {low_context_label} icin ek degerlendirme onerilmektedir.",
+        "radar_strengths": "{top_strengths} alanlarinda olumlu gostergeler mevcuttur.",
+        "radar_balance": "Yetkinlik profilinde bazi dengesizlikler gozlemlenmistir. {weaker_dimensions} alanlarinda gelisim potansiyeli bulunmaktadir.",
+        "risk_comment": "Tespit edilen bazi noktalar, ikinci gorusme sirasinda daha detayli degerlendirilmelidir.",
+        "closing_comment": "Aday, uygun onboarding sureci ve mentorluk destegi ile basarili olma potansiyeline sahiptir. Ikinci gorusme onerilmektedir."
+      },
+      "en": {
+        "executive_summary": "The candidate shows potential for the {context_label} position. Development opportunities exist in some areas, and success is possible with appropriate support and training.",
+        "context_comparison_comment": "{high_context_label} stands out as the most suitable context, while additional evaluation is recommended for {low_context_label}.",
+        "radar_strengths": "Positive indicators are present in {top_strengths} areas.",
+        "radar_balance": "Some imbalances were observed in the competency profile. Development potential exists in {weaker_dimensions} areas.",
+        "risk_comment": "Some identified points should be evaluated in more detail during the second interview.",
+        "closing_comment": "The candidate has the potential to succeed with an appropriate onboarding process and mentoring support. A second interview is recommended."
+      }
+    },
+    "weak_fit": {
+      "tr": {
+        "executive_summary": "Mevcut degerlendirme sonuclarina gore, aday {context_label} pozisyonu icin beklenen profille sinirli uyum gostermektedir. Bu durum, adayin farkli bir rol veya baglam icin daha uygun olabilecegine isaret edebilir.",
+        "context_comparison_comment": "Incelenen baglamlar arasinda {high_context_label} nispeten daha olumlu sonuclar vermis olsa da, genel skor beklentilerin altinda kalmaktadir.",
+        "radar_strengths": "{top_strengths} alanlarinda bazi olumlu gostergeler gozlemlenmistir.",
+        "radar_balance": "Yetkinlik profilinde onemli dengesizlikler mevcuttur. Ozellikle {weaker_dimensions} alanlarinda belirgin gelisim ihtiyaci bulunmaktadir.",
+        "risk_comment": "Degerlendirme sirasinda dikkate alinmasi gereken bazi noktalar tespit edilmistir. Bu konularin detayli incelenmesi onerilmektedir.",
+        "closing_comment": "Bu rapor, adayin mevcut pozisyon icin uygunlugunu degerlendirmek amaciyla hazirlanmistir. Alternatif pozisyonlar veya gelisim programlari degerlendirilmelidir."
+      },
+      "en": {
+        "executive_summary": "Based on current assessment results, the candidate shows limited alignment with the expected profile for the {context_label} position. This may indicate that the candidate could be more suitable for a different role or context.",
+        "context_comparison_comment": "Among the examined contexts, {high_context_label} yielded relatively more positive results, although the overall score remains below expectations.",
+        "radar_strengths": "Some positive indicators were observed in {top_strengths} areas.",
+        "radar_balance": "Significant imbalances exist in the competency profile. Notable development needs are present, particularly in {weaker_dimensions} areas.",
+        "risk_comment": "Some points requiring attention were identified during the assessment. Detailed examination of these matters is recommended.",
+        "closing_comment": "This report is prepared to evaluate the candidate's suitability for the current position. Alternative positions or development programs should be considered."
+      }
+    }
+  }
+}
