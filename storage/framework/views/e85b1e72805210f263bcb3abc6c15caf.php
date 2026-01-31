@@ -575,13 +575,32 @@
 
     </div>
 
-    <div class="cover">
-        <?php if($branding['logo_url']): ?>
-            <img src="<?php echo e($branding['logo_url']); ?>" alt="Logo" class="cover-logo">
-        <?php else: ?>
-            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;"><?php echo e($branding['company_name'] ?? 'TalentQX'); ?></div>
-        <?php endif; ?>
+    
+    <?php if($branding['white_label'] ?? false): ?>
+        
+        <div style="display: flex; justify-content: center; align-items: center; padding-bottom: 16px; border-bottom: 3px solid var(--primary); margin-bottom: 20px;">
+            <?php if($branding['customer_logo_url'] ?? null): ?>
+                <img src="<?php echo e($branding['customer_logo_url']); ?>" alt="<?php echo e($branding['customer_company_name'] ?? ''); ?>" style="max-height: 40px; max-width: 180px;">
+            <?php elseif($branding['customer_company_name'] ?? null): ?>
+                <span class="header-brand-text" style="font-size: 18pt;"><?php echo e($branding['customer_company_name']); ?></span>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
+        
+        <div style="display: flex; justify-content: <?php echo e(($branding['customer_logo_url'] ?? null) || ($branding['customer_company_name'] ?? null) ? 'space-between' : 'center'); ?>; align-items: center; padding-bottom: 16px; border-bottom: 3px solid var(--primary); margin-bottom: 20px;">
+            <?php if($branding['customer_logo_url'] ?? null): ?>
+                
+                <img src="<?php echo e($branding['customer_logo_url']); ?>" alt="<?php echo e($branding['customer_company_name'] ?? ''); ?>" style="max-height: 32px; max-width: 120px;">
+            <?php elseif($branding['customer_company_name'] ?? null): ?>
+                
+                <span style="font-size: 12pt; font-weight: 600; color: var(--text-body);"><?php echo e($branding['customer_company_name']); ?></span>
+            <?php endif; ?>
+            
+            <span class="header-brand-text" style="font-size: <?php echo e(($branding['customer_logo_url'] ?? null) || ($branding['customer_company_name'] ?? null) ? '16pt' : '20pt'); ?>;">TalentQX</span>
+        </div>
+    <?php endif; ?>
 
+    <div class="cover">
         <h1 class="cover-title"><?php echo e($locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report'); ?></h1>
         <p class="cover-subtitle"><?php echo e($locale === 'tr' ? 'Yapay Zeka Destekli Mülakat Analizi' : 'AI-Powered Interview Analysis'); ?></p>
 
@@ -637,7 +656,18 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential"><?php echo e($locale === 'tr' ? 'Gizli' : 'Confidential'); ?></span>
-            <span><?php echo e($branding['company_name'] ?? 'TalentQX'); ?></span>
+            <?php if($branding['white_label'] ?? false): ?>
+                
+                <?php if($branding['customer_company_name'] ?? null): ?>
+                    <span><?php echo e($branding['customer_company_name']); ?></span>
+                <?php endif; ?>
+            <?php else: ?>
+                
+                <span>TalentQX</span>
+                <?php if($branding['customer_company_name'] ?? null): ?>
+                    <span style="color: var(--text-light);">| <?php echo e($branding['customer_company_name']); ?></span>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
         <span><?php echo e($locale === 'tr' ? 'Sayfa' : 'Page'); ?> 1 / 4</span>
     </div>
@@ -652,10 +682,16 @@
 
     <div class="header">
         <div class="header-brand">
-            <?php if($branding['logo_url']): ?>
-                <img src="<?php echo e($branding['logo_url']); ?>" alt="Logo">
+            
+            <?php if($branding['white_label'] ?? false): ?>
+                <?php if($branding['customer_logo_url'] ?? null): ?>
+                    <img src="<?php echo e($branding['customer_logo_url']); ?>" alt="<?php echo e($branding['customer_company_name'] ?? ''); ?>" style="max-height: 28px; max-width: 120px;">
+                <?php elseif($branding['customer_company_name'] ?? null): ?>
+                    <span class="header-brand-text"><?php echo e($branding['customer_company_name']); ?></span>
+                <?php endif; ?>
             <?php else: ?>
-                <span class="header-brand-text"><?php echo e($branding['company_name'] ?? 'TalentQX'); ?></span>
+                <span class="header-brand-text">TalentQX</span>
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             <?php endif; ?>
         </div>
         <div class="header-meta">
@@ -789,7 +825,12 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential"><?php echo e($locale === 'tr' ? 'Gizli' : 'Confidential'); ?></span>
-            <span><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
+            <?php if(!($branding['white_label'] ?? false)): ?>
+                <span>TalentQX</span>
+            <?php elseif($branding['customer_company_name'] ?? null): ?>
+                <span><?php echo e($branding['customer_company_name']); ?></span>
+            <?php endif; ?>
+            <span style="color: var(--text-light);"><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
         </div>
         <span><?php echo e($locale === 'tr' ? 'Sayfa' : 'Page'); ?> 2 / 4</span>
     </div>
@@ -804,10 +845,16 @@
 
     <div class="header">
         <div class="header-brand">
-            <?php if($branding['logo_url']): ?>
-                <img src="<?php echo e($branding['logo_url']); ?>" alt="Logo">
+            
+            <?php if($branding['white_label'] ?? false): ?>
+                <?php if($branding['customer_logo_url'] ?? null): ?>
+                    <img src="<?php echo e($branding['customer_logo_url']); ?>" alt="<?php echo e($branding['customer_company_name'] ?? ''); ?>" style="max-height: 28px; max-width: 120px;">
+                <?php elseif($branding['customer_company_name'] ?? null): ?>
+                    <span class="header-brand-text"><?php echo e($branding['customer_company_name']); ?></span>
+                <?php endif; ?>
             <?php else: ?>
-                <span class="header-brand-text"><?php echo e($branding['company_name'] ?? 'TalentQX'); ?></span>
+                <span class="header-brand-text">TalentQX</span>
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             <?php endif; ?>
         </div>
         <div class="header-meta">
@@ -972,7 +1019,12 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential"><?php echo e($locale === 'tr' ? 'Gizli' : 'Confidential'); ?></span>
-            <span><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
+            <?php if(!($branding['white_label'] ?? false)): ?>
+                <span>TalentQX</span>
+            <?php elseif($branding['customer_company_name'] ?? null): ?>
+                <span><?php echo e($branding['customer_company_name']); ?></span>
+            <?php endif; ?>
+            <span style="color: var(--text-light);"><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
         </div>
         <span><?php echo e($locale === 'tr' ? 'Sayfa' : 'Page'); ?> 3 / 4</span>
     </div>
@@ -987,10 +1039,16 @@
 
     <div class="header">
         <div class="header-brand">
-            <?php if($branding['logo_url']): ?>
-                <img src="<?php echo e($branding['logo_url']); ?>" alt="Logo">
+            
+            <?php if($branding['white_label'] ?? false): ?>
+                <?php if($branding['customer_logo_url'] ?? null): ?>
+                    <img src="<?php echo e($branding['customer_logo_url']); ?>" alt="<?php echo e($branding['customer_company_name'] ?? ''); ?>" style="max-height: 28px; max-width: 120px;">
+                <?php elseif($branding['customer_company_name'] ?? null): ?>
+                    <span class="header-brand-text"><?php echo e($branding['customer_company_name']); ?></span>
+                <?php endif; ?>
             <?php else: ?>
-                <span class="header-brand-text"><?php echo e($branding['company_name'] ?? 'TalentQX'); ?></span>
+                <span class="header-brand-text">TalentQX</span>
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             <?php endif; ?>
         </div>
         <div class="header-meta">
@@ -1092,18 +1150,27 @@
     <div style="margin-top: 24px; text-align: center; font-size: 9pt; color: var(--text-muted);">
         <p><strong><?php echo e($locale === 'tr' ? 'Rapor Bilgileri' : 'Report Information'); ?></strong></p>
         <p><?php echo e($locale === 'tr' ? 'Oluşturulma' : 'Generated'); ?>: <?php echo e($generatedAt->format('d.m.Y H:i:s')); ?> | ID: <?php echo e($reportId); ?></p>
-        <p style="margin-top: 8px;">
-            <?php if($branding['company_name']): ?>
-                <?php echo e($branding['company_name']); ?> |
-            <?php endif; ?>
-            Powered by TalentQX
+
+        
+        <?php if($branding['customer_company_name'] ?? null): ?>
+            <p style="margin-top: 12px;">
+                <?php echo e($locale === 'tr' ? 'Hazırlanan:' : 'Prepared for'); ?> <strong><?php echo e($branding['customer_company_name']); ?></strong>
+            </p>
+        <?php endif; ?>
+        <p style="margin-top: 4px; font-size: 8pt; color: var(--text-light);">
+            <?php echo e($locale === 'tr' ? 'Değerlendirme teknolojisi:' : 'Assessment technology by'); ?> <strong>TalentQX</strong>
         </p>
     </div>
 
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential"><?php echo e($locale === 'tr' ? 'Gizli' : 'Confidential'); ?></span>
-            <span><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
+            <?php if(!($branding['white_label'] ?? false)): ?>
+                <span>TalentQX</span>
+            <?php elseif($branding['customer_company_name'] ?? null): ?>
+                <span><?php echo e($branding['customer_company_name']); ?></span>
+            <?php endif; ?>
+            <span style="color: var(--text-light);"><?php echo e($generatedAt->format('d.m.Y H:i')); ?></span>
         </div>
         <span><?php echo e($locale === 'tr' ? 'Sayfa' : 'Page'); ?> 4 / 4</span>
     </div>

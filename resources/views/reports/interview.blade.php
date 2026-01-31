@@ -574,38 +574,32 @@
         {{ $locale === 'tr' ? 'Gizli - Sadece Yetkili Personel İçin' : 'Confidential - Authorized Personnel Only' }}
     </div>
 
+    {{-- CO-BRAND HEADER (v1.0 Standard) --}}
+    @if($branding['white_label'] ?? false)
+        {{-- WHITE-LABEL MODE: Customer only --}}
+        <div style="display: flex; justify-content: center; align-items: center; padding-bottom: 16px; border-bottom: 3px solid var(--primary); margin-bottom: 20px;">
+            @if($branding['customer_logo_url'] ?? null)
+                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 40px; max-width: 180px;">
+            @elseif($branding['customer_company_name'] ?? null)
+                <span class="header-brand-text" style="font-size: 18pt;">{{ $branding['customer_company_name'] }}</span>
+            @endif
+        </div>
+    @else
+        {{-- CO-BRAND MODE: Customer left (32px), TalentQX right (36-40px) --}}
+        <div style="display: flex; justify-content: {{ ($branding['customer_logo_url'] ?? null) || ($branding['customer_company_name'] ?? null) ? 'space-between' : 'center' }}; align-items: center; padding-bottom: 16px; border-bottom: 3px solid var(--primary); margin-bottom: 20px;">
+            @if($branding['customer_logo_url'] ?? null)
+                {{-- Customer logo: LEFT, max 32px --}}
+                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 32px; max-width: 120px;">
+            @elseif($branding['customer_company_name'] ?? null)
+                {{-- Customer name if no logo --}}
+                <span style="font-size: 12pt; font-weight: 600; color: var(--text-body);">{{ $branding['customer_company_name'] }}</span>
+            @endif
+            {{-- TalentQX: RIGHT (or CENTER if no customer), 36-40px - ALWAYS DOMINANT --}}
+            <span class="header-brand-text" style="font-size: {{ ($branding['customer_logo_url'] ?? null) || ($branding['customer_company_name'] ?? null) ? '16pt' : '20pt' }};">TalentQX</span>
+        </div>
+    @endif
+
     <div class="cover">
-        @if($branding['white_label'] ?? false)
-            {{-- WHITE-LABEL MODE: Customer branding only --}}
-            @if($branding['customer_logo_url'] ?? null)
-                <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 60px; max-width: 200px; margin-bottom: 40px;">
-            @elseif($branding['customer_company_name'] ?? null)
-                <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;">{{ $branding['customer_company_name'] }}</div>
-            @endif
-        @else
-            {{-- STANDARD MODE: TalentQX branding --}}
-            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 20px;">TalentQX</div>
-
-            {{-- Customer branding (if provided) --}}
-            @if($branding['customer_logo_url'] ?? null)
-                <div style="margin-bottom: 30px;">
-                    <p style="font-size: 10pt; color: var(--text-muted); margin-bottom: 8px;">
-                        {{ $locale === 'tr' ? 'Hazırlayan' : 'Prepared for' }}
-                    </p>
-                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? 'Customer' }}" style="max-height: 40px; max-width: 150px;">
-                    @if($branding['customer_company_name'] ?? null)
-                        <p style="font-size: 11pt; font-weight: 600; color: var(--text-dark); margin-top: 6px;">
-                            {{ $branding['customer_company_name'] }}
-                        </p>
-                    @endif
-                </div>
-            @elseif($branding['customer_company_name'] ?? null)
-                <p style="font-size: 11pt; color: var(--text-muted); margin-bottom: 30px;">
-                    {{ $locale === 'tr' ? 'Hazırlayan:' : 'Prepared for:' }} <strong>{{ $branding['customer_company_name'] }}</strong>
-                </p>
-            @endif
-        @endif
-
         <h1 class="cover-title">{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }}</h1>
         <p class="cover-subtitle">{{ $locale === 'tr' ? 'Yapay Zeka Destekli Mülakat Analizi' : 'AI-Powered Interview Analysis' }}</p>
 
@@ -683,23 +677,16 @@
 
     <div class="header">
         <div class="header-brand">
+            {{-- CO-BRAND v1.0: Inner pages show ONLY TalentQX (no customer logo) --}}
             @if($branding['white_label'] ?? false)
-                {{-- WHITE-LABEL: Customer only --}}
                 @if($branding['customer_logo_url'] ?? null)
                     <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
                 @elseif($branding['customer_company_name'] ?? null)
                     <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
                 @endif
             @else
-                {{-- STANDARD: TalentQX + Customer --}}
                 <span class="header-brand-text">TalentQX</span>
-                @if($branding['customer_logo_url'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-                @elseif($branding['customer_company_name'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
-                @endif
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             @endif
         </div>
         <div class="header-meta">
@@ -849,23 +836,16 @@
 
     <div class="header">
         <div class="header-brand">
+            {{-- CO-BRAND v1.0: Inner pages show ONLY TalentQX (no customer logo) --}}
             @if($branding['white_label'] ?? false)
-                {{-- WHITE-LABEL: Customer only --}}
                 @if($branding['customer_logo_url'] ?? null)
                     <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
                 @elseif($branding['customer_company_name'] ?? null)
                     <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
                 @endif
             @else
-                {{-- STANDARD: TalentQX + Customer --}}
                 <span class="header-brand-text">TalentQX</span>
-                @if($branding['customer_logo_url'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-                @elseif($branding['customer_company_name'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
-                @endif
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             @endif
         </div>
         <div class="header-meta">
@@ -1043,23 +1023,16 @@
 
     <div class="header">
         <div class="header-brand">
+            {{-- CO-BRAND v1.0: Inner pages show ONLY TalentQX (no customer logo) --}}
             @if($branding['white_label'] ?? false)
-                {{-- WHITE-LABEL: Customer only --}}
                 @if($branding['customer_logo_url'] ?? null)
                     <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 120px;">
                 @elseif($branding['customer_company_name'] ?? null)
                     <span class="header-brand-text">{{ $branding['customer_company_name'] }}</span>
                 @endif
             @else
-                {{-- STANDARD: TalentQX + Customer --}}
                 <span class="header-brand-text">TalentQX</span>
-                @if($branding['customer_logo_url'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <img src="{{ $branding['customer_logo_url'] }}" alt="{{ $branding['customer_company_name'] ?? '' }}" style="max-height: 28px; max-width: 100px;">
-                @elseif($branding['customer_company_name'] ?? null)
-                    <span style="color: var(--text-muted); margin: 0 8px;">|</span>
-                    <span style="font-size: 10pt; color: var(--text-muted);">{{ $branding['customer_company_name'] }}</span>
-                @endif
+                <span style="font-size: 9pt; color: var(--text-muted); margin-left: 8px;">Assessment Report</span>
             @endif
         </div>
         <div class="header-meta">
@@ -1156,19 +1129,15 @@
     <div style="margin-top: 24px; text-align: center; font-size: 9pt; color: var(--text-muted);">
         <p><strong>{{ $locale === 'tr' ? 'Rapor Bilgileri' : 'Report Information' }}</strong></p>
         <p>{{ $locale === 'tr' ? 'Oluşturulma' : 'Generated' }}: {{ $generatedAt->format('d.m.Y H:i:s') }} | ID: {{ $reportId }}</p>
-        <p style="margin-top: 8px;">
-            @if($branding['customer_company_name'] ?? null)
-                {{ $branding['customer_company_name'] }}
-                @if(!($branding['white_label'] ?? false))
-                    |
-                @endif
-            @endif
-            {{-- "Powered by TalentQX" disclaimer - ALWAYS visible per policy v2.0 --}}
-            @if($branding['white_label'] ?? false)
-                <span style="font-size: 8pt; color: var(--text-light);">{{ $locale === 'tr' ? 'Destekleyen:' : 'Powered by' }} TalentQX</span>
-            @else
-                <strong>TalentQX</strong>
-            @endif
+
+        {{-- CO-BRAND v1.0: Legal attribution format --}}
+        @if($branding['customer_company_name'] ?? null)
+            <p style="margin-top: 12px;">
+                {{ $locale === 'tr' ? 'Hazırlanan:' : 'Prepared for' }} <strong>{{ $branding['customer_company_name'] }}</strong>
+            </p>
+        @endif
+        <p style="margin-top: 4px; font-size: 8pt; color: var(--text-light);">
+            {{ $locale === 'tr' ? 'Değerlendirme teknolojisi:' : 'Assessment technology by' }} <strong>TalentQX</strong>
         </p>
     </div>
 
