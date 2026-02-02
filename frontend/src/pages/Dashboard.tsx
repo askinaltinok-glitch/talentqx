@@ -28,31 +28,35 @@ export default function Dashboard() {
   const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check if user is platform admin (memoized to avoid stale closure)
+  const isPlatformAdmin = user?.is_platform_admin === true;
+
   useEffect(() => {
-    loadStats();
-  }, []);
+    const loadStats = async () => {
+      try {
+        // Load dashboard stats (available for all users)
+        const dashboardData = await api.get<DashboardStats>('/dashboard/stats');
+        setStats(dashboardData);
 
-  const loadStats = async () => {
-    try {
-      // Load dashboard stats (available for all users)
-      const dashboardData = await api.get<DashboardStats>('/dashboard/stats');
-      setStats(dashboardData);
-
-      // Load follow-up stats only for platform admins
-      if (user?.is_platform_admin) {
-        try {
-          const followUpData = await api.get<FollowUpStats>('/leads/follow-up-stats');
-          setFollowUpStats(followUpData);
-        } catch {
-          // Silently fail - follow-up widget just won't show
+        // Load follow-up stats ONLY for platform admins
+        // Company users should NOT call this endpoint at all
+        if (isPlatformAdmin) {
+          try {
+            const followUpData = await api.get<FollowUpStats>('/leads/follow-up-stats');
+            setFollowUpStats(followUpData);
+          } catch {
+            // Silently fail - follow-up widget just won't show
+          }
         }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    loadStats();
+  }, [isPlatformAdmin]);
 
   const getFollowUpBadge = (nextFollowUpAt: string | undefined) => {
     if (!nextFollowUpAt) return null;
@@ -164,7 +168,7 @@ export default function Dashboard() {
       </div>
 
       {/* Today's Follow-ups Widget - Platform Admin Only */}
-      {user?.is_platform_admin && followUpStats && followUpStats.total_due > 0 && (
+      {isPlatformAdmin && followUpStats && followUpStats.total_due > 0 && (
         <div className="card p-6 border-l-4 border-l-yellow-500">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
