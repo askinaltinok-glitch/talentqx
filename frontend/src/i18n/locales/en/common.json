@@ -329,6 +329,13 @@
       "GLOBAL": "Global Privacy Standards"
     }
   },
+  "errors": {
+    "unauthorized": "Unauthorized Access",
+    "unauthorizedDescription": "You do not have permission to access this page. This feature is only available to platform administrators.",
+    "attemptedPath": "Attempted path",
+    "backToDashboard": "Back to Dashboard",
+    "goBack": "Go Back"
+  },
   "interview": {
     "title": "Online Interview",
     "welcomeTitle": "Welcome to the Interview",

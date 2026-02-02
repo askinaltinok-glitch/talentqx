@@ -29,9 +29,12 @@ export const ROUTES = {
   ASSESSMENTS: '/app/assessments',
   ASSESSMENTS_COMPARE: '/app/assessments/compare',
 
-  // Sales Console routes
+  // Sales Console routes (Platform Admin Only)
   LEADS: '/app/leads',
   LEAD_DETAIL: '/app/leads/:id',
+
+  // Error pages
+  UNAUTHORIZED: '/app/unauthorized',
 } as const;
 
 // ============================================

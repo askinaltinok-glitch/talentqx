@@ -78,6 +78,7 @@ class AuthController extends Controller
                     'last_name' => $user->last_name,
                     'full_name' => $user->full_name,
                     'role' => $user->role?->name,
+                    'is_platform_admin' => $user->isPlatformAdmin(),
                     'must_change_password' => $user->mustChangePassword(),
                     'company' => $user->company ? [
                         'id' => $user->company->id,
@@ -116,6 +117,7 @@ class AuthController extends Controller
                 'avatar_url' => $user->avatar_url,
                 'role' => $user->role?->name,
                 'permissions' => $user->role?->permissions ?? [],
+                'is_platform_admin' => $user->isPlatformAdmin(),
                 'must_change_password' => $user->mustChangePassword(),
                 'company' => $user->company ? [
                     'id' => $user->company->id,

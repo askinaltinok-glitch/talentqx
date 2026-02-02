@@ -252,27 +252,43 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
-    // SALES CONSOLE (MINI CRM)
+    // PLATFORM ADMIN ONLY ROUTES
+    // These routes require is_platform_admin = true
     // ===========================================
 
-    Route::prefix('leads')->group(function () {
-        Route::get('/', [LeadController::class, 'index']);
-        Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
-        Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
-        Route::post('/', [LeadController::class, 'store']);
-        Route::get('/{lead}', [LeadController::class, 'show']);
-        Route::put('/{lead}', [LeadController::class, 'update']);
-        Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
-        Route::delete('/{lead}', [LeadController::class, 'destroy']);
+    Route::middleware('platform.admin')->group(function () {
 
-        // Activities
-        Route::post('/{lead}/activities', [LeadController::class, 'addActivity']);
-        Route::put('/{lead}/activities/{activity}', [LeadController::class, 'updateActivity']);
+        // ===========================================
+        // SALES CONSOLE (MINI CRM) - Platform-level sales
+        // ===========================================
+        Route::prefix('leads')->group(function () {
+            Route::get('/', [LeadController::class, 'index']);
+            Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
+            Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
+            Route::post('/', [LeadController::class, 'store']);
+            Route::get('/{lead}', [LeadController::class, 'show']);
+            Route::put('/{lead}', [LeadController::class, 'update']);
+            Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
+            Route::delete('/{lead}', [LeadController::class, 'destroy']);
 
-        // Checklist
-        Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
-        Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
-    });
+            // Activities
+            Route::post('/{lead}/activities', [LeadController::class, 'addActivity']);
+            Route::put('/{lead}/activities/{activity}', [LeadController::class, 'updateActivity']);
+
+            // Checklist
+            Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
+            Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
+        });
+
+        // ===========================================
+        // PLATFORM ANALYTICS - AI costs, usage stats
+        // ===========================================
+        Route::prefix('platform')->group(function () {
+            Route::get('/ai-costs', [AssessmentController::class, 'costStats']);
+            Route::get('/usage-stats', [AssessmentController::class, 'dashboardStats']);
+        });
+
+    }); // End of platform.admin middleware group
 
         }); // End of force.password.change middleware group
     }); // End of auth:sanctum middleware group

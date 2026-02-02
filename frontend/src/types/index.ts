@@ -9,6 +9,7 @@ export interface User {
   avatar_url?: string;
   role: string;
   permissions: string[];
+  is_platform_admin: boolean;
   company: Company | null;
 }
 

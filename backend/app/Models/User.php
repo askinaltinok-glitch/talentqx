@@ -23,6 +23,7 @@ class User extends Authenticatable
         'phone',
         'avatar_url',
         'is_active',
+        'is_platform_admin',
         'must_change_password',
         'password_changed_at',
         'last_login_at',
@@ -40,9 +41,19 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password_changed_at' => 'datetime',
             'is_active' => 'boolean',
+            'is_platform_admin' => 'boolean',
             'must_change_password' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if user is a platform administrator.
+     * Platform admins can access system-wide features like AI costs, billing, analytics.
+     */
+    public function isPlatformAdmin(): bool
+    {
+        return $this->is_platform_admin === true;
     }
 
     /**

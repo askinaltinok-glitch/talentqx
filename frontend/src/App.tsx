@@ -20,12 +20,14 @@ import PublicApply from './pages/PublicApply';
 // Sales Console Pages
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
-// NotFound Pages
+// NotFound & Unauthorized Pages
 import { PublicNotFound, AppNotFound } from './pages/NotFound';
+import Unauthorized from './pages/Unauthorized';
 
 // Components
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
+import RequirePlatformAdmin from './components/RequirePlatformAdmin';
 import LanguageRedirect from './components/LanguageRedirect';
 
 // i18n
@@ -76,9 +78,25 @@ function App() {
               <Route path="employees" element={<Employees />} />
               <Route path="employees/:id" element={<EmployeeDetail />} />
               <Route path="assessments" element={<AssessmentResults />} />
-              {/* Sales Console Routes */}
-              <Route path="leads" element={<Leads />} />
-              <Route path="leads/:id" element={<LeadDetail />} />
+              {/* Sales Console Routes - Platform Admin Only */}
+              <Route
+                path="leads"
+                element={
+                  <RequirePlatformAdmin>
+                    <Leads />
+                  </RequirePlatformAdmin>
+                }
+              />
+              <Route
+                path="leads/:id"
+                element={
+                  <RequirePlatformAdmin>
+                    <LeadDetail />
+                  </RequirePlatformAdmin>
+                }
+              />
+              {/* 403 Unauthorized page */}
+              <Route path="unauthorized" element={<Unauthorized />} />
               {/* App 404 - catches unmatched /app/* routes */}
               <Route path="*" element={<AppNotFound />} />
             </Route>

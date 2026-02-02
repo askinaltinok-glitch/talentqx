@@ -329,6 +329,13 @@
       "GLOBAL": "Global Gizlilik Standartları"
     }
   },
+  "errors": {
+    "unauthorized": "Yetkisiz Erişim",
+    "unauthorizedDescription": "Bu sayfaya erişim yetkiniz bulunmuyor. Bu özellik sadece platform yöneticileri içindir.",
+    "attemptedPath": "Denenen yol",
+    "backToDashboard": "Dashboard'a Dön",
+    "goBack": "Geri Dön"
+  },
   "interview": {
     "title": "Online Mülakat",
     "welcomeTitle": "Mülakata Hoş Geldiniz",
