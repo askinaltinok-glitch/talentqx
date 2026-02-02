@@ -23,6 +23,8 @@ import LeadDetail from './pages/LeadDetail';
 // NotFound & Unauthorized Pages
 import { PublicNotFound, AppNotFound } from './pages/NotFound';
 import Unauthorized from './pages/Unauthorized';
+// Public Privacy Page
+import PublicPrivacy from './pages/PublicPrivacy';
 
 // Components
 import Layout from './components/Layout';
@@ -52,12 +54,16 @@ function App() {
         {/* Public Apply Route (no auth required) - QR Code Landing */}
         <Route path="/apply/:companySlug/:branchSlug/:roleCode" element={<PublicApply />} />
 
+        {/* Public Privacy/KVKK Route (no auth required) */}
+        <Route path="/privacy" element={<PublicPrivacy />} />
+
         {/* Language-prefixed routes */}
         {SUPPORTED_LANGUAGES.map((lang) => (
           <Route key={lang} path={`/${lang}`}>
             {/* Public routes */}
             <Route index element={<LandingPage />} />
             <Route path="login" element={<Login />} />
+            <Route path="privacy" element={<PublicPrivacy />} />
 
             {/* Protected Routes - HR Panel */}
             {/* CustomerRouteGuard enforces default-deny for non-platform users */}

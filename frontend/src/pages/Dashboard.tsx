@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 import type { DashboardStats, FollowUpStats } from '../types';
 import { LEAD_STATUS_COLORS } from '../types';
 import { leadDetailPath, localizedPath } from '../routes';
@@ -22,6 +23,7 @@ import clsx from 'clsx';
 export default function Dashboard() {
   const { t } = useTranslation('common');
   const { t: tSales } = useTranslation('sales');
+  const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [followUpStats, setFollowUpStats] = useState<FollowUpStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,12 +34,19 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const [dashboardData, followUpData] = await Promise.all([
-        api.get<DashboardStats>('/dashboard/stats'),
-        api.get<FollowUpStats>('/leads/follow-up-stats'),
-      ]);
+      // Load dashboard stats (available for all users)
+      const dashboardData = await api.get<DashboardStats>('/dashboard/stats');
       setStats(dashboardData);
-      setFollowUpStats(followUpData);
+
+      // Load follow-up stats only for platform admins
+      if (user?.is_platform_admin) {
+        try {
+          const followUpData = await api.get<FollowUpStats>('/leads/follow-up-stats');
+          setFollowUpStats(followUpData);
+        } catch {
+          // Silently fail - follow-up widget just won't show
+        }
+      }
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
@@ -154,8 +163,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Today's Follow-ups Widget */}
-      {followUpStats && followUpStats.total_due > 0 && (
+      {/* Today's Follow-ups Widget - Platform Admin Only */}
+      {user?.is_platform_admin && followUpStats && followUpStats.total_due > 0 && (
         <div className="card p-6 border-l-4 border-l-yellow-500">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
