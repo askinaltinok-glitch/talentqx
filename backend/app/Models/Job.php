@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,16 +11,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Job extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, BelongsToTenant;
 
     protected $table = 'job_postings';
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'template_id',
         'created_by',
         'title',
         'slug',
+        'role_code',
         'description',
         'location',
         'employment_type',
@@ -32,6 +35,8 @@ class Job extends Model
         'status',
         'published_at',
         'closes_at',
+        'qr_file_path',
+        'apply_url',
     ];
 
     protected $casts = [
@@ -53,6 +58,11 @@ class Job extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function template(): BelongsTo

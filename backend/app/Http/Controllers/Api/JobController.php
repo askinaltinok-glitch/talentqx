@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Job;
 use App\Models\PositionTemplate;
 use App\Services\Interview\QuestionGenerator;
+use App\Services\QRCode\QRCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,7 +14,8 @@ use Illuminate\Support\Str;
 class JobController extends Controller
 {
     public function __construct(
-        private QuestionGenerator $questionGenerator
+        private QuestionGenerator $questionGenerator,
+        private QRCodeService $qrCodeService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -69,6 +71,8 @@ class JobController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'template_id' => 'nullable|uuid|exists:position_templates,id',
+            'branch_id' => 'nullable|uuid|exists:branches,id',
+            'role_code' => 'nullable|string|max:20',
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
             'employment_type' => 'nullable|string|in:full_time,part_time,contract',
@@ -90,10 +94,12 @@ class JobController extends Controller
 
         $job = Job::create([
             'company_id' => $request->user()->company_id,
+            'branch_id' => $validated['branch_id'] ?? null,
             'created_by' => $request->user()->id,
             'template_id' => $validated['template_id'] ?? null,
             'title' => $validated['title'],
             'slug' => $slug,
+            'role_code' => isset($validated['role_code']) ? strtoupper($validated['role_code']) : null,
             'description' => $validated['description'] ?? null,
             'location' => $validated['location'] ?? null,
             'employment_type' => $validated['employment_type'] ?? 'full_time',
@@ -110,7 +116,9 @@ class JobController extends Controller
                 'id' => $job->id,
                 'title' => $job->title,
                 'slug' => $job->slug,
+                'role_code' => $job->role_code,
                 'status' => $job->status,
+                'apply_url' => $job->apply_url,
                 'created_at' => $job->created_at,
             ],
         ], 201);
@@ -118,7 +126,7 @@ class JobController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $job = Job::with(['template', 'questions', 'creator'])
+        $job = Job::with(['template', 'questions', 'creator', 'branch'])
             ->where('company_id', $request->user()->company_id)
             ->findOrFail($id);
 
@@ -128,6 +136,7 @@ class JobController extends Controller
                 'id' => $job->id,
                 'title' => $job->title,
                 'slug' => $job->slug,
+                'role_code' => $job->role_code,
                 'description' => $job->description,
                 'location' => $job->location,
                 'employment_type' => $job->employment_type,
@@ -137,6 +146,11 @@ class JobController extends Controller
                     'id' => $job->template->id,
                     'name' => $job->template->name,
                     'slug' => $job->template->slug,
+                ] : null,
+                'branch' => $job->branch ? [
+                    'id' => $job->branch->id,
+                    'name' => $job->branch->name,
+                    'slug' => $job->branch->slug,
                 ] : null,
                 'competencies' => $job->getEffectiveCompetencies(),
                 'red_flags' => $job->getEffectiveRedFlags(),
@@ -151,6 +165,8 @@ class JobController extends Controller
                     'competency_code' => $q->competency_code,
                     'time_limit_seconds' => $q->time_limit_seconds,
                 ]),
+                'apply_url' => $job->apply_url,
+                'qr_code_url' => $job->qr_file_path ? $this->qrCodeService->getPublicUrl($job) : null,
                 'published_at' => $job->published_at,
                 'closes_at' => $job->closes_at,
                 'created_at' => $job->created_at,
@@ -285,6 +301,80 @@ class JobController extends Controller
                 'time_limit_seconds' => $q->time_limit_seconds,
                 'is_required' => $q->is_required,
             ]),
+        ]);
+    }
+
+    /**
+     * Generate or regenerate QR code for a job post.
+     */
+    public function generateQRCode(Request $request, string $id): JsonResponse
+    {
+        $job = Job::with(['company', 'branch'])
+            ->where('company_id', $request->user()->company_id)
+            ->findOrFail($id);
+
+        if (!$job->branch_id || !$job->role_code) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'MISSING_REQUIREMENTS',
+                    'message' => 'QR kod üretmek için şube ve rol kodu gereklidir.',
+                ],
+            ], 422);
+        }
+
+        $path = $this->qrCodeService->generateForJob($job);
+
+        if (!$path) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'QR_GENERATION_FAILED',
+                    'message' => 'QR kod üretimi başarısız oldu.',
+                ],
+            ], 500);
+        }
+
+        $job->refresh();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'apply_url' => $job->apply_url,
+                'qr_code_url' => $this->qrCodeService->getPublicUrl($job),
+                'qr_file_path' => $job->qr_file_path,
+            ],
+        ]);
+    }
+
+    /**
+     * Get QR code as base64 for preview.
+     */
+    public function previewQRCode(Request $request, string $id): JsonResponse
+    {
+        $job = Job::with(['company', 'branch'])
+            ->where('company_id', $request->user()->company_id)
+            ->findOrFail($id);
+
+        if (!$job->branch_id || !$job->role_code) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'MISSING_REQUIREMENTS',
+                    'message' => 'QR kod önizleme için şube ve rol kodu gereklidir.',
+                ],
+            ], 422);
+        }
+
+        $applyUrl = $this->qrCodeService->buildApplyUrl($job);
+        $base64 = $this->qrCodeService->generateBase64($applyUrl, 300);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'apply_url' => $applyUrl,
+                'qr_base64' => $base64,
+            ],
         ]);
     }
 }

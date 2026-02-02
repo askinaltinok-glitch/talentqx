@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\ApplyController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
@@ -31,6 +33,13 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
     });
+
+    // Password management (public)
+    Route::post('/forgot-password', [PasswordController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1'); // 5 requests per minute
+    Route::post('/verify-reset-token', [PasswordController::class, 'verifyResetToken']);
+    Route::post('/reset-password', [PasswordController::class, 'resetPassword'])
+        ->middleware('throttle:10,1'); // 10 requests per minute
 
     // Public interview routes (token-based)
     Route::prefix('interviews/public')->group(function () {
@@ -67,6 +76,17 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
+    // PUBLIC APPLY ROUTES (QR Code Landing)
+    // ===========================================
+    Route::prefix('apply')->group(function () {
+        // GET job info for apply page
+        Route::get('/{companySlug}/{branchSlug}/{roleCode}', [ApplyController::class, 'show']);
+        // POST submit application
+        Route::post('/{companySlug}/{branchSlug}/{roleCode}', [ApplyController::class, 'submit'])
+            ->middleware('throttle:10,1'); // Rate limit: 10 requests per minute
+    });
+
+    // ===========================================
     // INTERVIEW SESSION ROUTES (Public, token-less)
     // ===========================================
     Route::prefix('interview-sessions')->group(function () {
@@ -94,6 +114,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
     });
 
+    // Password change (authenticated)
+    Route::post('/change-password', [PasswordController::class, 'changePassword']);
+
     // Position Templates
     Route::prefix('positions/templates')->group(function () {
         Route::get('/', [PositionTemplateController::class, 'index']);
@@ -110,6 +133,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/{id}/publish', [JobController::class, 'publish']);
         Route::post('/{id}/generate-questions', [JobController::class, 'generateQuestions']);
         Route::get('/{id}/questions', [JobController::class, 'questions']);
+        // QR Code endpoints
+        Route::post('/{id}/qr-code', [JobController::class, 'generateQRCode']);
+        Route::get('/{id}/qr-code/preview', [JobController::class, 'previewQRCode']);
     });
 
     // Candidates

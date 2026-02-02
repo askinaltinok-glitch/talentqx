@@ -3,22 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interview Report - {{ substr($session->id, 0, 8) }}</title>
+    <title>{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }} - {{ substr($reportId, 0, 8) }}</title>
     <style>
-        /* CSS Variables for White-Label */
+        /* TalentQX Corporate PDF Standard v1.0 */
         :root {
-            --primary-color: {{ $branding['primary_color'] ?? '#3B82F6' }};
-            --secondary-color: {{ $branding['secondary_color'] ?? '#1E40AF' }};
-            --text-color: #1F2937;
+            --primary: {{ $branding['primary_color'] ?? '#1E3A5F' }};
+            --primary-light: {{ $branding['secondary_color'] ?? '#2E5A8F' }};
+            --accent: #0EA5E9;
+            --success: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --text-dark: #111827;
+            --text-body: #374151;
             --text-muted: #6B7280;
-            --border-color: #E5E7EB;
-            --bg-light: #F9FAFB;
-            --success-color: #10B981;
-            --warning-color: #F59E0B;
-            --danger-color: #EF4444;
+            --text-light: #9CA3AF;
+            --border: #E5E7EB;
+            --bg-light: #F8FAFC;
+            --bg-section: #F1F5F9;
+            --white: #FFFFFF;
         }
 
-        /* Base Styles */
+        @page {
+            size: A4;
+            margin: 18mm 15mm 20mm 15mm;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -26,57 +35,76 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            color: var(--text-color);
-            background: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.6;
+            color: var(--text-body);
+            background: var(--white);
         }
 
-        /* Page Setup */
-        @page {
-            size: A4;
-            margin: 15mm;
-        }
-
+        /* Page Layout */
         .page {
-            page-break-after: always;
-            min-height: 100vh;
             position: relative;
+            min-height: 100vh;
+            padding-bottom: 60px;
+            page-break-after: always;
         }
 
         .page:last-child {
             page-break-after: auto;
         }
 
+        /* Confidentiality Banner */
+        .confidential-banner {
+            background: var(--primary);
+            color: var(--white);
+            text-align: center;
+            padding: 6px 0;
+            font-size: 8pt;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
         /* Header */
         .header {
             display: flex;
             justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .header-brand {
+            display: flex;
             align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--primary-color);
-            margin-bottom: 20px;
+            gap: 12px;
         }
 
-        .logo {
-            max-height: 50px;
-            max-width: 150px;
+        .header-brand img {
+            max-height: 40px;
+            max-width: 120px;
         }
 
-        .header-text {
+        .header-brand-text {
+            font-size: 14pt;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .header-meta {
             text-align: right;
-        }
-
-        .header-text h1 {
-            font-size: 18pt;
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        .header-text p {
-            font-size: 10pt;
+            font-size: 9pt;
             color: var(--text-muted);
+        }
+
+        .header-meta strong {
+            color: var(--text-dark);
+            display: block;
+            font-size: 11pt;
         }
 
         /* Cover Page */
@@ -85,63 +113,147 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 80vh;
+            min-height: 85vh;
             text-align: center;
+            padding: 40px;
         }
 
-        .cover h1 {
-            font-size: 28pt;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        .cover h2 {
-            font-size: 14pt;
-            color: var(--text-muted);
-            font-weight: normal;
+        .cover-logo {
+            max-height: 60px;
             margin-bottom: 40px;
         }
 
-        .cover-info {
+        .cover-title {
+            font-size: 32pt;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .cover-subtitle {
+            font-size: 14pt;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-bottom: 50px;
+        }
+
+        .cover-card {
             background: var(--bg-light);
-            padding: 30px 50px;
-            border-radius: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px 48px;
             margin-bottom: 40px;
+            min-width: 380px;
         }
 
-        .cover-info table {
-            text-align: left;
+        .cover-card table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .cover-info td {
-            padding: 8px 20px;
+        .cover-card td {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .cover-info td:first-child {
+        .cover-card tr:last-child td {
+            border-bottom: none;
+        }
+
+        .cover-card td:first-child {
             color: var(--text-muted);
+            font-size: 10pt;
+            width: 140px;
         }
 
-        .score-badge {
-            display: inline-block;
-            padding: 15px 30px;
-            border-radius: 10px;
+        .cover-card td:last-child {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 11pt;
+        }
+
+        /* Decision Badge */
+        .decision-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 18pt;
+            font-weight: 700;
+            color: var(--white);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .decision-badge.hire {
+            background: linear-gradient(135deg, var(--success), #047857);
+        }
+
+        .decision-badge.hold {
+            background: linear-gradient(135deg, var(--warning), #B45309);
+        }
+
+        .decision-badge.reject {
+            background: linear-gradient(135deg, var(--danger), #B91C1C);
+        }
+
+        .decision-badge-icon {
             font-size: 24pt;
-            font-weight: bold;
-            color: white;
         }
 
-        .score-badge.hire { background: var(--success-color); }
-        .score-badge.hold { background: var(--warning-color); }
-        .score-badge.reject { background: var(--danger-color); }
+        /* Score Display */
+        .score-display {
+            margin-top: 24px;
+            padding: 16px 32px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 8px;
+            display: inline-block;
+        }
 
-        /* Section Titles */
+        .score-display-value {
+            font-size: 36pt;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .score-display-label {
+            font-size: 10pt;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* Section Styling */
         .section-title {
-            font-size: 14pt;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
+            font-size: 13pt;
+            font-weight: 700;
+            color: var(--primary);
             padding-bottom: 8px;
-            margin-bottom: 15px;
-            margin-top: 25px;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 16px;
+            margin-top: 28px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11pt;
+            font-weight: 700;
         }
 
         /* Tables */
@@ -149,25 +261,39 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            font-size: 10pt;
         }
 
         th, td {
             padding: 10px 12px;
             text-align: left;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
         }
 
         th {
-            background: var(--bg-light);
+            background: var(--bg-section);
             font-weight: 600;
-            color: var(--text-color);
+            color: var(--text-dark);
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: var(--bg-light);
         }
 
         /* Score Bars */
+        .score-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .score-bar {
-            width: 100%;
+            flex: 1;
             height: 8px;
-            background: var(--border-color);
+            background: var(--border);
             border-radius: 4px;
             overflow: hidden;
         }
@@ -175,71 +301,190 @@
         .score-bar-fill {
             height: 100%;
             border-radius: 4px;
-            background: var(--primary-color);
+            transition: width 0.3s ease;
         }
 
-        /* Radar Chart Container */
+        .score-bar-fill.excellent { background: var(--success); }
+        .score-bar-fill.good { background: var(--accent); }
+        .score-bar-fill.moderate { background: var(--warning); }
+        .score-bar-fill.low { background: var(--danger); }
+
+        .score-value {
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+            font-size: 10pt;
+        }
+
+        /* Insight Cards */
+        .insight-grid {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .insight-card {
+            flex: 1;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .insight-card h4 {
+            font-size: 11pt;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .insight-card ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .insight-card li {
+            margin-bottom: 6px;
+            font-size: 10pt;
+            color: var(--text-body);
+        }
+
+        .insight-card p {
+            font-size: 10pt;
+            color: var(--text-body);
+            line-height: 1.6;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background: var(--bg-section);
+            border-left: 4px solid var(--primary);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .summary-box p {
+            font-size: 10pt;
+            line-height: 1.7;
+            color: var(--text-body);
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: #FEF3C7;
+            border-left: 4px solid var(--warning);
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box h4 {
+            color: var(--warning);
+            font-size: 10pt;
+            margin-bottom: 6px;
+        }
+
+        .warning-box p {
+            font-size: 10pt;
+            color: #92400E;
+        }
+
+        /* Radar Chart */
         .radar-container {
             display: flex;
             justify-content: center;
-            align-items: center;
             padding: 20px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
 
         .radar-chart {
-            width: 350px;
-            height: 350px;
+            width: 320px;
+            height: 320px;
         }
 
+        /* Context Comparison */
+        .context-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 9pt;
+            font-weight: 600;
+        }
+
+        .context-badge.excellent { background: #D1FAE5; color: #065F46; }
+        .context-badge.good { background: #DBEAFE; color: #1E40AF; }
+        .context-badge.moderate { background: #FEF3C7; color: #92400E; }
+        .context-badge.low { background: #FEE2E2; color: #991B1B; }
+
         /* Risk Flags */
-        .risk-flag {
+        .risk-item {
             display: flex;
-            align-items: flex-start;
-            padding: 12px;
+            gap: 12px;
+            padding: 12px 16px;
             margin-bottom: 10px;
             border-radius: 6px;
             border-left: 4px solid;
         }
 
-        .risk-flag.high {
+        .risk-item.high {
             background: #FEF2F2;
-            border-color: var(--danger-color);
+            border-color: var(--danger);
         }
 
-        .risk-flag.medium {
+        .risk-item.medium {
             background: #FFFBEB;
-            border-color: var(--warning-color);
+            border-color: var(--warning);
         }
 
-        .risk-flag.low {
+        .risk-item.low {
             background: #F0FDF4;
-            border-color: var(--success-color);
+            border-color: var(--success);
         }
 
-        .risk-flag-type {
-            font-weight: 600;
-            margin-right: 10px;
+        .risk-type {
+            font-weight: 700;
+            font-size: 9pt;
+            text-transform: uppercase;
+            min-width: 60px;
         }
 
-        /* Insights */
-        .insight-card {
-            background: var(--bg-light);
-            padding: 15px;
+        .risk-item.high .risk-type { color: var(--danger); }
+        .risk-item.medium .risk-type { color: var(--warning); }
+        .risk-item.low .risk-type { color: var(--success); }
+
+        /* Legal Section */
+        .legal-box {
+            background: var(--bg-section);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            margin-bottom: 15px;
+            padding: 20px;
+            margin-top: 24px;
         }
 
-        .insight-card h4 {
-            color: var(--primary-color);
-            margin-bottom: 8px;
+        .legal-box h4 {
+            font-size: 10pt;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .insight-card ul {
-            margin-left: 20px;
+        .legal-box p {
+            font-size: 9pt;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 10px;
         }
 
-        .insight-card li {
-            margin-bottom: 5px;
+        .legal-box p:last-child {
+            margin-bottom: 0;
         }
 
         /* Footer */
@@ -248,52 +493,76 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 15px 0;
-            border-top: 1px solid var(--border-color);
-            font-size: 9pt;
+            padding: 12px 0;
+            border-top: 1px solid var(--border);
+            font-size: 8pt;
             color: var(--text-muted);
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
-        /* Disclaimer */
-        .disclaimer {
-            font-size: 9pt;
-            color: var(--text-muted);
-            background: var(--bg-light);
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 30px;
+        .footer-left {
+            display: flex;
+            gap: 20px;
         }
 
-        /* Recommendation Badge */
-        .recommendation {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 10pt;
+        .footer-confidential {
+            color: var(--danger);
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .recommendation.hire {
-            background: #D1FAE5;
-            color: #065F46;
-        }
-
-        .recommendation.hold {
-            background: #FEF3C7;
-            color: #92400E;
-        }
-
-        .recommendation.reject {
-            background: #FEE2E2;
-            color: #991B1B;
-        }
-
-        /* Print optimizations */
+        /* Print Optimization */
         @media print {
             body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .page { page-break-after: always; }
+            .no-print { display: none; }
+        }
+
+        /* Status Indicator */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-dot.green { background: var(--success); }
+        .status-dot.yellow { background: var(--warning); }
+        .status-dot.red { background: var(--danger); }
+
+        /* Quick Stats */
+        .quick-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .quick-stat {
+            flex: 1;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .quick-stat-value {
+            font-size: 20pt;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .quick-stat-label {
+            font-size: 8pt;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -301,205 +570,260 @@
 
 <!-- PAGE 1: COVER -->
 <div class="page">
+    <div class="confidential-banner">
+        {{ $locale === 'tr' ? 'Gizli - Sadece Yetkili Personel İçin' : 'Confidential - Authorized Personnel Only' }}
+    </div>
+
     <div class="cover">
         @if($branding['logo_url'])
-            <img src="{{ $branding['logo_url'] }}" alt="Logo" class="logo" style="margin-bottom: 30px;">
+            <img src="{{ $branding['logo_url'] }}" alt="Logo" class="cover-logo">
+        @else
+            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;">{{ $branding['company_name'] ?? 'TalentQX' }}</div>
         @endif
 
-        <h1>{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }}</h1>
-        <h2>{{ $locale === 'tr' ? 'Mülakat ve Yetkinlik Analizi' : 'Interview & Competency Analysis' }}</h2>
+        <h1 class="cover-title">{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }}</h1>
+        <p class="cover-subtitle">{{ $locale === 'tr' ? 'Yapay Zeka Destekli Mülakat Analizi' : 'AI-Powered Interview Analysis' }}</p>
 
-        <div class="cover-info">
+        <div class="cover-card">
             <table>
                 <tr>
-                    <td>{{ $locale === 'tr' ? 'Aday Kodu' : 'Candidate Code' }}:</td>
-                    <td><strong>{{ strtoupper(substr($session->candidate_id, 0, 8)) }}</strong></td>
+                    <td>{{ $locale === 'tr' ? 'Aday Kodu' : 'Candidate ID' }}</td>
+                    <td>{{ strtoupper(substr($session->candidate_id, 0, 8)) }}</td>
                 </tr>
                 <tr>
-                    <td>{{ $locale === 'tr' ? 'Değerlendirme Tarihi' : 'Assessment Date' }}:</td>
-                    <td><strong>{{ $session->finished_at?->format('d.m.Y') ?? now()->format('d.m.Y') }}</strong></td>
+                    <td>{{ $locale === 'tr' ? 'Pozisyon' : 'Position' }}</td>
+                    <td>{{ ucwords(str_replace('_', ' ', $session->role_key)) }}</td>
+                </tr>
+                @if($currentContext)
+                <tr>
+                    <td>{{ $locale === 'tr' ? 'Görev Bağlamı' : 'Job Context' }}</td>
+                    <td>{{ $currentContext->getLabel($locale) }}</td>
+                </tr>
+                @endif
+                <tr>
+                    <td>{{ $locale === 'tr' ? 'Değerlendirme Tarihi' : 'Assessment Date' }}</td>
+                    <td>{{ $session->finished_at?->format('d.m.Y') ?? now()->format('d.m.Y') }}</td>
                 </tr>
                 <tr>
-                    <td>{{ $locale === 'tr' ? 'Pozisyon' : 'Position' }}:</td>
-                    <td><strong>{{ ucwords(str_replace('_', ' ', $session->role_key)) }}</strong></td>
-                </tr>
-                <tr>
-                    <td>{{ $locale === 'tr' ? 'Genel Puan' : 'Overall Score' }}:</td>
-                    <td><strong>{{ number_format($analysis->overall_score, 1) }} / 100</strong></td>
+                    <td>{{ $locale === 'tr' ? 'Rapor No' : 'Report ID' }}</td>
+                    <td>{{ strtoupper(substr($reportId, 0, 8)) }}</td>
                 </tr>
             </table>
         </div>
 
-        <div class="score-badge {{ $analysis->recommendation }}">
+        <div class="decision-badge {{ $analysis->recommendation }}">
             @if($analysis->recommendation === 'hire')
+                <span class="decision-badge-icon">✓</span>
                 {{ $locale === 'tr' ? 'ÖNERİLİR' : 'RECOMMENDED' }}
             @elseif($analysis->recommendation === 'hold')
-                {{ $locale === 'tr' ? 'BEKLET' : 'HOLD' }}
+                <span class="decision-badge-icon">◐</span>
+                {{ $locale === 'tr' ? 'DEĞERLENDİR' : 'EVALUATE' }}
             @else
+                <span class="decision-badge-icon">✗</span>
                 {{ $locale === 'tr' ? 'ÖNERİLMEZ' : 'NOT RECOMMENDED' }}
             @endif
         </div>
 
-        <div class="disclaimer" style="margin-top: 50px; max-width: 500px;">
-            {{ $locale === 'tr'
-                ? 'Bu rapor yapay zeka destekli analiz içermektedir. Nihai işe alım kararı insan kaynakları uzmanlarının değerlendirmesiyle birlikte verilmelidir.'
-                : 'This report contains AI-assisted analysis. Final hiring decisions should be made in conjunction with HR professional evaluation.'
-            }}
+        <div class="score-display">
+            <div class="score-display-value">{{ number_format($analysis->overall_score, 0) }}</div>
+            <div class="score-display-label">{{ $locale === 'tr' ? 'Genel Puan / 100' : 'Overall Score / 100' }}</div>
         </div>
     </div>
 
     <div class="footer">
-        <span>{{ $locale === 'tr' ? 'Rapor No' : 'Report ID' }}: {{ substr($reportId, 0, 8) }}</span>
+        <div class="footer-left">
+            <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
+            <span>{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+        </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 1 / 4</span>
     </div>
 </div>
 
 <!-- PAGE 2: EXECUTIVE SUMMARY -->
 <div class="page">
+    <div class="confidential-banner">
+        {{ $locale === 'tr' ? 'Gizli - Sadece Yetkili Personel İçin' : 'Confidential - Authorized Personnel Only' }}
+    </div>
+
     <div class="header">
-        @if($branding['logo_url'])
-            <img src="{{ $branding['logo_url'] }}" alt="Logo" class="logo">
-        @else
-            <div></div>
-        @endif
-        <div class="header-text">
-            <h1>{{ $locale === 'tr' ? 'Yönetici Özeti' : 'Executive Summary' }}</h1>
-            <p>{{ $locale === 'tr' ? 'Aday Kodu' : 'Candidate' }}: {{ strtoupper(substr($session->candidate_id, 0, 8)) }}</p>
+        <div class="header-brand">
+            @if($branding['logo_url'])
+                <img src="{{ $branding['logo_url'] }}" alt="Logo">
+            @else
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+            @endif
+        </div>
+        <div class="header-meta">
+            <strong>{{ $locale === 'tr' ? 'Yönetici Özeti' : 'Executive Summary' }}</strong>
+            {{ $locale === 'tr' ? 'Aday' : 'Candidate' }}: {{ strtoupper(substr($session->candidate_id, 0, 8)) }}
         </div>
     </div>
 
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Değerlendirme Sonuçları' : 'Assessment Results' }}</h3>
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ number_format($analysis->overall_score, 0) }}</div>
+            <div class="quick-stat-label">{{ $locale === 'tr' ? 'Genel Puan' : 'Overall' }}</div>
+        </div>
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ $analysis->confidence_percent ?? 85 }}%</div>
+            <div class="quick-stat-label">{{ $locale === 'tr' ? 'Güven' : 'Confidence' }}</div>
+        </div>
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ count($analysis->strengths ?? []) }}</div>
+            <div class="quick-stat-label">{{ $locale === 'tr' ? 'Güçlü Yön' : 'Strengths' }}</div>
+        </div>
+        <div class="quick-stat">
+            <div class="quick-stat-value">{{ count($analysis->red_flags ?? []) }}</div>
+            <div class="quick-stat-label">{{ $locale === 'tr' ? 'Risk' : 'Risks' }}</div>
+        </div>
+    </div>
+
+    <h3 class="section-title">
+        <span class="section-icon">1</span>
+        {{ $locale === 'tr' ? 'Özet Değerlendirme' : 'Summary Assessment' }}
+    </h3>
+
+    <div class="summary-box">
+        <p>{{ $narratives['narratives']['executive_summary'] ?? $analysis->summary_text ?? ($locale === 'tr' ? 'Aday değerlendirmesi tamamlanmıştır.' : 'Candidate assessment has been completed.') }}</p>
+    </div>
+
+    <h3 class="section-title">
+        <span class="section-icon">2</span>
+        {{ $locale === 'tr' ? 'Yetkinlik Puanları' : 'Competency Scores' }}
+    </h3>
 
     <table>
         <thead>
             <tr>
                 <th>{{ $locale === 'tr' ? 'Boyut' : 'Dimension' }}</th>
-                <th style="width: 80px;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
-                <th style="width: 200px;">{{ $locale === 'tr' ? 'Görsel' : 'Visual' }}</th>
+                <th style="width: 220px;">{{ $locale === 'tr' ? 'Performans' : 'Performance' }}</th>
+                <th style="width: 60px; text-align: right;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
             </tr>
         </thead>
         <tbody>
+            @php
+                $dimensionLabels = $locale === 'tr' ? [
+                    'communication' => 'İletişim',
+                    'integrity' => 'Dürüstlük',
+                    'problem_solving' => 'Problem Çözme',
+                    'stress_tolerance' => 'Stres Yönetimi',
+                    'teamwork' => 'Takım Çalışması',
+                    'customer_focus' => 'Müşteri Odaklılık',
+                    'adaptability' => 'Uyum Sağlama',
+                ] : [
+                    'communication' => 'Communication',
+                    'integrity' => 'Integrity',
+                    'problem_solving' => 'Problem Solving',
+                    'stress_tolerance' => 'Stress Management',
+                    'teamwork' => 'Teamwork',
+                    'customer_focus' => 'Customer Focus',
+                    'adaptability' => 'Adaptability',
+                ];
+            @endphp
             @foreach($analysis->dimension_scores ?? [] as $key => $dimension)
+            @php
+                $score = $dimension['score'] ?? 0;
+                $level = $score >= 75 ? 'excellent' : ($score >= 60 ? 'good' : ($score >= 45 ? 'moderate' : 'low'));
+            @endphp
             <tr>
-                <td>{{ ucwords(str_replace('_', ' ', $key)) }}</td>
-                <td>{{ $dimension['score'] ?? 0 }}/100</td>
+                <td>{{ $dimensionLabels[$key] ?? ucwords(str_replace('_', ' ', $key)) }}</td>
                 <td>
-                    <div class="score-bar">
-                        <div class="score-bar-fill" style="width: {{ $dimension['score'] ?? 0 }}%;"></div>
+                    <div class="score-bar-container">
+                        <div class="score-bar">
+                            <div class="score-bar-fill {{ $level }}" style="width: {{ $score }}%;"></div>
+                        </div>
                     </div>
                 </td>
+                <td class="score-value">{{ $score }}/100</td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Özet Değerlendirme' : 'Summary Assessment' }}</h3>
-
-    <div class="insight-card">
-        <p>{{ $narratives['narratives']['executive_summary'] ?? $analysis->summary_text }}</p>
-    </div>
-
-    <div style="display: flex; gap: 20px;">
-        <div class="insight-card" style="flex: 1;">
-            <h4>{{ $locale === 'tr' ? 'Güçlü Yönler' : 'Strengths' }}</h4>
-            <p style="font-size: 10pt; margin-bottom: 8px;">{{ $narratives['narratives']['radar_strengths'] ?? '' }}</p>
+    <div class="insight-grid">
+        <div class="insight-card">
+            <h4><span class="status-dot green"></span>{{ $locale === 'tr' ? 'Güçlü Yönler' : 'Strengths' }}</h4>
+            @if(!empty($narratives['narratives']['radar_strengths']))
+                <p style="margin-bottom: 10px; font-style: italic;">{{ $narratives['narratives']['radar_strengths'] }}</p>
+            @endif
             <ul>
-                @foreach($analysis->strengths ?? [] as $strength)
+                @forelse($analysis->strengths ?? [] as $strength)
                     <li>{{ $strength }}</li>
-                @endforeach
+                @empty
+                    <li>{{ $locale === 'tr' ? 'Veri bekleniyor' : 'Data pending' }}</li>
+                @endforelse
             </ul>
         </div>
 
-        <div class="insight-card" style="flex: 1;">
-            <h4>{{ $locale === 'tr' ? 'Gelişim Alanları' : 'Areas for Improvement' }}</h4>
-            <p style="font-size: 10pt; margin-bottom: 8px;">{{ $narratives['narratives']['radar_balance'] ?? '' }}</p>
+        <div class="insight-card">
+            <h4><span class="status-dot yellow"></span>{{ $locale === 'tr' ? 'Gelişim Alanları' : 'Development Areas' }}</h4>
+            @if(!empty($narratives['narratives']['radar_balance']))
+                <p style="margin-bottom: 10px; font-style: italic;">{{ $narratives['narratives']['radar_balance'] }}</p>
+            @endif
             <ul>
-                @foreach($analysis->improvement_areas ?? [] as $area)
+                @forelse($analysis->improvement_areas ?? [] as $area)
                     <li>{{ $area }}</li>
-                @endforeach
+                @empty
+                    <li>{{ $locale === 'tr' ? 'Belirgin gelişim alanı yok' : 'No significant areas' }}</li>
+                @endforelse
             </ul>
         </div>
     </div>
 
     @if(!empty($narratives['narratives']['risk_comment']))
-    <div class="insight-card" style="border-left: 3px solid var(--warning-color); background: #FFFBEB;">
-        <h4 style="color: var(--warning-color);">{{ $locale === 'tr' ? 'Dikkat Edilmesi Gerekenler' : 'Points of Attention' }}</h4>
+    <div class="warning-box">
+        <h4>{{ $locale === 'tr' ? 'Dikkat Edilmesi Gerekenler' : 'Points of Attention' }}</h4>
         <p>{{ $narratives['narratives']['risk_comment'] }}</p>
     </div>
     @endif
 
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Sonuç ve Öneriler' : 'Conclusion & Recommendations' }}</h3>
-    <div class="insight-card">
-        <p>{{ $narratives['narratives']['closing_comment'] ?? $analysis->hr_recommendations }}</p>
-    </div>
-
-    @if($contextComparison && count($contextComparison) > 0)
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Bağlam Karşılaştırması' : 'Context Comparison' }}</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>{{ $locale === 'tr' ? 'Görev Bağlamı' : 'Job Context' }}</th>
-                <th style="width: 80px;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
-                <th style="width: 80px;">{{ $locale === 'tr' ? 'Durum' : 'Status' }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($contextComparison as $ctx)
-            <tr @if($currentContext && $currentContext->context_key === $ctx['context_key']) style="background: var(--bg-light); font-weight: 600;" @endif>
-                <td>
-                    {{ $ctx['context'] }}
-                    @if($currentContext && $currentContext->context_key === $ctx['context_key'])
-                        <span style="font-size: 9pt; color: var(--primary-color);">← {{ $locale === 'tr' ? 'Mevcut' : 'Current' }}</span>
-                    @endif
-                </td>
-                <td>{{ number_format($ctx['score'], 0) }}/100</td>
-                <td style="text-align: center;">
-                    <span class="recommendation {{ $ctx['level'] === 'excellent' ? 'hire' : ($ctx['level'] === 'good' ? 'hire' : ($ctx['level'] === 'moderate' ? 'hold' : 'reject')) }}">
-                        {{ $ctx['indicator'] }} {{ $ctx['status'] }}
-                    </span>
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <div class="insight-card" style="margin-top: 15px;">
-        <p>{{ $narratives['narratives']['context_comparison_comment'] ?? '' }}</p>
-    </div>
-    @endif
-
     <div class="footer">
-        <span>{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+        <div class="footer-left">
+            <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
+            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+        </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 2 / 4</span>
     </div>
 </div>
 
-<!-- PAGE 3: RADAR CHART & BEHAVIOR ANALYSIS -->
+<!-- PAGE 3: DETAILED ANALYSIS -->
 <div class="page">
+    <div class="confidential-banner">
+        {{ $locale === 'tr' ? 'Gizli - Sadece Yetkili Personel İçin' : 'Confidential - Authorized Personnel Only' }}
+    </div>
+
     <div class="header">
-        @if($branding['logo_url'])
-            <img src="{{ $branding['logo_url'] }}" alt="Logo" class="logo">
-        @else
-            <div></div>
-        @endif
-        <div class="header-text">
-            <h1>{{ $locale === 'tr' ? 'Yetkinlik Analizi' : 'Competency Analysis' }}</h1>
-            <p>{{ $locale === 'tr' ? 'Radar Grafiği ve Davranış Değerlendirmesi' : 'Radar Chart & Behavioral Assessment' }}</p>
+        <div class="header-brand">
+            @if($branding['logo_url'])
+                <img src="{{ $branding['logo_url'] }}" alt="Logo">
+            @else
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+            @endif
+        </div>
+        <div class="header-meta">
+            <strong>{{ $locale === 'tr' ? 'Detaylı Analiz' : 'Detailed Analysis' }}</strong>
+            {{ $locale === 'tr' ? 'Aday' : 'Candidate' }}: {{ strtoupper(substr($session->candidate_id, 0, 8)) }}
         </div>
     </div>
 
+    <h3 class="section-title">
+        <span class="section-icon">3</span>
+        {{ $locale === 'tr' ? 'Yetkinlik Radar Grafiği' : 'Competency Radar Chart' }}
+    </h3>
+
     <div class="radar-container">
-        <!-- SVG Radar Chart -->
         <svg class="radar-chart" viewBox="0 0 400 400">
-            <!-- Background circles -->
+            <!-- Background -->
             <g fill="none" stroke="#E5E7EB" stroke-width="1">
-                <circle cx="200" cy="200" r="150"/>
-                <circle cx="200" cy="200" r="120"/>
-                <circle cx="200" cy="200" r="90"/>
-                <circle cx="200" cy="200" r="60"/>
-                <circle cx="200" cy="200" r="30"/>
+                <circle cx="200" cy="200" r="140"/>
+                <circle cx="200" cy="200" r="112"/>
+                <circle cx="200" cy="200" r="84"/>
+                <circle cx="200" cy="200" r="56"/>
+                <circle cx="200" cy="200" r="28"/>
             </g>
 
-            <!-- Axis lines -->
+            <!-- Axes -->
             <g stroke="#E5E7EB" stroke-width="1">
                 @php
                     $labels = $radarData['labels'][$locale] ?? $radarData['labels']['en'];
@@ -510,25 +834,25 @@
                 @for($i = 0; $i < $count; $i++)
                     @php
                         $angle = ($i * $angleStep - 90) * M_PI / 180;
-                        $x = 200 + 150 * cos($angle);
-                        $y = 200 + 150 * sin($angle);
+                        $x = 200 + 140 * cos($angle);
+                        $y = 200 + 140 * sin($angle);
                     @endphp
                     <line x1="200" y1="200" x2="{{ $x }}" y2="{{ $y }}"/>
                 @endfor
             </g>
 
-            <!-- Data polygon -->
+            <!-- Data -->
             <polygon
-                fill="{{ $branding['primary_color'] ?? '#3B82F6' }}"
-                fill-opacity="0.3"
-                stroke="{{ $branding['primary_color'] ?? '#3B82F6' }}"
-                stroke-width="2"
+                fill="{{ $branding['primary_color'] ?? '#1E3A5F' }}"
+                fill-opacity="0.25"
+                stroke="{{ $branding['primary_color'] ?? '#1E3A5F' }}"
+                stroke-width="2.5"
                 points="@php
                     $points = [];
                     for($i = 0; $i < $count; $i++) {
                         $angle = ($i * $angleStep - 90) * M_PI / 180;
                         $value = ($values[$i] ?? 50) / 100;
-                        $r = 150 * $value;
+                        $r = 140 * $value;
                         $x = 200 + $r * cos($angle);
                         $y = 200 + $r * sin($angle);
                         $points[] = round($x, 1) . ',' . round($y, 1);
@@ -537,162 +861,229 @@
                 @endphp"
             />
 
-            <!-- Data points -->
             @for($i = 0; $i < $count; $i++)
                 @php
                     $angle = ($i * $angleStep - 90) * M_PI / 180;
                     $value = ($values[$i] ?? 50) / 100;
-                    $r = 150 * $value;
+                    $r = 140 * $value;
                     $x = 200 + $r * cos($angle);
                     $y = 200 + $r * sin($angle);
                 @endphp
-                <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="{{ $branding['primary_color'] ?? '#3B82F6' }}"/>
+                <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="{{ $branding['primary_color'] ?? '#1E3A5F' }}"/>
             @endfor
 
             <!-- Labels -->
             @for($i = 0; $i < $count; $i++)
                 @php
                     $angle = ($i * $angleStep - 90) * M_PI / 180;
-                    $x = 200 + 175 * cos($angle);
-                    $y = 200 + 175 * sin($angle);
+                    $x = 200 + 165 * cos($angle);
+                    $y = 200 + 165 * sin($angle);
                     $anchor = 'middle';
                     if($x < 190) $anchor = 'end';
                     if($x > 210) $anchor = 'start';
                 @endphp
-                <text x="{{ $x }}" y="{{ $y }}" text-anchor="{{ $anchor }}" font-size="11" fill="#374151">
-                    {{ $labels[$i] }} ({{ $values[$i] ?? 0 }})
+                <text x="{{ $x }}" y="{{ $y }}" text-anchor="{{ $anchor }}" font-size="10" fill="#374151" font-weight="500">
+                    {{ $labels[$i] }}
+                </text>
+                <text x="{{ $x }}" y="{{ $y + 12 }}" text-anchor="{{ $anchor }}" font-size="9" fill="#6B7280">
+                    ({{ $values[$i] ?? 0 }})
                 </text>
             @endfor
         </svg>
     </div>
 
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Davranış Analizi' : 'Behavior Analysis' }}</h3>
+    @if($contextComparison && count($contextComparison) > 0)
+    <h3 class="section-title">
+        <span class="section-icon">4</span>
+        {{ $locale === 'tr' ? 'Bağlam Uygunluk Analizi' : 'Context Fit Analysis' }}
+    </h3>
 
     <table>
-        <tr>
-            <td><strong>{{ $locale === 'tr' ? 'Yanıt Tarzı' : 'Response Style' }}:</strong></td>
-            <td>{{ ucfirst($analysis->behavior_analysis['response_style'] ?? 'N/A') }}</td>
-            <td><strong>{{ $locale === 'tr' ? 'Tutarlılık Puanı' : 'Consistency Score' }}:</strong></td>
-            <td>{{ $analysis->behavior_analysis['consistency_score'] ?? 'N/A' }}%</td>
-        </tr>
-        <tr>
-            <td><strong>{{ $locale === 'tr' ? 'Netlik Puanı' : 'Clarity Score' }}:</strong></td>
-            <td>{{ $analysis->behavior_analysis['clarity_score'] ?? 'N/A' }}%</td>
-            <td><strong>{{ $locale === 'tr' ? 'Güven Seviyesi' : 'Confidence Level' }}:</strong></td>
-            <td>{{ ucfirst($analysis->behavior_analysis['confidence_level'] ?? 'N/A') }}</td>
-        </tr>
-    </table>
-
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Boyut Detayları' : 'Dimension Details' }}</h3>
-
-    @foreach(array_slice($analysis->dimension_scores ?? [], 0, 4) as $key => $dimension)
-    <div class="insight-card">
-        <h4 style="display: flex; justify-content: space-between;">
-            <span>{{ ucwords(str_replace('_', ' ', $key)) }}</span>
-            <span>{{ $dimension['score'] ?? 0 }}/100</span>
-        </h4>
-        <p style="font-size: 10pt; color: var(--text-muted);">{{ $dimension['notes'] ?? '' }}</p>
-        @if(!empty($dimension['evidence']))
-            <ul style="margin-top: 8px; font-size: 10pt;">
-                @foreach(array_slice($dimension['evidence'], 0, 2) as $evidence)
-                    <li>{{ $evidence }}</li>
-                @endforeach
-            </ul>
-        @endif
-    </div>
-    @endforeach
-
-    <div class="footer">
-        <span>{{ $branding['company_name'] ?? 'TalentQX' }}</span>
-        <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 3 / 4</span>
-    </div>
-</div>
-
-<!-- PAGE 4: RISKS & NOTES -->
-<div class="page">
-    <div class="header">
-        @if($branding['logo_url'])
-            <img src="{{ $branding['logo_url'] }}" alt="Logo" class="logo">
-        @else
-            <div></div>
-        @endif
-        <div class="header-text">
-            <h1>{{ $locale === 'tr' ? 'Risk Analizi ve Notlar' : 'Risk Analysis & Notes' }}</h1>
-            <p>{{ $locale === 'tr' ? 'Uyarı Bayrakları ve Yasal Bildirimler' : 'Warning Flags & Legal Notices' }}</p>
-        </div>
-    </div>
-
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Risk Bayrakları' : 'Risk Flags' }}</h3>
-
-    @forelse($analysis->red_flags ?? [] as $flag)
-        <div class="risk-flag {{ $flag['severity'] ?? 'medium' }}">
-            <span class="risk-flag-type">{{ strtoupper($flag['type'] ?? 'INFO') }}</span>
-            <div>
-                <p>{{ $flag['description'] ?? '' }}</p>
-                @if(isset($flag['question_id']))
-                    <p style="font-size: 9pt; color: var(--text-muted); margin-top: 5px;">
-                        {{ $locale === 'tr' ? 'Soru' : 'Question' }} #{{ $flag['question_id'] }}
-                    </p>
-                @endif
-            </div>
-        </div>
-    @empty
-        <div class="insight-card">
-            <p style="color: var(--success-color);">
-                {{ $locale === 'tr' ? 'Önemli bir risk bayrağı tespit edilmedi.' : 'No significant risk flags detected.' }}
-            </p>
-        </div>
-    @endforelse
-
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Soru Bazlı Analiz' : 'Question-Level Analysis' }}</h3>
-
-    <table style="font-size: 10pt;">
         <thead>
             <tr>
-                <th style="width: 40px;">#</th>
-                <th style="width: 60px;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
-                <th>{{ $locale === 'tr' ? 'Analiz' : 'Analysis' }}</th>
+                <th>{{ $locale === 'tr' ? 'Görev Bağlamı' : 'Job Context' }}</th>
+                <th style="width: 180px;">{{ $locale === 'tr' ? 'Uygunluk' : 'Fit' }}</th>
+                <th style="width: 70px; text-align: right;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
+                <th style="width: 100px; text-align: center;">{{ $locale === 'tr' ? 'Durum' : 'Status' }}</th>
             </tr>
         </thead>
         <tbody>
-            @foreach(array_slice($analysis->question_analyses ?? [], 0, 8) as $qa)
-            <tr>
-                <td>Q{{ $qa['question_id'] ?? '-' }}</td>
-                <td>{{ $qa['score'] ?? 0 }}/{{ $qa['max_score'] ?? 5 }}</td>
-                <td>{{ Str::limit($qa['analysis'] ?? '', 100) }}</td>
+            @foreach($contextComparison as $ctx)
+            @php
+                $ctxScore = $ctx['score'] ?? 0;
+                $ctxLevel = $ctx['level'] ?? 'moderate';
+            @endphp
+            <tr @if($currentContext && $currentContext->context_key === ($ctx['context_key'] ?? '')) style="background: #EFF6FF;" @endif>
+                <td>
+                    <strong>{{ $ctx['context'] }}</strong>
+                    @if($currentContext && $currentContext->context_key === ($ctx['context_key'] ?? ''))
+                        <br><span style="font-size: 8pt; color: var(--accent);">← {{ $locale === 'tr' ? 'Mevcut Başvuru' : 'Current Application' }}</span>
+                    @endif
+                </td>
+                <td>
+                    <div class="score-bar-container">
+                        <div class="score-bar">
+                            <div class="score-bar-fill {{ $ctxLevel }}" style="width: {{ $ctxScore }}%;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="score-value">{{ number_format($ctxScore, 0) }}</td>
+                <td style="text-align: center;">
+                    <span class="context-badge {{ $ctxLevel }}">
+                        {{ $ctx['status'] ?? ucfirst($ctxLevel) }}
+                    </span>
+                </td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
-    <h3 class="section-title">{{ $locale === 'tr' ? 'Yasal Bildirimler' : 'Legal Notices' }}</h3>
-
-    <div class="disclaimer">
-        <p><strong>{{ $locale === 'tr' ? 'Veri Koruma (KVKK/GDPR)' : 'Data Protection (GDPR/KVKK)' }}:</strong></p>
-        <p style="margin-top: 10px;">
-            {{ $locale === 'tr'
-                ? 'Bu rapor, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve ilgili mevzuat kapsamında hazırlanmıştır. Raporda yer alan kişisel veriler, yalnızca işe alım sürecinin değerlendirilmesi amacıyla işlenmektedir. Bu rapor gizlidir ve yalnızca yetkili kişiler tarafından görüntülenmelidir.'
-                : 'This report has been prepared in accordance with GDPR and applicable data protection regulations. Personal data contained in this report is processed solely for the purpose of employment evaluation. This report is confidential and should only be viewed by authorized personnel.'
-            }}
-        </p>
-        <p style="margin-top: 10px;">
-            {{ $locale === 'tr'
-                ? 'Yapay zeka destekli analiz sonuçları, nihai karar için tek başına kullanılmamalıdır. İnsan kaynakları uzmanlarının değerlendirmesi ile birlikte değerlendirilmelidir.'
-                : 'AI-assisted analysis results should not be used as the sole basis for final decisions. They should be evaluated in conjunction with HR professional assessment.'
-            }}
-        </p>
+    @if(!empty($narratives['narratives']['context_comparison_comment']))
+    <div class="summary-box">
+        <p>{{ $narratives['narratives']['context_comparison_comment'] }}</p>
     </div>
+    @endif
+    @endif
 
-    <div style="margin-top: 30px; text-align: center; font-size: 9pt; color: var(--text-muted);">
-        <p>{{ $locale === 'tr' ? 'Rapor Oluşturulma Tarihi' : 'Report Generated' }}: {{ $generatedAt->format('d.m.Y H:i') }}</p>
-        <p>{{ $locale === 'tr' ? 'Rapor No' : 'Report ID' }}: {{ $reportId }}</p>
-        @if(!$branding['company_name'])
-            <p style="margin-top: 10px;">Powered by TalentQX</p>
-        @endif
+    <h3 class="section-title">
+        <span class="section-icon">{{ $contextComparison ? '5' : '4' }}</span>
+        {{ $locale === 'tr' ? 'Sonuç ve Öneriler' : 'Conclusion & Recommendations' }}
+    </h3>
+
+    <div class="summary-box">
+        <p>{{ $narratives['narratives']['closing_comment'] ?? $analysis->hr_recommendations ?? ($locale === 'tr' ? 'Değerlendirme tamamlandı. Detaylı inceleme için İK ile görüşülmesi önerilir.' : 'Assessment completed. Consultation with HR is recommended for detailed review.') }}</p>
     </div>
 
     <div class="footer">
-        <span>{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+        <div class="footer-left">
+            <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
+            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+        </div>
+        <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 3 / 4</span>
+    </div>
+</div>
+
+<!-- PAGE 4: RISKS & LEGAL -->
+<div class="page">
+    <div class="confidential-banner">
+        {{ $locale === 'tr' ? 'Gizli - Sadece Yetkili Personel İçin' : 'Confidential - Authorized Personnel Only' }}
+    </div>
+
+    <div class="header">
+        <div class="header-brand">
+            @if($branding['logo_url'])
+                <img src="{{ $branding['logo_url'] }}" alt="Logo">
+            @else
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+            @endif
+        </div>
+        <div class="header-meta">
+            <strong>{{ $locale === 'tr' ? 'Risk ve Uyum' : 'Risk & Compliance' }}</strong>
+            {{ $locale === 'tr' ? 'Aday' : 'Candidate' }}: {{ strtoupper(substr($session->candidate_id, 0, 8)) }}
+        </div>
+    </div>
+
+    <h3 class="section-title">
+        <span class="section-icon">!</span>
+        {{ $locale === 'tr' ? 'Risk Bayrakları' : 'Risk Flags' }}
+    </h3>
+
+    @forelse($analysis->red_flags ?? [] as $flag)
+        <div class="risk-item {{ $flag['severity'] ?? 'medium' }}">
+            <span class="risk-type">{{ strtoupper($flag['type'] ?? 'INFO') }}</span>
+            <div>
+                <p style="margin: 0;">{{ $flag['description'] ?? '' }}</p>
+                @if(isset($flag['question_id']))
+                    <p style="font-size: 8pt; color: var(--text-muted); margin-top: 4px;">
+                        {{ $locale === 'tr' ? 'Kaynak: Soru' : 'Source: Question' }} #{{ $flag['question_id'] }}
+                    </p>
+                @endif
+            </div>
+        </div>
+    @empty
+        <div class="insight-card" style="background: #F0FDF4; border-color: var(--success);">
+            <p style="color: var(--success); margin: 0;">
+                <strong>✓</strong> {{ $locale === 'tr' ? 'Kritik risk bayrağı tespit edilmedi.' : 'No critical risk flags detected.' }}
+            </p>
+        </div>
+    @endforelse
+
+    <h3 class="section-title">
+        <span class="section-icon">Q</span>
+        {{ $locale === 'tr' ? 'Soru Bazlı Özet' : 'Question Summary' }}
+    </h3>
+
+    <table style="font-size: 9pt;">
+        <thead>
+            <tr>
+                <th style="width: 35px;">#</th>
+                <th style="width: 55px;">{{ $locale === 'tr' ? 'Puan' : 'Score' }}</th>
+                <th>{{ $locale === 'tr' ? 'Değerlendirme Notu' : 'Assessment Note' }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(array_slice($analysis->question_analyses ?? [], 0, 6) as $qa)
+            <tr>
+                <td style="font-weight: 600;">Q{{ $qa['question_id'] ?? '-' }}</td>
+                <td>{{ $qa['score'] ?? 0 }}/{{ $qa['max_score'] ?? 5 }}</td>
+                <td>{{ Str::limit($qa['analysis'] ?? '-', 90) }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="legal-box">
+        <h4>{{ $locale === 'tr' ? 'Yasal Uyarı ve Veri Koruma' : 'Legal Notice & Data Protection' }}</h4>
+
+        <p>
+            <strong>{{ $locale === 'tr' ? 'Gizlilik:' : 'Confidentiality:' }}</strong>
+            {{ $locale === 'tr'
+                ? 'Bu rapor gizli bilgi içermektedir ve yalnızca yetkili personel tarafından görüntülenmelidir. İzinsiz dağıtım veya çoğaltma yasaktır.'
+                : 'This report contains confidential information and should only be viewed by authorized personnel. Unauthorized distribution or reproduction is prohibited.'
+            }}
+        </p>
+
+        <p>
+            <strong>{{ $locale === 'tr' ? 'KVKK/GDPR Uyumu:' : 'GDPR/KVKK Compliance:' }}</strong>
+            {{ $locale === 'tr'
+                ? 'Bu rapor, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve Genel Veri Koruma Yönetmeliği (GDPR) kapsamında hazırlanmıştır. Kişisel veriler yalnızca işe alım değerlendirmesi amacıyla işlenmektedir.'
+                : 'This report has been prepared in compliance with the General Data Protection Regulation (GDPR) and applicable local data protection laws. Personal data is processed solely for recruitment evaluation purposes.'
+            }}
+        </p>
+
+        <p>
+            <strong>{{ $locale === 'tr' ? 'Yapay Zeka Bildirimi:' : 'AI Disclosure:' }}</strong>
+            {{ $locale === 'tr'
+                ? 'Bu rapor yapay zeka destekli analiz içermektedir. AI analiz sonuçları, nihai işe alım kararı için tek başına kullanılmamalı, İK profesyonellerinin değerlendirmesiyle birlikte değerlendirilmelidir.'
+                : 'This report contains AI-assisted analysis. AI analysis results should not be used as the sole basis for hiring decisions and should be evaluated in conjunction with HR professional assessment.'
+            }}
+        </p>
+
+        <p>
+            <strong>{{ $locale === 'tr' ? 'Saklama Süresi:' : 'Retention Period:' }}</strong>
+            {{ $locale === 'tr'
+                ? 'Bu rapor, oluşturulma tarihinden itibaren 30 gün süreyle saklanacak ve ardından otomatik olarak silinecektir.'
+                : 'This report will be retained for 30 days from the generation date and will be automatically deleted thereafter.'
+            }}
+        </p>
+    </div>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 9pt; color: var(--text-muted);">
+        <p><strong>{{ $locale === 'tr' ? 'Rapor Bilgileri' : 'Report Information' }}</strong></p>
+        <p>{{ $locale === 'tr' ? 'Oluşturulma' : 'Generated' }}: {{ $generatedAt->format('d.m.Y H:i:s') }} | ID: {{ $reportId }}</p>
+        <p style="margin-top: 8px;">
+            @if($branding['company_name'])
+                {{ $branding['company_name'] }} |
+            @endif
+            Powered by TalentQX
+        </p>
+    </div>
+
+    <div class="footer">
+        <div class="footer-left">
+            <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
+            <span>{{ $generatedAt->format('d.m.Y H:i') }}</span>
+        </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 4 / 4</span>
     </div>
 </div>

@@ -23,6 +23,8 @@ class User extends Authenticatable
         'phone',
         'avatar_url',
         'is_active',
+        'must_change_password',
+        'password_changed_at',
         'last_login_at',
     ];
 
@@ -36,9 +38,30 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'password_changed_at' => 'datetime',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Check if user must change their password on next action.
+     */
+    public function mustChangePassword(): bool
+    {
+        return $this->must_change_password === true;
+    }
+
+    /**
+     * Mark password as changed.
+     */
+    public function markPasswordAsChanged(): void
+    {
+        $this->update([
+            'must_change_password' => false,
+            'password_changed_at' => now(),
+        ]);
     }
 
     public function company(): BelongsTo

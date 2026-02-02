@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,9 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Candidate extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'job_id',
         'email',
         'phone',
@@ -60,6 +63,16 @@ class Candidate extends Model
     public function job(): BelongsTo
     {
         return $this->belongsTo(Job::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function statusChangedBy(): BelongsTo

@@ -38,6 +38,16 @@ class Company extends Model
         return $this->hasMany(Job::class);
     }
 
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class);
+    }
+
+    public function candidates(): HasMany
+    {
+        return $this->hasMany(Candidate::class);
+    }
+
     public function isSubscriptionActive(): bool
     {
         return $this->subscription_ends_at === null ||
