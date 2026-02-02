@@ -3,12 +3,15 @@
 namespace App\Jobs;
 
 use App\Models\MessageOutbox;
+use App\Models\Company;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Mail\Message;
 
 class ProcessOutboxMessagesJob implements ShouldQueue
 {
@@ -49,6 +52,12 @@ class ProcessOutboxMessagesJob implements ShouldQueue
     protected function processMessage(MessageOutbox $message): void
     {
         try {
+            // Check safety mode BEFORE processing
+            if ($this->isSafetyModeEnabled() && !$this->isRecipientWhitelisted($message->recipient)) {
+                $this->blockMessage($message, 'safety_mode');
+                return;
+            }
+
             $message->markAsProcessing();
 
             // Route to appropriate sender based on channel
@@ -80,9 +89,7 @@ class ProcessOutboxMessagesJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            // Re-throw if this is the last retry
             if (!$message->canRetry()) {
-                // Could dispatch a notification to admins here
                 Log::critical('Outbox: Message permanently failed', [
                     'id' => $message->id,
                     'recipient' => $message->recipient,
@@ -91,10 +98,46 @@ class ProcessOutboxMessagesJob implements ShouldQueue
         }
     }
 
+    /**
+     * Check if safety mode is enabled.
+     */
+    protected function isSafetyModeEnabled(): bool
+    {
+        return config('mail.safety_mode', false) === true;
+    }
+
+    /**
+     * Check if recipient is in the whitelist.
+     */
+    protected function isRecipientWhitelisted(string $recipient): bool
+    {
+        $whitelist = config('mail.test_whitelist', []);
+
+        return in_array(strtolower($recipient), array_map('strtolower', $whitelist));
+    }
+
+    /**
+     * Block a message due to safety mode.
+     */
+    protected function blockMessage(MessageOutbox $message, string $reason): void
+    {
+        $message->update([
+            'status' => 'blocked',
+            'error_message' => "Blocked: {$reason}",
+            'failed_at' => now(),
+        ]);
+
+        Log::warning('Outbox: Message blocked', [
+            'id' => $message->id,
+            'recipient' => $message->recipient,
+            'reason' => $reason,
+        ]);
+    }
+
     protected function processRetryableMessages(): void
     {
         $retryable = MessageOutbox::retryable()
-            ->where('failed_at', '<', now()->subMinutes(5)) // Wait 5 min between retries
+            ->where('failed_at', '<', now()->subMinutes(5))
             ->limit(10)
             ->get();
 
@@ -106,44 +149,62 @@ class ProcessOutboxMessagesJob implements ShouldQueue
 
     /**
      * Send SMS - placeholder implementation.
-     * In production, integrate with SMS provider (Twilio, NetGSM, etc.)
      */
     protected function sendSms(MessageOutbox $message): ?string
     {
-        // TODO: Implement actual SMS sending
-        // For now, just log the message
         Log::info('SMS would be sent', [
             'to' => $message->recipient,
             'body' => $message->body,
         ]);
 
-        // Return a fake external ID
         return 'SMS_' . uniqid();
     }
 
     /**
-     * Send Email - placeholder implementation.
-     * In production, use Laravel Mail or dedicated email service.
+     * Send Email via Laravel Mail with tenant branding.
      */
     protected function sendEmail(MessageOutbox $message): ?string
     {
-        // TODO: Implement actual email sending
-        Log::info('Email would be sent', [
+        // Load company for branding
+        $company = null;
+        if ($message->company_id) {
+            $company = Company::find($message->company_id);
+        }
+
+        // Determine FROM name (tenant-branded)
+        $fromName = $company
+            ? $company->getEmailFromName()
+            : config('mail.from.name', 'TalentQX');
+
+        $fromAddress = config('mail.from.address', 'noreply@talentqx.com');
+
+        // Determine REPLY-TO
+        $replyTo = $company
+            ? $company->getEmailReplyTo()
+            : config('mail.reply_to.address', 'support@talentqx.com');
+
+        Mail::html($message->body, function (Message $mail) use ($message, $fromName, $fromAddress, $replyTo) {
+            $mail->to($message->recipient, $message->recipient_name)
+                 ->subject($message->subject)
+                 ->from($fromAddress, $fromName)
+                 ->replyTo($replyTo);
+        });
+
+        Log::info('Email sent via SMTP', [
             'to' => $message->recipient,
             'subject' => $message->subject,
-            'body' => $message->body,
+            'from_name' => $fromName,
+            'reply_to' => $replyTo,
         ]);
 
-        return 'EMAIL_' . uniqid();
+        return 'SMTP_' . now()->format('Ymd_His') . '_' . substr(md5($message->id), 0, 8);
     }
 
     /**
      * Send WhatsApp - placeholder implementation.
-     * In production, integrate with WhatsApp Business API.
      */
     protected function sendWhatsapp(MessageOutbox $message): ?string
     {
-        // TODO: Implement actual WhatsApp sending
         Log::info('WhatsApp would be sent', [
             'to' => $message->recipient,
             'body' => $message->body,
@@ -157,7 +218,6 @@ class ProcessOutboxMessagesJob implements ShouldQueue
      */
     protected function sendPush(MessageOutbox $message): ?string
     {
-        // TODO: Implement push notification
         Log::info('Push notification would be sent', [
             'to' => $message->recipient,
             'body' => $message->body,

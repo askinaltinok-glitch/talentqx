@@ -15,6 +15,8 @@ class Company extends Model
         'name',
         'slug',
         'logo_url',
+        'brand_email_reply_to',
+        'brand_primary_color',
         'address',
         'city',
         'country',
@@ -52,5 +54,54 @@ class Company extends Model
     {
         return $this->subscription_ends_at === null ||
                $this->subscription_ends_at->isFuture();
+    }
+
+    /**
+     * Get the email reply-to address for this company.
+     */
+    public function getEmailReplyTo(): string
+    {
+        return $this->brand_email_reply_to ?: config('mail.reply_to.address', 'support@talentqx.com');
+    }
+
+    /**
+     * Get the primary brand color for emails.
+     */
+    public function getBrandColor(): string
+    {
+        return $this->brand_primary_color ?: '#667eea';
+    }
+
+    /**
+     * Get the email FROM name for this company.
+     */
+    public function getEmailFromName(): string
+    {
+        return "TalentQX | {$this->name}";
+    }
+
+    /**
+     * Get company logo URL or null.
+     */
+    public function getLogoUrl(): ?string
+    {
+        return $this->logo_url;
+    }
+
+    /**
+     * Get company initials (2 letters) for logo placeholder.
+     * Example: "Ekler İstanbul" => "Eİ", "Acme Corp" => "AC"
+     */
+    public function getInitials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name));
+
+        if (count($words) >= 2) {
+            // Take first letter of first two words
+            return mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+        }
+
+        // Single word: take first two letters
+        return mb_strtoupper(mb_substr($this->name, 0, 2));
     }
 }
