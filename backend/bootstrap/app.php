@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'require.tenant' => \App\Http\Middleware\RequireTenant::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'platform.admin' => \App\Http\Middleware\RequirePlatformAdmin::class,
+            'customer.scope' => \App\Http\Middleware\RequireCustomerScope::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -106,7 +106,8 @@ Route::prefix('v1')->group(function () {
     });
 
     // Protected routes (auth required)
-    Route::middleware('auth:sanctum')->group(function () {
+    // customer.scope middleware enforces default-deny for non-platform users
+    Route::middleware(['auth:sanctum', 'customer.scope'])->group(function () {
 
         // Routes exempt from ForcePasswordChange (user can access even if must_change_password=true)
         Route::prefix('auth')->group(function () {

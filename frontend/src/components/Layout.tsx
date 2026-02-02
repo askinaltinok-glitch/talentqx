@@ -107,33 +107,36 @@ export default function Layout() {
                 </NavLink>
               );
             })}
-            <div className="pt-4 mt-4 border-t border-gray-200">
-              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {t('nav.workforceAssessment')}
-              </p>
-              {NAV_ITEMS.workforce.map((item) => {
-                const Icon = iconMap[item.href] || UserGroupIcon;
-                return (
-                  <NavLink
-                    key={item.nameKey}
-                    to={localizedPath(item.href)}
-                    end={item.end}
-                    onClick={() => setSidebarOpen(false)}
-                    className={({ isActive }) =>
-                      clsx(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                        isActive
-                          ? 'bg-primary-50 text-primary-700'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      )
-                    }
-                  >
-                    <Icon className="h-5 w-5" />
-                    {t(item.nameKey)}
-                  </NavLink>
-                );
-              })}
-            </div>
+            {/* Workforce Assessment - Platform Admin Only */}
+            {user?.is_platform_admin && (
+              <div className="pt-4 mt-4 border-t border-gray-200">
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {t('nav.workforceAssessment')}
+                </p>
+                {NAV_ITEMS.workforce.map((item) => {
+                  const Icon = iconMap[item.href] || UserGroupIcon;
+                  return (
+                    <NavLink
+                      key={item.nameKey}
+                      to={localizedPath(item.href)}
+                      end={item.end}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        clsx(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                          isActive
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        )
+                      }
+                    >
+                      <Icon className="h-5 w-5" />
+                      {t(item.nameKey)}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
             {/* Sales Console - Platform Admin Only */}
             {user?.is_platform_admin && (
               <div className="pt-4 mt-4 border-t border-gray-200">
@@ -202,35 +205,38 @@ export default function Layout() {
                   })}
                 </ul>
               </li>
-              <li>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  {t('nav.workforceAssessment')}
-                </div>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {NAV_ITEMS.workforce.map((item) => {
-                    const Icon = iconMap[item.href] || UserGroupIcon;
-                    return (
-                      <li key={item.nameKey}>
-                        <NavLink
-                          to={localizedPath(item.href)}
-                          end={item.end}
-                          className={({ isActive }) =>
-                            clsx(
-                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-                              isActive
-                                ? 'bg-primary-50 text-primary-700'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            )
-                          }
-                        >
-                          <Icon className="h-5 w-5" />
-                          {t(item.nameKey)}
-                        </NavLink>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
+              {/* Workforce Assessment - Platform Admin Only */}
+              {user?.is_platform_admin && (
+                <li>
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    {t('nav.workforceAssessment')}
+                  </div>
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {NAV_ITEMS.workforce.map((item) => {
+                      const Icon = iconMap[item.href] || UserGroupIcon;
+                      return (
+                        <li key={item.nameKey}>
+                          <NavLink
+                            to={localizedPath(item.href)}
+                            end={item.end}
+                            className={({ isActive }) =>
+                              clsx(
+                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                                isActive
+                                  ? 'bg-primary-50 text-primary-700'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                              )
+                            }
+                          >
+                            <Icon className="h-5 w-5" />
+                            {t(item.nameKey)}
+                          </NavLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              )}
               {/* Sales Console - Platform Admin Only */}
               {user?.is_platform_admin && (
                 <li>
@@ -323,19 +329,21 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher variant="light" showFullName={false} />
-            {/* Follow-up notification */}
-            <Link
-              to={localizedPath('/app/leads?filter=follow_up')}
-              className="relative p-2 text-gray-500 hover:text-gray-700"
-              title={t('nav.followUpNeeded')}
-            >
-              <BellIcon className="h-6 w-6" />
-              {followUpCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                  {followUpCount > 9 ? '9+' : followUpCount}
-                </span>
-              )}
-            </Link>
+            {/* Follow-up notification - Platform Admin Only */}
+            {user?.is_platform_admin && (
+              <Link
+                to={localizedPath('/app/leads?filter=follow_up')}
+                className="relative p-2 text-gray-500 hover:text-gray-700"
+                title={t('nav.followUpNeeded')}
+              >
+                <BellIcon className="h-6 w-6" />
+                {followUpCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                    {followUpCount > 9 ? '9+' : followUpCount}
+                  </span>
+                )}
+              </Link>
+            )}
           </div>
         </div>
 

@@ -27,7 +27,7 @@ import Unauthorized from './pages/Unauthorized';
 // Components
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
-import RequirePlatformAdmin from './components/RequirePlatformAdmin';
+import CustomerRouteGuard from './components/CustomerRouteGuard';
 import LanguageRedirect from './components/LanguageRedirect';
 
 // i18n
@@ -60,42 +60,34 @@ function App() {
             <Route path="login" element={<Login />} />
 
             {/* Protected Routes - HR Panel */}
+            {/* CustomerRouteGuard enforces default-deny for non-platform users */}
             <Route
               path="app"
               element={
                 <RequireAuth>
-                  <Layout />
+                  <CustomerRouteGuard>
+                    <Layout />
+                  </CustomerRouteGuard>
                 </RequireAuth>
               }
             >
+              {/* Customer-allowed routes */}
               <Route index element={<Dashboard />} />
               <Route path="jobs" element={<Jobs />} />
               <Route path="jobs/:id" element={<JobDetail />} />
               <Route path="candidates" element={<Candidates />} />
               <Route path="candidates/:id" element={<CandidateDetail />} />
               <Route path="interviews/:id" element={<InterviewDetail />} />
-              {/* Workforce Assessment Routes */}
+
+              {/* Platform Admin Only Routes */}
+              {/* These are blocked by CustomerRouteGuard for company users */}
               <Route path="employees" element={<Employees />} />
               <Route path="employees/:id" element={<EmployeeDetail />} />
               <Route path="assessments" element={<AssessmentResults />} />
-              {/* Sales Console Routes - Platform Admin Only */}
-              <Route
-                path="leads"
-                element={
-                  <RequirePlatformAdmin>
-                    <Leads />
-                  </RequirePlatformAdmin>
-                }
-              />
-              <Route
-                path="leads/:id"
-                element={
-                  <RequirePlatformAdmin>
-                    <LeadDetail />
-                  </RequirePlatformAdmin>
-                }
-              />
-              {/* 403 Unauthorized page */}
+              <Route path="leads" element={<Leads />} />
+              <Route path="leads/:id" element={<LeadDetail />} />
+
+              {/* 403 Unauthorized page - always accessible */}
               <Route path="unauthorized" element={<Unauthorized />} />
               {/* App 404 - catches unmatched /app/* routes */}
               <Route path="*" element={<AppNotFound />} />
