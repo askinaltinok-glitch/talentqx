@@ -105,17 +105,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/{reportId}/status', [ReportController::class, 'status']);
     });
 
-    // Protected routes
+    // Protected routes (auth required)
     Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth
-    Route::prefix('auth')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [AuthController::class, 'me']);
-    });
+        // Routes exempt from ForcePasswordChange (user can access even if must_change_password=true)
+        Route::prefix('auth')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::get('/me', [AuthController::class, 'me']);
+        });
+        Route::post('/change-password', [PasswordController::class, 'changePassword']);
 
-    // Password change (authenticated)
-    Route::post('/change-password', [PasswordController::class, 'changePassword']);
+        // Routes that require password to be changed first
+        Route::middleware('force.password.change')->group(function () {
 
     // Position Templates
     Route::prefix('positions/templates')->group(function () {
@@ -272,6 +273,8 @@ Route::prefix('v1')->group(function () {
         Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
         Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
     });
-});
+
+        }); // End of force.password.change middleware group
+    }); // End of auth:sanctum middleware group
 
 }); // End of v1 prefix group
