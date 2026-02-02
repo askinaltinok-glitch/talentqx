@@ -67,7 +67,21 @@ class ApplyService {
     roleCode: string,
     formData: ApplyFormData
   ): Promise<ApplyResult> {
-    const response = await this.client.post(`/apply/${companySlug}/${branchSlug}/${roleCode}`, formData);
+    // Transform frontend form data to backend expected format
+    const nameParts = formData.full_name.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0] || ''; // Use first name as last if only one word
+
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      email: formData.email || '',
+      phone: formData.phone.replace(/\s/g, ''), // Remove spaces from phone
+      consent_given: formData.kvkk_consent,
+      source: 'qr_apply',
+    };
+
+    const response = await this.client.post(`/apply/${companySlug}/${branchSlug}/${roleCode}`, payload);
     return response.data.data;
   }
 

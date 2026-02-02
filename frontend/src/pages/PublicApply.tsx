@@ -85,6 +85,16 @@ export default function PublicApply() {
       setError('Telefon alanı zorunludur');
       return;
     }
+    if (!formData.email?.trim()) {
+      setError('E-posta alanı zorunludur');
+      return;
+    }
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Geçerli bir e-posta adresi giriniz');
+      return;
+    }
     if (!formData.kvkk_consent) {
       setError('KVKK onayı zorunludur');
       return;
