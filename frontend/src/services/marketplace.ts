@@ -4,7 +4,6 @@ import type {
   MarketplaceCandidateFullProfile,
   MarketplaceAccessRequest,
   MarketplaceAccessRequestDetail,
-  PaginatedResponse,
 } from '../types';
 
 export interface MarketplaceCandidatesParams {

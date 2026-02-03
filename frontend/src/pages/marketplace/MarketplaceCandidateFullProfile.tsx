@@ -208,18 +208,18 @@ export default function MarketplaceCandidateFullProfilePage() {
               )}
             </div>
 
-            {profile.cv_parsed_data?.skills && (
+            {Array.isArray(profile.cv_parsed_data?.skills) && profile.cv_parsed_data.skills.length > 0 && (
               <div>
                 <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
                   {t('marketplace.skills', 'Beceriler')}
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {(profile.cv_parsed_data.skills as string[]).map((skill, idx) => (
+                  {profile.cv_parsed_data.skills.map((skill: unknown, idx: number) => (
                     <span
                       key={idx}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                     >
-                      {skill}
+                      {String(skill)}
                     </span>
                   ))}
                 </div>

@@ -165,9 +165,9 @@ function isAxiosError(error: unknown): error is AxiosError<ApiErrorResponse> {
 
 /**
  * Component that sets up global API error handling
- * Place this at the app root level
+ * Place this at the app root level (renders nothing)
  */
-export default function ApiErrorHandler({ children }: { children: React.ReactNode }) {
+export default function ApiErrorHandler() {
   const { handleError } = useApiErrorHandler();
 
   useEffect(() => {
@@ -181,5 +181,5 @@ export default function ApiErrorHandler({ children }: { children: React.ReactNod
     };
   }, [handleError]);
 
-  return <>{children}</>;
+  return null;
 }
