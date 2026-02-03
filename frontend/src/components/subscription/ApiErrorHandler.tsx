@@ -1,9 +1,30 @@
 import { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { AxiosError } from 'axios';
 import { localizedPath } from '../../routes';
+
+/**
+ * Public routes that should NOT receive subscription-related error handling.
+ * These routes are accessible without authentication and subscription checks.
+ */
+const PUBLIC_ROUTE_PATTERNS = [
+  /^\/apply\//,              // /apply/:companySlug/:branchSlug/:roleCode
+  /^\/assessment\//,         // /assessment/:token
+  /^\/a\//,                  // /a/:token (short form)
+  /^\/interview\//,          // /interview/:role
+  /^\/i\//,                  // /i/:role (short form)
+  /^\/marketplace-access\//, // /marketplace-access/:token
+  /^\/privacy$/,             // /privacy
+  /^\/[a-z]{2}$/,            // /{lang} (landing page)
+  /^\/[a-z]{2}\/login$/,     // /{lang}/login
+  /^\/[a-z]{2}\/privacy$/,   // /{lang}/privacy
+];
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+}
 
 interface ApiErrorResponse {
   success: boolean;
@@ -15,11 +36,16 @@ interface ApiErrorResponse {
 }
 
 /**
- * Maps API error codes to user-friendly messages and actions
+ * Maps API error codes to user-friendly messages and actions.
+ *
+ * IMPORTANT: Subscription-related errors are only handled on protected routes (/app/*).
+ * Public routes (apply, assessment, interview, etc.) receive generic error messages only.
+ * This prevents subscription UI leaking into public-facing pages.
  */
 export function useApiErrorHandler() {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleError = useCallback(
     (error: unknown) => {
@@ -32,8 +58,19 @@ export function useApiErrorHandler() {
       const errorCode = error.response?.data?.error?.code;
       const errorMessage = error.response?.data?.error?.message || error.response?.data?.message;
 
-      // Handle subscription-related 403 errors
+      // Check if we're on a public route - skip subscription error handling
+      const onPublicRoute = isPublicRoute(location.pathname);
+
+      // Handle subscription-related 403 errors (only on protected routes)
       if (status === 403) {
+        // On public routes, show generic error message only - no subscription UI
+        if (onPublicRoute) {
+          toast.error(
+            errorMessage || t('errors.generic', 'Bir hata oluştu. Lütfen tekrar deneyin.')
+          );
+          return;
+        }
+
         switch (errorCode) {
           case 'subscription_required':
             toast.error(
@@ -148,7 +185,7 @@ export function useApiErrorHandler() {
       // Default error
       toast.error(errorMessage || t('errors.unexpected', 'Beklenmeyen bir hata oluştu'));
     },
-    [navigate, t]
+    [navigate, t, location.pathname]
   );
 
   return { handleError };
