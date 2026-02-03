@@ -16,9 +16,10 @@ class MailCatchUp extends Command
                             {--company= : Company slug to process (required)}
                             {--hours=24 : Look back hours for missed emails}
                             {--dry-run : Show what would be sent without actually sending}
-                            {--process : Process the outbox immediately after creating entries}';
+                            {--process : Process the outbox immediately after creating entries}
+                            {--type=interview_invitation : Email type (interview_invitation only, application_received disabled)}';
 
-    protected $description = 'Send missed application_received emails to candidates who applied recently';
+    protected $description = 'Send missed interview_invitation emails to candidates with pending interviews (application_received is DISABLED)';
 
     public function handle(): int
     {
@@ -26,15 +27,30 @@ class MailCatchUp extends Command
         $hours = (int) $this->option('hours');
         $dryRun = $this->option('dry-run');
         $process = $this->option('process');
+        $type = $this->option('type');
 
         if (!$companySlug) {
             $this->error("--company option is required");
             return Command::FAILURE;
         }
 
-        $this->info("=== TalentQX Mail Catch-Up ===");
+        // IMPORTANT: application_received is DISABLED per spec
+        if ($type === 'application_received') {
+            $this->error("❌ application_received emails are DISABLED.");
+            $this->error("   Per spec: Do NOT send retroactive 'Application Received' emails.");
+            $this->error("   Only interview_invitation emails are allowed.");
+            return Command::FAILURE;
+        }
+
+        if ($type !== 'interview_invitation') {
+            $this->error("Invalid type. Only 'interview_invitation' is supported.");
+            return Command::FAILURE;
+        }
+
+        $this->info("=== TalentQX Mail Catch-Up (Interview Invitations Only) ===");
         $this->info("Company: {$companySlug}");
         $this->info("Look back: {$hours} hours");
+        $this->info("Type: {$type}");
         $this->info("Dry run: " . ($dryRun ? 'YES' : 'NO'));
         $this->newLine();
 
@@ -58,40 +74,43 @@ class MailCatchUp extends Command
         $this->info("Company: {$company->name} ({$company->id})");
         $this->newLine();
 
-        // Find candidates without application_received email
+        // Find interviews without interview_invitation email
         $cutoffTime = now()->subHours($hours);
 
-        $candidatesWithoutEmail = Candidate::where('company_id', $company->id)
-            ->where('created_at', '>=', $cutoffTime)
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
+        $interviewsWithoutEmail = \App\Models\Interview::where('created_at', '>=', $cutoffTime)
+            ->whereHas('candidate', function ($q) use ($company) {
+                $q->where('company_id', $company->id)
+                  ->whereNotNull('email')
+                  ->where('email', '!=', '');
+            })
             ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('message_outbox')
-                    ->whereColumn('message_outbox.related_id', 'candidates.id')
-                    ->where('message_outbox.related_type', 'candidate')
-                    ->where('message_outbox.template_id', 'application_received');
+                    ->whereColumn('message_outbox.related_id', 'interviews.id')
+                    ->where('message_outbox.related_type', 'interview')
+                    ->where('message_outbox.template_id', 'interview_invitation');
             })
-            ->with(['job', 'job.branch'])
+            ->with(['candidate', 'job', 'job.company', 'job.branch'])
             ->get();
 
-        if ($candidatesWithoutEmail->isEmpty()) {
-            $this->info("No candidates found without application_received email.");
+        if ($interviewsWithoutEmail->isEmpty()) {
+            $this->info("No interviews found without interview_invitation email.");
             return Command::SUCCESS;
         }
 
-        $this->info("Found {$candidatesWithoutEmail->count()} candidates without application_received email:");
+        $this->info("Found {$interviewsWithoutEmail->count()} interviews without interview_invitation email:");
         $this->newLine();
 
         $emailService = new EmailTemplateService();
         $createdCount = 0;
 
-        foreach ($candidatesWithoutEmail as $candidate) {
-            $job = $candidate->job;
+        foreach ($interviewsWithoutEmail as $interview) {
+            $candidate = $interview->candidate;
+            $job = $interview->job;
             $branch = $job?->branch;
 
-            if (!$job) {
-                $this->warn("  Skipping {$candidate->email} - no job associated");
+            if (!$job || !$candidate) {
+                $this->warn("  Skipping interview {$interview->id} - no job or candidate");
                 continue;
             }
 
@@ -105,19 +124,22 @@ class MailCatchUp extends Command
             $this->line("  {$candidate->email}");
             $this->line("    Name: {$candidateData['name']}");
             $this->line("    Job: {$job->title}");
-            $this->line("    Applied: {$candidate->created_at->format('Y-m-d H:i')}");
+            $this->line("    Interview created: {$interview->created_at->format('Y-m-d H:i')}");
 
             if ($dryRun) {
-                $this->info("    [DRY RUN] Would send application_received email");
+                $this->info("    [DRY RUN] Would send interview_invitation email");
                 continue;
             }
 
             // Render and create outbox entry
-            $rendered = $emailService->renderApplicationReceived([
+            $rendered = $emailService->renderInterviewInvitation([
                 'company' => $company,
                 'branch' => $branch,
                 'job' => $job,
                 'candidate' => $candidateData,
+                'interview_url' => $interview->getInterviewUrl(),
+                'expires_at' => $interview->token_expires_at,
+                'duration_minutes' => $job->interview_settings['max_duration_minutes'] ?? 20,
                 'locale' => 'tr',
             ]);
 
@@ -128,14 +150,14 @@ class MailCatchUp extends Command
                 'recipient_name' => $candidateData['name'],
                 'subject' => $rendered['subject'],
                 'body' => $rendered['body'],
-                'template_id' => 'application_received',
-                'related_type' => 'candidate',
-                'related_id' => $candidate->id,
+                'template_id' => 'interview_invitation',
+                'related_type' => 'interview',
+                'related_id' => $interview->id,
                 'status' => MessageOutbox::STATUS_PENDING,
-                'priority' => 5,
+                'priority' => 10,
                 'metadata' => [
                     'catch_up' => true,
-                    'original_applied_at' => $candidate->created_at->toIso8601String(),
+                    'interview_created_at' => $interview->created_at->toIso8601String(),
                 ],
             ]);
 
@@ -146,7 +168,7 @@ class MailCatchUp extends Command
         $this->newLine();
 
         if ($dryRun) {
-            $this->info("Dry run complete. {$candidatesWithoutEmail->count()} emails would be sent.");
+            $this->info("Dry run complete. {$interviewsWithoutEmail->count()} emails would be sent.");
             return Command::SUCCESS;
         }
 
@@ -164,7 +186,7 @@ class MailCatchUp extends Command
             $this->info("=== Results ===");
 
             $results = MessageOutbox::where('company_id', $company->id)
-                ->where('template_id', 'application_received')
+                ->where('template_id', 'interview_invitation')
                 ->where('created_at', '>=', now()->subMinutes(5))
                 ->whereNotNull('metadata->catch_up')
                 ->get();

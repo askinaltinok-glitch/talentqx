@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Services\Privacy\ConsentService;
 use App\Services\Privacy\RegimeResolver;
+use App\Services\Security\RecaptchaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,16 +16,23 @@ class ContactController extends Controller
 {
     private ConsentService $consentService;
     private RegimeResolver $regimeResolver;
+    private RecaptchaService $recaptchaService;
 
-    public function __construct(ConsentService $consentService, RegimeResolver $regimeResolver)
-    {
+    public function __construct(
+        ConsentService $consentService,
+        RegimeResolver $regimeResolver,
+        RecaptchaService $recaptchaService
+    ) {
         $this->consentService = $consentService;
         $this->regimeResolver = $regimeResolver;
+        $this->recaptchaService = $recaptchaService;
     }
 
     /**
      * POST /api/v1/contact
      * Handle contact/demo form submissions
+     *
+     * Includes reCAPTCHA v3 validation (score-based, reject if < 0.3)
      */
     public function submit(Request $request): JsonResponse
     {
@@ -39,6 +47,7 @@ class ContactController extends Controller
             'consent_accepted' => 'required|accepted',
             'policy_version' => 'nullable|string|max:20',
             'locale' => 'nullable|string|max:5',
+            'recaptcha_token' => 'nullable|string', // reCAPTCHA v3 token
         ]);
 
         if ($validator->fails()) {
@@ -52,6 +61,39 @@ class ContactController extends Controller
         }
 
         $data = $validator->validated();
+
+        // Verify reCAPTCHA v3 (if enabled and token provided)
+        $recaptchaToken = $data['recaptcha_token'] ?? null;
+        if ($this->recaptchaService->isEnabled()) {
+            if (empty($recaptchaToken)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'reCAPTCHA verification required',
+                        'code' => 'RECAPTCHA_REQUIRED',
+                    ],
+                ], 422);
+            }
+
+            $action = config('recaptcha.actions.' . $data['form_type'] . '_form', 'submit_form');
+            $recaptchaResult = $this->recaptchaService->verify($recaptchaToken, $action);
+
+            if (!$recaptchaResult['success']) {
+                Log::warning('Contact form reCAPTCHA failed', [
+                    'email' => $data['email'],
+                    'form_type' => $data['form_type'],
+                    'score' => $recaptchaResult['score'],
+                    'error' => $recaptchaResult['error'],
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Security verification failed. Please try again.',
+                        'code' => 'RECAPTCHA_FAILED',
+                    ],
+                ], 403);
+            }
+        }
 
         // Verify consent is accepted
         if (empty($data['consent_accepted'])) {

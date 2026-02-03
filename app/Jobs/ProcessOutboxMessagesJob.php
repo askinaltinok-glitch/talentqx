@@ -162,6 +162,7 @@ class ProcessOutboxMessagesJob implements ShouldQueue
 
     /**
      * Send Email via Laravel Mail with tenant branding.
+     * NOTE: No reply-to header is set (noreply compatible).
      */
     protected function sendEmail(MessageOutbox $message): ?string
     {
@@ -178,23 +179,19 @@ class ProcessOutboxMessagesJob implements ShouldQueue
 
         $fromAddress = config('mail.from.address', 'noreply@talentqx.com');
 
-        // Determine REPLY-TO
-        $replyTo = $company
-            ? $company->getEmailReplyTo()
-            : config('mail.reply_to.address', 'support@talentqx.com');
-
-        Mail::html($message->body, function (Message $mail) use ($message, $fromName, $fromAddress, $replyTo) {
+        // NOTE: No reply-to header set per spec (noreply compatible)
+        Mail::html($message->body, function (Message $mail) use ($message, $fromName, $fromAddress) {
             $mail->to($message->recipient, $message->recipient_name)
                  ->subject($message->subject)
-                 ->from($fromAddress, $fromName)
-                 ->replyTo($replyTo);
+                 ->from($fromAddress, $fromName);
+            // No replyTo() - emails are noreply
         });
 
         Log::info('Email sent via SMTP', [
             'to' => $message->recipient,
             'subject' => $message->subject,
             'from_name' => $fromName,
-            'reply_to' => $replyTo,
+            'from_address' => $fromAddress,
         ]);
 
         return 'SMTP_' . now()->format('Ymd_His') . '_' . substr(md5($message->id), 0, 8);

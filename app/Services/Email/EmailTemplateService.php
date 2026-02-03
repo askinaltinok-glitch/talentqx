@@ -62,6 +62,14 @@ class EmailTemplateService
 
     /**
      * Render interview invitation email.
+     *
+     * Final email spec:
+     * - Subject: TalentQX – {{company.name}} | Interview Invitation
+     * - Greet candidate by first name
+     * - Clearly state the company
+     * - Show duration + expiry
+     * - Include CTA button/link
+     * - No "reply to this email" wording
      */
     public function renderInterviewInvitation(array $data): array
     {
@@ -71,46 +79,64 @@ class EmailTemplateService
         $candidate = $data['candidate'];
         $interviewUrl = $data['interview_url'];
         $expiresAt = $data['expires_at'] ?? null;
+        $durationMinutes = $data['duration_minutes'] ?? 20;
         $locale = $data['locale'] ?? 'tr';
 
         $companyName = $this->getCompanyName($company);
         $branchName = is_object($branch) ? $branch->name : ($branch['name'] ?? '');
         $jobTitle = is_object($job) ? $job->title : ($job['title'] ?? 'Pozisyon');
-        $roleCode = is_object($job) ? $job->role_code : ($job['role_code'] ?? '');
-        $candidateName = is_object($candidate) ? trim($candidate->first_name . ' ' . $candidate->last_name) : ($candidate['name'] ?? 'Aday');
 
-        $subject = $this->getSubject('interview_invitation', $companyName, $locale);
+        // Use first_name for greeting (per spec)
+        $firstName = is_object($candidate)
+            ? $candidate->first_name
+            : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
+
+        // Subject per spec: TalentQX – Company Name | Interview Invitation
+        $subject = $locale === 'tr'
+            ? "TalentQX – {$companyName} | Mülakat Daveti"
+            : "TalentQX – {$companyName} | Interview Invitation";
+
         $preheader = $locale === 'tr'
-            ? "{$candidateName} - {$jobTitle} mülakatına davetlisiniz"
-            : "{$candidateName} - You're invited to interview for {$jobTitle}";
+            ? "{$firstName}, {$companyName} sizi online mülakata davet ediyor"
+            : "{$firstName}, {$companyName} invites you to an online interview";
 
-        $expiryText = '';
+        // Format expiry date and time
+        $expiryInfo = '';
         if ($expiresAt) {
             $expiryDate = is_string($expiresAt) ? $expiresAt : $expiresAt->format('d.m.Y H:i');
-            $expiryText = $locale === 'tr'
-                ? "Bu bağlantı <strong>{$expiryDate}</strong> tarihine kadar geçerlidir."
-                : "This link is valid until <strong>{$expiryDate}</strong>.";
+            $expiryInfo = $locale === 'tr'
+                ? "Son katılım tarihi: <strong>{$expiryDate}</strong>"
+                : "Deadline: <strong>{$expiryDate}</strong>";
         }
+
+        // Duration info
+        $durationInfo = $locale === 'tr'
+            ? "Yaklaşık süre: <strong>{$durationMinutes} dakika</strong>"
+            : "Duration: approx. <strong>{$durationMinutes} minutes</strong>";
 
         $body = $this->buildEmailHtml([
             'company' => $company,
             'headline' => $locale === 'tr' ? 'Mülakata Davetlisiniz!' : 'Interview Invitation!',
             'headline_icon' => '🎯',
-            'greeting' => $locale === 'tr' ? "Merhaba {$candidateName}," : "Hello {$candidateName},",
+            'greeting' => $locale === 'tr' ? "Merhaba {$firstName}," : "Hello {$firstName},",
             'message' => $locale === 'tr'
-                ? "<strong>{$jobTitle}</strong> pozisyonu için başvurunuz değerlendirildi ve sizi online mülakata davet ediyoruz!"
-                : "Your application for the <strong>{$jobTitle}</strong> position has been evaluated and we'd like to invite you to an online interview!",
-            'details' => [
+                ? "<strong>{$companyName}</strong> şirketi, <strong>{$jobTitle}</strong> pozisyonu için başvurunuzu inceledi ve sizi online mülakata davet ediyor."
+                : "<strong>{$companyName}</strong> has reviewed your application for the <strong>{$jobTitle}</strong> position and would like to invite you to an online interview.",
+            'details' => array_filter([
                 ['label' => $locale === 'tr' ? 'Şirket' : 'Company', 'value' => $companyName],
-                ['label' => $locale === 'tr' ? 'Şube' : 'Branch', 'value' => $branchName],
+                $branchName ? ['label' => $locale === 'tr' ? 'Şube' : 'Branch', 'value' => $branchName] : null,
                 ['label' => $locale === 'tr' ? 'Pozisyon' : 'Position', 'value' => $jobTitle],
-                ['label' => $locale === 'tr' ? 'Rol Kodu' : 'Role Code', 'value' => $roleCode],
-            ],
+            ]),
             'cta_text' => $locale === 'tr' ? 'Mülakata Başla' : 'Start Interview',
             'cta_url' => $interviewUrl,
-            'footer_note' => $expiryText . ($expiryText ? '<br><br>' : '') . ($locale === 'tr'
-                ? 'Mülakat yaklaşık 15-20 dakika sürecektir. Sessiz bir ortamda, kamera ve mikrofon erişimi olan bir cihazdan katılmanızı öneririz.'
-                : 'The interview will take approximately 15-20 minutes. We recommend joining from a quiet environment with a device that has camera and microphone access.'),
+            'footer_note' => implode('<br>', array_filter([
+                $durationInfo,
+                $expiryInfo,
+                '',
+                $locale === 'tr'
+                    ? 'Sessiz bir ortamda, kamera ve mikrofon erişimi olan bir cihazdan katılmanızı öneririz.'
+                    : 'We recommend joining from a quiet environment with a device that has camera and microphone access.',
+            ])),
             'locale' => $locale,
             'preheader' => $preheader,
         ]);

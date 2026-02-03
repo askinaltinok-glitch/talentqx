@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\AnalyzeInterviewJob;
+use App\Jobs\ProcessOutboxMessagesJob;
 use App\Models\Candidate;
 use App\Models\ConsentLog;
 use App\Models\Interview;
 use App\Models\InterviewResponse;
+use App\Models\MessageOutbox;
 use App\Models\ResponseSimilarity;
 use App\Services\AntiCheat\AntiCheatService;
+use App\Services\Email\EmailTemplateService;
 use App\Services\Interview\AnalysisEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,11 +30,13 @@ class InterviewController extends Controller
         $validated = $request->validate([
             'candidate_id' => 'required|uuid|exists:candidates,id',
             'expires_in_hours' => 'nullable|integer|min:1|max:168',
+            'send_email' => 'nullable|boolean',
         ]);
 
-        $candidate = Candidate::whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($validated['candidate_id']);
+        $candidate = Candidate::with(['job', 'job.company', 'job.branch'])
+            ->whereHas('job', function ($q) use ($request) {
+                $q->where('company_id', $request->user()->company_id);
+            })->findOrFail($validated['candidate_id']);
 
         $expiresInHours = $validated['expires_in_hours'] ?? config('interview.token_expiry_hours', 72);
 
@@ -43,6 +48,14 @@ class InterviewController extends Controller
 
         $candidate->updateStatus(Candidate::STATUS_INTERVIEW_PENDING);
 
+        // Send interview invitation email if requested (default: true)
+        $emailSent = false;
+        $sendEmail = $validated['send_email'] ?? true;
+
+        if ($sendEmail && $candidate->email) {
+            $emailSent = $this->sendInterviewInvitationEmail($interview, $candidate);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -52,8 +65,71 @@ class InterviewController extends Controller
                 'interview_url' => $interview->getInterviewUrl(),
                 'expires_at' => $interview->token_expires_at,
                 'status' => $interview->status,
+                'email_sent' => $emailSent,
             ],
         ], 201);
+    }
+
+    /**
+     * Send interview invitation email to candidate.
+     */
+    private function sendInterviewInvitationEmail(Interview $interview, Candidate $candidate): bool
+    {
+        try {
+            $interview->load(['job', 'job.company', 'job.branch']);
+
+            $company = $interview->job->company;
+            $job = $interview->job;
+            $branch = $interview->job->branch;
+
+            $emailService = new EmailTemplateService();
+            $rendered = $emailService->renderInterviewInvitation([
+                'company' => $company,
+                'branch' => $branch,
+                'job' => $job,
+                'candidate' => [
+                    'id' => $candidate->id,
+                    'name' => trim($candidate->first_name . ' ' . $candidate->last_name),
+                    'first_name' => $candidate->first_name,
+                    'last_name' => $candidate->last_name,
+                ],
+                'interview_url' => $interview->getInterviewUrl(),
+                'expires_at' => $interview->token_expires_at,
+                'duration_minutes' => $job->interview_settings['max_duration_minutes'] ?? 20,
+                'locale' => 'tr',
+            ]);
+
+            $outbox = MessageOutbox::create([
+                'company_id' => $company->id,
+                'channel' => MessageOutbox::CHANNEL_EMAIL,
+                'recipient' => $candidate->email,
+                'recipient_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
+                'subject' => $rendered['subject'],
+                'body' => $rendered['body'],
+                'template_id' => 'interview_invitation',
+                'related_type' => 'interview',
+                'related_id' => $interview->id,
+                'status' => MessageOutbox::STATUS_PENDING,
+                'priority' => 10, // High priority
+                'metadata' => [
+                    'candidate_id' => $candidate->id,
+                    'job_id' => $job->id,
+                    'interview_url' => $interview->getInterviewUrl(),
+                ],
+            ]);
+
+            // Process immediately (async via queue in production)
+            ProcessOutboxMessagesJob::dispatch(1);
+
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to send interview invitation email', [
+                'interview_id' => $interview->id,
+                'candidate_id' => $candidate->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function showPublic(string $token): JsonResponse
