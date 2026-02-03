@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCompanyController;
 use App\Http\Controllers\Api\ApplyController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
@@ -298,6 +299,15 @@ Route::prefix('v1')->group(function () {
         Route::prefix('platform')->group(function () {
             Route::get('/ai-costs', [AssessmentController::class, 'costStats']);
             Route::get('/usage-stats', [AssessmentController::class, 'dashboardStats']);
+        });
+
+        // ===========================================
+        // ADMIN COMPANY MANAGEMENT - Subscription admin
+        // ===========================================
+        Route::prefix('admin/companies')->group(function () {
+            Route::get('/', [AdminCompanyController::class, 'index']);
+            Route::get('/{id}', [AdminCompanyController::class, 'show']);
+            Route::patch('/{id}/subscription', [AdminCompanyController::class, 'updateSubscription']);
         });
 
     }); // End of platform.admin middleware group

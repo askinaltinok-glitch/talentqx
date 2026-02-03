@@ -20,6 +20,8 @@ import PublicApply from './pages/PublicApply';
 // Sales Console Pages
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
+// Admin Pages
+import { AdminCompanies } from './pages/admin';
 // Marketplace Pages
 import { MarketplaceCandidates, MarketplaceMyRequests, MarketplaceCandidateFullProfile } from './pages/marketplace';
 import PublicMarketplaceAccess from './pages/PublicMarketplaceAccess';
@@ -28,6 +30,8 @@ import { PublicNotFound, AppNotFound } from './pages/NotFound';
 import Unauthorized from './pages/Unauthorized';
 // Public Privacy Page
 import PublicPrivacy from './pages/PublicPrivacy';
+// Contact Redirect
+import ContactRedirect from './pages/ContactRedirect';
 
 // Components
 import Layout from './components/Layout';
@@ -62,6 +66,9 @@ function App() {
         {/* Public Privacy/KVKK Route (no auth required) */}
         <Route path="/privacy" element={<PublicPrivacy />} />
 
+        {/* Public Contact Route (redirects to demo section) */}
+        <Route path="/contact" element={<ContactRedirect />} />
+
         {/* Public Marketplace Access Route (token-based, no auth required) */}
         <Route path="/marketplace-access/:token" element={<PublicMarketplaceAccess />} />
 
@@ -72,6 +79,7 @@ function App() {
             <Route index element={<LandingPage />} />
             <Route path="login" element={<Login />} />
             <Route path="privacy" element={<PublicPrivacy />} />
+            <Route path="contact" element={<ContactRedirect />} />
 
             {/* Protected Routes - HR Panel */}
             {/* CustomerRouteGuard enforces default-deny for non-platform users */}
@@ -107,6 +115,7 @@ function App() {
               <Route path="assessments" element={<AssessmentResults />} />
               <Route path="leads" element={<Leads />} />
               <Route path="leads/:id" element={<LeadDetail />} />
+              <Route path="admin/companies" element={<AdminCompanies />} />
 
               {/* 403 Unauthorized page - always accessible */}
               <Route path="unauthorized" element={<Unauthorized />} />

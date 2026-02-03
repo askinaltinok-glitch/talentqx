@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeftIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ShieldCheckIcon, MapPinIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
 interface PolicySection {
@@ -72,6 +72,13 @@ export default function PublicPrivacy() {
         GDPR: 'GDPR - Genel Veri Koruma Yönetmeliği',
         GLOBAL: 'Global Gizlilik Standartları',
       },
+      dataController: {
+        title: 'Veri Sorumlusu İletişim',
+        description: 'Kişisel verilerinizle ilgili talepleriniz için aşağıdaki iletişim bilgilerinden bize ulaşabilirsiniz:',
+        address: 'Adres',
+        phone: 'Telefon',
+        email: 'E-posta',
+      },
     },
     en: {
       backToHome: 'Back to Home',
@@ -82,6 +89,13 @@ export default function PublicPrivacy() {
         KVKK: 'KVKK - Turkish Data Protection Law',
         GDPR: 'GDPR - General Data Protection Regulation',
         GLOBAL: 'Global Privacy Standards',
+      },
+      dataController: {
+        title: 'Data Controller Contact',
+        description: 'For requests regarding your personal data, you can reach us through the following contact information:',
+        address: 'Address',
+        phone: 'Phone',
+        email: 'Email',
       },
     },
   };
@@ -175,6 +189,46 @@ export default function PublicPrivacy() {
                 </p>
               </section>
             ))}
+
+            {/* Data Controller Contact Section */}
+            <section className="prose prose-gray max-w-none pt-6 border-t border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                {t.dataController.title}
+              </h2>
+              <p className="text-gray-600 mb-4">
+                {t.dataController.description}
+              </p>
+              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <MapPinIcon className="h-5 w-5 text-primary-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-gray-700">{t.dataController.address}:</span>
+                    <p className="text-gray-600">
+                      Atatürk Mah. Ertuğrul Gazi Sok. Metropol İstanbul Sitesi,<br />
+                      Ataşehir / İstanbul / Türkiye
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <PhoneIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-gray-700">{t.dataController.phone}:</span>
+                    <a href="tel:+902164561144" className="text-gray-600 hover:text-primary-600 ml-1">
+                      +90 216 456 11 44
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <EnvelopeIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-gray-700">{t.dataController.email}:</span>
+                    <a href="mailto:info@talentqx.com" className="text-gray-600 hover:text-primary-600 ml-1">
+                      info@talentqx.com
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
           {/* Footer */}

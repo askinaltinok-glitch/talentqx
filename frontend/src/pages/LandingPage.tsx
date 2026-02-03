@@ -12,8 +12,9 @@ import {
   ClockIcon,
   UserGroupIcon,
   BuildingStorefrontIcon,
+  ShoppingBagIcon,
   TruckIcon,
-  CakeIcon,
+  Cog6ToothIcon,
   ChevronDownIcon,
   EnvelopeIcon,
   PhoneIcon,
@@ -80,34 +81,44 @@ export default function LandingPage() {
     { number: '4', titleKey: 'howItWorks.steps.4.title', descKey: 'howItWorks.steps.4.description' },
   ];
 
-  // Target audiences
-  const audiences = [
+  // Usage areas (2x2 grid with bullet points)
+  // Icons: Heroicons outline - enterprise SaaS style
+  const usageAreas = [
     {
+      key: 'franchise',
       titleKey: 'forWho.audiences.franchise.title',
       descKey: 'forWho.audiences.franchise.description',
-      icon: BuildingStorefrontIcon,
-      color: 'bg-purple-50 border-purple-200',
+      bulletsKey: 'forWho.audiences.franchise.bullets',
+      icon: BuildingStorefrontIcon, // Store / Storefront
+      color: 'bg-purple-50 border-purple-200 hover:border-purple-300',
       iconColor: 'text-purple-600',
     },
     {
+      key: 'chain',
       titleKey: 'forWho.audiences.chain.title',
       descKey: 'forWho.audiences.chain.description',
-      icon: UserGroupIcon,
-      color: 'bg-blue-50 border-blue-200',
+      bulletsKey: 'forWho.audiences.chain.bullets',
+      icon: ShoppingBagIcon, // Shopping Bag for Retail
+      color: 'bg-blue-50 border-blue-200 hover:border-blue-300',
       iconColor: 'text-blue-600',
     },
     {
+      key: 'production',
       titleKey: 'forWho.audiences.production.title',
       descKey: 'forWho.audiences.production.description',
-      icon: CakeIcon,
-      color: 'bg-pink-50 border-pink-200',
-      iconColor: 'text-pink-600',
+      bulletsKey: 'forWho.audiences.production.bullets',
+      noteKey: 'forWho.audiences.production.note',
+      icon: Cog6ToothIcon, // Cog for Manufacturing/Factory
+      color: 'bg-amber-50 border-amber-200 hover:border-amber-300',
+      iconColor: 'text-amber-600',
     },
     {
+      key: 'logistics',
       titleKey: 'forWho.audiences.logistics.title',
       descKey: 'forWho.audiences.logistics.description',
-      icon: TruckIcon,
-      color: 'bg-green-50 border-green-200',
+      bulletsKey: 'forWho.audiences.logistics.bullets',
+      icon: TruckIcon, // Truck for Logistics
+      color: 'bg-green-50 border-green-200 hover:border-green-300',
       iconColor: 'text-green-600',
     },
   ];
@@ -370,23 +381,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. FOR WHO */}
+      {/* 4. USAGE AREAS (Kullanım Alanları) */}
       <section id="for-who" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               {t('forWho.title')}
             </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              {t('forWho.subtitle')}
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {audiences.map((audience, index) => (
-              <div key={index} className={`p-6 rounded-xl border-2 ${audience.color} hover:shadow-lg transition-shadow`}>
-                <audience.icon className={`h-12 w-12 ${audience.iconColor} mb-4`} />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t(audience.titleKey)}</h3>
-                <p className="text-gray-600">{t(audience.descKey)}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {usageAreas.map((area) => {
+              const bullets = t(area.bulletsKey, { returnObjects: true }) as string[];
+              const note = area.noteKey ? t(area.noteKey) : null;
+              return (
+                <div key={area.key} className={`p-8 rounded-2xl border-2 ${area.color} transition-all hover:shadow-lg`}>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`p-3 rounded-xl ${area.iconColor} bg-white shadow-sm`}>
+                      <area.icon className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{t(area.titleKey)}</h3>
+                      <p className="text-gray-600 mt-1">{t(area.descKey)}</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 ml-1">
+                    {Array.isArray(bullets) && bullets.map((bullet, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-gray-700">
+                        <CheckCircleIcon className={`h-5 w-5 ${area.iconColor} flex-shrink-0 mt-0.5`} />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {note && (
+                    <p className="mt-4 text-sm text-gray-500 italic border-t border-gray-200 pt-4">
+                      {note}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -780,7 +817,7 @@ export default function LandingPage() {
       {/* 13. FOOTER */}
       <footer className="py-16 bg-gray-900 text-gray-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
+          <div className="grid md:grid-cols-5 gap-8 mb-12">
             <div>
               <span className="text-2xl font-bold text-white">Talent<span className="text-primary-400">QX</span></span>
               <p className="mt-4 text-sm">
@@ -812,9 +849,26 @@ export default function LandingPage() {
               <h4 className="font-semibold text-white mb-4">{t('footer.legal')}</h4>
               <ul className="space-y-2 text-sm">
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.about')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.privacy')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.privacyPolicy')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.legalItems.contact')}</a></li>
+                <li><Link to={localizedPath('/privacy')} className="hover:text-white transition-colors">{t('footer.legalItems.privacy')}</Link></li>
+                <li><Link to={localizedPath('/privacy')} className="hover:text-white transition-colors">{t('footer.legalItems.privacyPolicy')}</Link></li>
+                <li><a href="#demo" className="hover:text-white transition-colors">{t('footer.legalItems.contact')}</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">{t('footer.contact')}</h4>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <BuildingOfficeIcon className="h-5 w-5 text-primary-400 flex-shrink-0 mt-0.5" />
+                  <span>Atatürk Mah. Ertuğrul Gazi Sok. Metropol İstanbul Sitesi, Ataşehir / İstanbul / Türkiye</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <PhoneIcon className="h-5 w-5 text-primary-400 flex-shrink-0" />
+                  <a href="tel:+902164561144" className="hover:text-white transition-colors">+90 216 456 11 44</a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <EnvelopeIcon className="h-5 w-5 text-primary-400 flex-shrink-0" />
+                  <a href="mailto:info@talentqx.com" className="hover:text-white transition-colors">info@talentqx.com</a>
+                </li>
               </ul>
             </div>
           </div>

@@ -22,13 +22,27 @@ class Company extends Model
         'country',
         'subscription_plan',
         'subscription_ends_at',
+        'is_premium',
+        'grace_period_ends_at',
         'settings',
     ];
 
     protected $casts = [
         'settings' => 'array',
         'subscription_ends_at' => 'datetime',
+        'grace_period_ends_at' => 'datetime',
+        'is_premium' => 'boolean',
     ];
+
+    /**
+     * Valid subscription plans.
+     */
+    public const PLANS = ['free', 'starter', 'pro', 'enterprise'];
+
+    /**
+     * Default grace period in days after subscription expires.
+     */
+    public const DEFAULT_GRACE_PERIOD_DAYS = 60;
 
     public function users(): HasMany
     {
@@ -54,6 +68,67 @@ class Company extends Model
     {
         return $this->subscription_ends_at === null ||
                $this->subscription_ends_at->isFuture();
+    }
+
+    /**
+     * Check if company is in grace period.
+     * Grace period starts when subscription expires and ends at grace_period_ends_at.
+     */
+    public function isInGracePeriod(): bool
+    {
+        // Not in grace if subscription is active
+        if ($this->isSubscriptionActive()) {
+            return false;
+        }
+
+        // If no grace period set, calculate default (60 days after subscription end)
+        $graceEnd = $this->grace_period_ends_at
+            ?? $this->subscription_ends_at?->copy()->addDays(self::DEFAULT_GRACE_PERIOD_DAYS);
+
+        if (!$graceEnd) {
+            return false;
+        }
+
+        return $graceEnd->isFuture();
+    }
+
+    /**
+     * Get computed subscription status.
+     * Returns: active, grace_period, or expired
+     */
+    public function getSubscriptionStatus(): string
+    {
+        if ($this->isSubscriptionActive()) {
+            return 'active';
+        }
+
+        if ($this->isInGracePeriod()) {
+            return 'grace_period';
+        }
+
+        return 'expired';
+    }
+
+    /**
+     * Check if company has marketplace access.
+     * Requires: premium + active subscription (not grace period)
+     */
+    public function hasMarketplaceAccess(): bool
+    {
+        return $this->is_premium && $this->isSubscriptionActive();
+    }
+
+    /**
+     * Get computed status snapshot for API responses.
+     */
+    public function getComputedStatus(): array
+    {
+        return [
+            'status' => $this->getSubscriptionStatus(),
+            'is_active' => $this->isSubscriptionActive(),
+            'is_in_grace_period' => $this->isInGracePeriod(),
+            'has_marketplace_access' => $this->hasMarketplaceAccess(),
+        ];
     }
 
     /**

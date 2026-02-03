@@ -37,23 +37,45 @@
     "resultText": "Daha doğru kararlar. Daha güçlü ekipler."
   },
   "forWho": {
-    "title": "Kimler İçin?",
+    "title": "Kullanım Alanları",
+    "subtitle": "Farklı operasyon yapıları için, merkezden yönetilebilir ve ölçülebilir işe alım kararları.",
     "audiences": {
       "franchise": {
         "title": "Franchise Markalar",
-        "description": "Merkezden personel standardı, şube bazlı kalite kontrol."
+        "description": "Merkezden personel standardı, şube bazlı kalite kontrol.",
+        "bullets": [
+          "Tüm şubelerde aynı değerlendirme standardı",
+          "Personel kalitesinde tutarlılık",
+          "Şube bazlı performans ve risk görünürlüğü"
+        ]
       },
       "chain": {
         "title": "Zincir Mağazalar",
-        "description": "Tezgahtar, kasiyer ve mağaza yöneticileri için standart değerlendirme."
+        "description": "Tezgahtar, kasiyer ve mağaza yöneticileri için standart değerlendirme.",
+        "bullets": [
+          "Operasyonel rollerde hızlı ve doğru ön eleme",
+          "Yoğun personel sirkülasyonunda karar desteği",
+          "Mağaza yöneticileri için net raporlama"
+        ]
       },
       "production": {
-        "title": "Üretim & Pastahane Tesisleri",
-        "description": "Hijyen, talimat uyumu ve kalite risklerini önceden görün."
+        "title": "Üretim Tesisleri",
+        "description": "Talimat uyumu, disiplin ve kalite risklerini önceden görün.",
+        "bullets": [
+          "Prosedürlere uyum ve iş disiplini göstergeleri",
+          "Kalite, güvenlik ve operasyonel risklerin erken tespiti",
+          "Üretim sürekliliğini destekleyen karar altyapısı"
+        ],
+        "note": "Kapsam örnekleri: Gıda üretimi, tekstil, otomotiv yan sanayi, paketleme ve montaj hatları"
       },
       "logistics": {
         "title": "Lojistik & Depo",
-        "description": "Şoför ve depo personelinde operasyonel riski azaltın."
+        "description": "Zaman baskısı altında çalışan ekipler için operasyonel uyum.",
+        "bullets": [
+          "Dikkat, disiplin ve süreklilik göstergeleri",
+          "Yoğun tempoda hata riskini azaltma",
+          "Depo ve sevkiyat operasyonları için uygunluk analizi"
+        ]
       }
     }
   },
@@ -208,6 +230,12 @@
       "privacy": "KVKK Aydınlatma Metni",
       "privacyPolicy": "Gizlilik Politikası",
       "contact": "İletişim"
+    },
+    "contact": "İletişim",
+    "contactInfo": {
+      "address": "Adres",
+      "phone": "Telefon",
+      "email": "E-posta"
     },
     "copyright": "© {{year}} TalentQX. Tüm hakları saklıdır."
   }

@@ -74,20 +74,38 @@ export default function PrivacyModal({
       });
   }, [isOpen, regime, locale]);
 
-  // Handle scroll tracking
-  const handleScroll = () => {
+  // Check if content needs scrolling and handle scroll tracking
+  const checkReadStatus = () => {
     if (!requireScrollToEnd || hasScrolledToEnd) return;
 
-    const content = contentRef.current;
-    if (!content) return;
+    const el = contentRef.current;
+    if (!el) return;
 
+    // If no scroll needed (content fits), auto-enable accept
+    const noScrollNeeded = el.scrollHeight <= el.clientHeight + 2;
+
+    // If scroll exists, check if user scrolled to bottom
     const scrolledToBottom =
-      content.scrollHeight - content.scrollTop <= content.clientHeight + 50;
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
 
-    if (scrolledToBottom) {
+    if (noScrollNeeded || scrolledToBottom) {
       setHasScrolledToEnd(true);
     }
   };
+
+  // Check read status when content loads and on resize
+  useEffect(() => {
+    if (!isOpen || !requireScrollToEnd || loading) return;
+
+    // Small delay to ensure content is rendered
+    const timer = setTimeout(checkReadStatus, 100);
+
+    window.addEventListener('resize', checkReadStatus);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkReadStatus);
+    };
+  }, [isOpen, requireScrollToEnd, loading, policy]);
 
   // Reset scroll state when modal closes
   useEffect(() => {
@@ -148,7 +166,7 @@ export default function PrivacyModal({
           {/* Content */}
           <div
             ref={contentRef}
-            onScroll={handleScroll}
+            onScroll={checkReadStatus}
             className="px-6 py-4 max-h-[60vh] overflow-y-auto"
           >
             {loading ? (

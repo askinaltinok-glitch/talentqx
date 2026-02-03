@@ -39,6 +39,9 @@ export const ROUTES = {
   LEADS: '/app/leads',
   LEAD_DETAIL: '/app/leads/:id',
 
+  // Admin routes (Platform Admin Only)
+  ADMIN_COMPANIES: '/app/admin/companies',
+
   // Error pages
   UNAUTHORIZED: '/app/unauthorized',
 } as const;
@@ -173,5 +176,8 @@ export const NAV_ITEMS = {
   ],
   sales: [
     { nameKey: 'nav.leads', href: ROUTES.LEADS, end: false },
+  ],
+  admin: [
+    { nameKey: 'nav.adminCompanies', href: ROUTES.ADMIN_COMPANIES, end: false },
   ],
 } as const;

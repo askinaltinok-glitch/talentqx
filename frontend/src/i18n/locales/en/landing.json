@@ -37,23 +37,45 @@
     "resultText": "Better decisions. Stronger teams."
   },
   "forWho": {
-    "title": "For Whom?",
+    "title": "Use Cases",
+    "subtitle": "Standardized, measurable hiring decisions for different operational structures.",
     "audiences": {
       "franchise": {
         "title": "Franchise Brands",
-        "description": "Central personnel standards, branch-based quality control."
+        "description": "Centralized talent standards with branch-level quality control.",
+        "bullets": [
+          "Consistent evaluation criteria across all branches",
+          "Standardized hiring quality at scale",
+          "Branch-level visibility into talent risks and performance"
+        ]
       },
       "chain": {
-        "title": "Chain Stores",
-        "description": "Standard assessment for salespeople, cashiers, and store managers."
+        "title": "Retail Chains",
+        "description": "Standardized assessment for sales staff, cashiers, and store managers.",
+        "bullets": [
+          "Fast and reliable pre-screening for operational roles",
+          "Decision support in high employee turnover environments",
+          "Clear reporting for store and regional managers"
+        ]
       },
       "production": {
-        "title": "Production & Bakery Facilities",
-        "description": "Preview hygiene, instruction compliance, and quality risks."
+        "title": "Manufacturing Facilities",
+        "description": "Identify compliance, discipline, and quality risks before hiring.",
+        "bullets": [
+          "Evaluation of procedural compliance and work discipline",
+          "Early detection of quality, safety, and operational risks",
+          "Hiring decisions that support production continuity"
+        ],
+        "note": "Sector examples: Food manufacturing, textile, automotive suppliers, packaging, assembly lines"
       },
       "logistics": {
-        "title": "Logistics & Warehouse",
-        "description": "Reduce operational risk with drivers and warehouse personnel."
+        "title": "Logistics & Warehousing",
+        "description": "Operational alignment for teams working under time pressure.",
+        "bullets": [
+          "Attention, discipline, and continuity indicators",
+          "Reduced error risk in high-tempo operations",
+          "Suitability assessment for warehouse and logistics roles"
+        ]
       }
     }
   },
@@ -208,6 +230,12 @@
       "privacy": "Privacy Notice",
       "privacyPolicy": "Privacy Policy",
       "contact": "Contact"
+    },
+    "contact": "Contact",
+    "contactInfo": {
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email"
     },
     "copyright": "© {{year}} TalentQX. All rights reserved."
   }
