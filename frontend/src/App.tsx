@@ -20,6 +20,9 @@ import PublicApply from './pages/PublicApply';
 // Sales Console Pages
 import Leads from './pages/Leads';
 import LeadDetail from './pages/LeadDetail';
+// Marketplace Pages
+import { MarketplaceCandidates, MarketplaceMyRequests, MarketplaceCandidateFullProfile } from './pages/marketplace';
+import PublicMarketplaceAccess from './pages/PublicMarketplaceAccess';
 // NotFound & Unauthorized Pages
 import { PublicNotFound, AppNotFound } from './pages/NotFound';
 import Unauthorized from './pages/Unauthorized';
@@ -31,6 +34,7 @@ import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
 import CustomerRouteGuard from './components/CustomerRouteGuard';
 import LanguageRedirect from './components/LanguageRedirect';
+import { SubscriptionProvider, ApiErrorHandler } from './components/subscription';
 
 // i18n
 import { SUPPORTED_LANGUAGES } from './i18n';
@@ -39,6 +43,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
+      <ApiErrorHandler />
       <Routes>
         {/* Root redirect - detect language and redirect */}
         <Route path="/" element={<LanguageRedirect />} />
@@ -57,6 +62,9 @@ function App() {
         {/* Public Privacy/KVKK Route (no auth required) */}
         <Route path="/privacy" element={<PublicPrivacy />} />
 
+        {/* Public Marketplace Access Route (token-based, no auth required) */}
+        <Route path="/marketplace-access/:token" element={<PublicMarketplaceAccess />} />
+
         {/* Language-prefixed routes */}
         {SUPPORTED_LANGUAGES.map((lang) => (
           <Route key={lang} path={`/${lang}`}>
@@ -71,9 +79,11 @@ function App() {
               path="app"
               element={
                 <RequireAuth>
-                  <CustomerRouteGuard>
-                    <Layout />
-                  </CustomerRouteGuard>
+                  <SubscriptionProvider>
+                    <CustomerRouteGuard>
+                      <Layout />
+                    </CustomerRouteGuard>
+                  </SubscriptionProvider>
                 </RequireAuth>
               }
             >
@@ -84,6 +94,11 @@ function App() {
               <Route path="candidates" element={<Candidates />} />
               <Route path="candidates/:id" element={<CandidateDetail />} />
               <Route path="interviews/:id" element={<InterviewDetail />} />
+
+              {/* Marketplace Routes (Premium only - access controlled by component) */}
+              <Route path="marketplace" element={<MarketplaceCandidates />} />
+              <Route path="marketplace/my-requests" element={<MarketplaceMyRequests />} />
+              <Route path="marketplace/candidates/:id" element={<MarketplaceCandidateFullProfile />} />
 
               {/* Platform Admin Only Routes */}
               {/* These are blocked by CustomerRouteGuard for company users */}

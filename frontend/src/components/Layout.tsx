@@ -13,13 +13,16 @@ import {
   ClipboardDocumentListIcon,
   ChartBarIcon,
   BellIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../stores/authStore';
+import { useSubscriptionStore } from '../stores/subscriptionStore';
 import { ROUTES, NAV_ITEMS, localizedPath, loginPath } from '../routes';
 import api from '../services/api';
 import type { FollowUpStats } from '../types';
 import clsx from 'clsx';
 import LanguageSwitcher from './LanguageSwitcher';
+import { SubscriptionBadge, GraceBanner } from './subscription';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   [ROUTES.DASHBOARD]: HomeIcon,
@@ -28,6 +31,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   [ROUTES.EMPLOYEES]: UserGroupIcon,
   [ROUTES.ASSESSMENTS]: ClipboardDocumentListIcon,
   [ROUTES.LEADS]: ChartBarIcon,
+  [ROUTES.MARKETPLACE]: GlobeAltIcon,
 };
 
 export default function Layout() {
@@ -35,7 +39,11 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [followUpCount, setFollowUpCount] = useState(0);
   const { user, logout } = useAuthStore();
+  const { hasMarketplaceAccess, state: subscriptionState } = useSubscriptionStore();
   const navigate = useNavigate();
+
+  // Check marketplace access
+  const showMarketplace = hasMarketplaceAccess();
 
   // Load follow-up count on mount and periodically (platform admin only)
   useEffect(() => {
@@ -107,6 +115,36 @@ export default function Layout() {
                 </NavLink>
               );
             })}
+            {/* Marketplace - Premium Only */}
+            {showMarketplace && (
+              <div className="pt-4 mt-4 border-t border-gray-200">
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {t('nav.marketplaceSection', 'Aday Havuzu')}
+                </p>
+                {NAV_ITEMS.marketplace.map((item) => {
+                  const Icon = iconMap[item.href] || GlobeAltIcon;
+                  return (
+                    <NavLink
+                      key={item.nameKey}
+                      to={localizedPath(item.href)}
+                      end={item.end}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        clsx(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                          isActive
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        )
+                      }
+                    >
+                      <Icon className="h-5 w-5" />
+                      {t(item.nameKey)}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
             {/* Workforce Assessment - Platform Admin Only */}
             {user?.is_platform_admin && (
               <div className="pt-4 mt-4 border-t border-gray-200">
@@ -174,8 +212,9 @@ export default function Layout() {
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
+          <div className="flex h-16 shrink-0 items-center justify-between">
             <span className="text-xl font-bold text-primary-600">TalentQX</span>
+            <SubscriptionBadge />
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -205,6 +244,38 @@ export default function Layout() {
                   })}
                 </ul>
               </li>
+              {/* Marketplace - Premium Only */}
+              {showMarketplace && (
+                <li>
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    {t('nav.marketplaceSection', 'Aday Havuzu')}
+                  </div>
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {NAV_ITEMS.marketplace.map((item) => {
+                      const Icon = iconMap[item.href] || GlobeAltIcon;
+                      return (
+                        <li key={item.nameKey}>
+                          <NavLink
+                            to={localizedPath(item.href)}
+                            end={item.end}
+                            className={({ isActive }) =>
+                              clsx(
+                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                                isActive
+                                  ? 'bg-primary-50 text-primary-700'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                              )
+                            }
+                          >
+                            <Icon className="h-5 w-5" />
+                            {t(item.nameKey)}
+                          </NavLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              )}
               {/* Workforce Assessment - Platform Admin Only */}
               {user?.is_platform_admin && (
                 <li>
@@ -328,6 +399,7 @@ export default function Layout() {
             <span className="text-lg font-bold text-primary-600">TalentQX</span>
           </div>
           <div className="flex items-center gap-2">
+            <SubscriptionBadge />
             <LanguageSwitcher variant="light" showFullName={false} />
             {/* Follow-up notification - Platform Admin Only */}
             {user?.is_platform_admin && (
@@ -346,6 +418,13 @@ export default function Layout() {
             )}
           </div>
         </div>
+
+        {/* Grace Period Banner */}
+        {subscriptionState === 'READ_ONLY_EXPORT' && (
+          <div className="sticky top-16 lg:top-0 z-30">
+            <GraceBanner />
+          </div>
+        )}
 
         <main className="p-4 lg:p-8">
           <Outlet />

@@ -932,3 +932,94 @@ export const ROLE_LABELS: Record<string, { tr: string; en: string }> = {
   production_supervisor: { tr: 'Üretim Şefi', en: 'Production Supervisor' },
   office_ops: { tr: 'Ofis Operasyon', en: 'Office Operations' },
 };
+
+// ===========================================
+// SUBSCRIPTION & MARKETPLACE TYPES
+// ===========================================
+
+export type SubscriptionStatusType = 'active' | 'grace_period' | 'expired';
+export type SubscriptionState = 'FULL' | 'READ_ONLY_EXPORT' | 'LOCKED';
+
+export interface SubscriptionStatus {
+  status: SubscriptionStatusType;
+  is_active: boolean;
+  is_in_grace_period: boolean;
+  is_premium: boolean;
+  subscription_plan?: string;
+  subscription_ends_at: string | null;
+  grace_period_ends_at: string | null;
+  has_marketplace_access: boolean;
+}
+
+export type MarketplaceAccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+
+export interface MarketplaceCandidate {
+  id: string;
+  status: CandidateStatus;
+  cv_match_score?: number;
+  source?: string;
+  created_at: string;
+  skills?: string[];
+  experience_years?: number;
+  education_level?: string;
+  job_title?: string;
+  job_location?: string;
+  overall_score?: number;
+  competency_scores?: Record<string, number>;
+  recommendation?: 'hire' | 'hold' | 'reject';
+  access_request_status?: MarketplaceAccessRequestStatus;
+  access_request_id?: string;
+}
+
+export interface MarketplaceCandidateFullProfile extends MarketplaceCandidate {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  cv_parsed_data?: Record<string, unknown>;
+  job?: {
+    id: string;
+    title: string;
+    location?: string;
+  };
+  latest_analysis?: {
+    overall_score: number;
+    competency_scores: Record<string, number>;
+    recommendation?: 'hire' | 'hold' | 'reject';
+    analyzed_at?: string;
+  };
+  access_granted_at?: string;
+}
+
+export interface MarketplaceAccessRequest {
+  id: string;
+  status: MarketplaceAccessRequestStatus;
+  request_message?: string;
+  response_message?: string;
+  created_at: string;
+  responded_at?: string;
+  token_expires_at: string;
+  candidate?: MarketplaceCandidate;
+}
+
+export interface MarketplaceAccessRequestDetail {
+  id: string;
+  status: MarketplaceAccessRequestStatus;
+  requesting_company: {
+    name: string;
+  };
+  requesting_user: {
+    name: string;
+    email: string;
+  };
+  request_message?: string;
+  created_at: string;
+  token_expires_at: string;
+  candidate?: MarketplaceCandidate;
+}
+
+export interface ExportResponse {
+  format: 'json' | 'pdf' | 'csv';
+  download_url?: string;
+  expires_at?: string;
+}

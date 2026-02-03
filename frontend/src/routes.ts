@@ -29,6 +29,12 @@ export const ROUTES = {
   ASSESSMENTS: '/app/assessments',
   ASSESSMENTS_COMPARE: '/app/assessments/compare',
 
+  // Marketplace routes (Premium only)
+  MARKETPLACE: '/app/marketplace',
+  MARKETPLACE_CANDIDATES: '/app/marketplace',
+  MARKETPLACE_MY_REQUESTS: '/app/marketplace/my-requests',
+  MARKETPLACE_CANDIDATE_DETAIL: '/app/marketplace/candidates/:id',
+
   // Sales Console routes (Platform Admin Only)
   LEADS: '/app/leads',
   LEAD_DETAIL: '/app/leads/:id',
@@ -102,6 +108,20 @@ export function leadDetailPath(id: string): string {
 }
 
 /**
+ * Generate marketplace candidate detail URL with language prefix
+ */
+export function marketplaceCandidateDetailPath(id: string): string {
+  return localizedPath(`/app/marketplace/candidates/${id}`);
+}
+
+/**
+ * Generate marketplace URL with language prefix
+ */
+export function marketplacePath(): string {
+  return localizedPath('/app/marketplace');
+}
+
+/**
  * Generate login URL with optional redirect and language prefix
  */
 export function loginPath(next?: string): string {
@@ -143,6 +163,9 @@ export const NAV_ITEMS = {
     { nameKey: 'nav.dashboard', href: ROUTES.DASHBOARD, end: true },
     { nameKey: 'nav.jobs', href: ROUTES.JOBS, end: false },
     { nameKey: 'nav.candidates', href: ROUTES.CANDIDATES, end: false },
+  ],
+  marketplace: [
+    { nameKey: 'nav.marketplace', href: ROUTES.MARKETPLACE, end: false },
   ],
   workforce: [
     { nameKey: 'nav.employees', href: ROUTES.EMPLOYEES, end: false },

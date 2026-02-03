@@ -31,6 +31,15 @@ class ApiService {
           localStorage.removeItem('token');
           window.location.href = ROUTES.LOGIN;
         }
+
+        // Call global API error handler if registered (for subscription errors, etc.)
+        const errorHandler = (
+          window as unknown as { __apiErrorHandler?: (error: unknown) => void }
+        ).__apiErrorHandler;
+        if (errorHandler) {
+          errorHandler(error);
+        }
+
         return Promise.reject(error);
       }
     );
