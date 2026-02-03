@@ -28,6 +28,9 @@ class RequireCustomerScope
 
         // Reports (protected endpoints for generating/viewing)
         'v1/reports',
+
+        // AI Copilot
+        'v1/copilot',
     ];
 
     /**
