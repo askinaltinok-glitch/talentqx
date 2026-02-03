@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Candidate extends Model
 {
@@ -17,10 +18,25 @@ class Candidate extends Model
     public const VISIBILITY_CUSTOMER_ONLY = 'customer_only';
     public const VISIBILITY_MARKETPLACE_ANONYMOUS = 'marketplace_anonymous';
 
+    /**
+     * Boot the model.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Candidate $candidate) {
+            if (empty($candidate->public_hash)) {
+                $candidate->public_hash = Str::random(32);
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'branch_id',
         'job_id',
+        'public_hash',
         'email',
         'phone',
         'first_name',
@@ -165,6 +181,7 @@ class Candidate extends Model
 
     /**
      * Get the anonymous profile for marketplace display (NO PII).
+     * Uses public_hash instead of actual ID for privacy.
      */
     public function getAnonymousProfile(): array
     {
@@ -172,7 +189,7 @@ class Candidate extends Model
         $cvData = $this->cv_parsed_data ?? [];
 
         return [
-            'id' => $this->id,
+            'id' => $this->public_hash, // Use public_hash for anonymity
             'status' => $this->status,
             'cv_match_score' => $this->cv_match_score,
             'source' => $this->source,
@@ -192,6 +209,22 @@ class Candidate extends Model
             'competency_scores' => $analysis?->competency_scores,
             'recommendation' => $analysis?->decision_snapshot['recommendation'] ?? null,
         ];
+    }
+
+    /**
+     * Find candidate by public_hash.
+     */
+    public static function findByPublicHash(string $publicHash): ?self
+    {
+        return static::where('public_hash', $publicHash)->first();
+    }
+
+    /**
+     * Find candidate by public_hash or fail.
+     */
+    public static function findByPublicHashOrFail(string $publicHash): self
+    {
+        return static::where('public_hash', $publicHash)->firstOrFail();
     }
 
     /**

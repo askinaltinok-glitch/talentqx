@@ -96,9 +96,9 @@ class MarketplaceController extends Controller
 
     /**
      * Request access to a candidate's full profile.
-     * POST /v1/marketplace/candidates/{id}/request-access
+     * POST /v1/marketplace/candidates/{publicHash}/request-access
      */
-    public function requestAccess(Request $request, string $id): JsonResponse
+    public function requestAccess(Request $request, string $publicHash): JsonResponse
     {
         $company = $request->user()->company;
 
@@ -115,7 +115,8 @@ class MarketplaceController extends Controller
 
         $candidate = Candidate::marketplaceVisible()
             ->where('company_id', '!=', $company->id)
-            ->findOrFail($id);
+            ->where('public_hash', $publicHash)
+            ->firstOrFail();
 
         // Check for existing pending request
         $existingRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
@@ -177,9 +178,9 @@ class MarketplaceController extends Controller
 
     /**
      * Get full profile of a candidate (requires approved access).
-     * GET /v1/marketplace/candidates/{id}/full-profile
+     * GET /v1/marketplace/candidates/{publicHash}/full-profile
      */
-    public function fullProfile(Request $request, string $id): JsonResponse
+    public function fullProfile(Request $request, string $publicHash): JsonResponse
     {
         $company = $request->user()->company;
 
@@ -196,8 +197,9 @@ class MarketplaceController extends Controller
 
         $candidate = Candidate::marketplaceVisible()
             ->where('company_id', '!=', $company->id)
+            ->where('public_hash', $publicHash)
             ->with(['job', 'latestInterview.analysis'])
-            ->findOrFail($id);
+            ->firstOrFail();
 
         // Check for approved access request
         $approvedRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
@@ -219,7 +221,7 @@ class MarketplaceController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'id' => $candidate->id,
+                'id' => $candidate->public_hash, // Use public_hash for consistency
                 'first_name' => $candidate->first_name,
                 'last_name' => $candidate->last_name,
                 'email' => $candidate->email,
@@ -254,7 +256,7 @@ class MarketplaceController extends Controller
         $company = $request->user()->company;
 
         $query = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-            ->with(['candidate:id,first_name,last_name,status,cv_match_score']);
+            ->with(['candidate:id,public_hash,first_name,last_name,status,cv_match_score,cv_parsed_data,job_id', 'candidate.job:id,title,location', 'candidate.latestInterview.analysis']);
 
         // Filter by status
         if ($request->has('status')) {
@@ -272,14 +274,14 @@ class MarketplaceController extends Controller
                 if ($req->isApproved()) {
                     // Show full info for approved
                     $candidateData = [
-                        'id' => $req->candidate->id,
+                        'id' => $req->candidate->public_hash, // Use public_hash
                         'first_name' => $req->candidate->first_name,
                         'last_name' => $req->candidate->last_name,
                         'status' => $req->candidate->status,
                         'cv_match_score' => $req->candidate->cv_match_score,
                     ];
                 } else {
-                    // Anonymous for pending/rejected
+                    // Anonymous for pending/rejected (already uses public_hash)
                     $candidateData = $req->candidate->getAnonymousProfile();
                 }
             }
