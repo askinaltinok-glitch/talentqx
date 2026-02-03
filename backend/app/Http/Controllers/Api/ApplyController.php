@@ -20,6 +20,10 @@ class ApplyController extends Controller
     /**
      * GET /api/v1/apply/{companySlug}/{branchSlug}/{roleCode}
      * Returns job post data for the apply page.
+     *
+     * NOTE: This is a PUBLIC route - NO subscription check.
+     * Public candidate applications must ALWAYS be allowed regardless of company subscription status.
+     * Subscription checks only apply to authenticated customer panel actions.
      */
     public function show(string $companySlug, string $branchSlug, string $roleCode): JsonResponse
     {
@@ -34,13 +38,8 @@ class ApplyController extends Controller
                 ], 404);
             }
 
-            // Check subscription
-            if (!$company->isSubscriptionActive()) {
-                return response()->json([
-                    'error' => 'subscription_expired',
-                    'message' => 'Bu şirketin aboneliği sona ermiş.',
-                ], 403);
-            }
+            // NO subscription check here - public applications are always allowed
+            // Company can receive applications even if subscription is expired
 
             // Find branch
             $branch = Branch::where('company_id', $company->id)
@@ -105,6 +104,10 @@ class ApplyController extends Controller
     /**
      * POST /api/v1/apply/{companySlug}/{branchSlug}/{roleCode}
      * Submit a job application.
+     *
+     * NOTE: This is a PUBLIC route - NO subscription check.
+     * Applications are stored normally even if company subscription is expired.
+     * This ensures candidates are never blocked from applying.
      */
     public function submit(Request $request, string $companySlug, string $branchSlug, string $roleCode): JsonResponse
     {
