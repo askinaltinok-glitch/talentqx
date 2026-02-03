@@ -12,10 +12,12 @@ use App\Models\InterviewResponse;
 use App\Models\MessageOutbox;
 use App\Models\ResponseSimilarity;
 use App\Services\AntiCheat\AntiCheatService;
+use App\Services\Calendar\IcsService;
 use App\Services\Email\EmailTemplateService;
 use App\Services\Interview\AnalysisEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class InterviewController extends Controller
@@ -71,7 +73,7 @@ class InterviewController extends Controller
     }
 
     /**
-     * Send interview invitation email to candidate.
+     * Send interview invitation email to candidate with ICS attachment.
      */
     private function sendInterviewInvitationEmail(Interview $interview, Candidate $candidate): bool
     {
@@ -81,6 +83,9 @@ class InterviewController extends Controller
             $company = $interview->job->company;
             $job = $interview->job;
             $branch = $interview->job->branch;
+            $locale = 'tr';
+            $interviewUrl = $interview->getInterviewUrl();
+            $durationMinutes = $job->interview_settings['max_duration_minutes'] ?? 30;
 
             $emailService = new EmailTemplateService();
             $rendered = $emailService->renderInterviewInvitation([
@@ -93,11 +98,25 @@ class InterviewController extends Controller
                     'first_name' => $candidate->first_name,
                     'last_name' => $candidate->last_name,
                 ],
-                'interview_url' => $interview->getInterviewUrl(),
+                'interview_url' => $interviewUrl,
                 'expires_at' => $interview->token_expires_at,
-                'duration_minutes' => $job->interview_settings['max_duration_minutes'] ?? 20,
-                'locale' => 'tr',
+                'duration_minutes' => $durationMinutes,
+                'locale' => $locale,
             ]);
+
+            // Generate ICS calendar attachment
+            $icsService = new IcsService();
+            $icsContent = $icsService->generateInterviewIcs([
+                'interview_id' => $interview->id,
+                'company_name' => $company->name,
+                'job_title' => $job->title ?? 'Position',
+                'interview_url' => $interviewUrl,
+                'start_time' => $interview->scheduled_at ?? now()->addHours(24),
+                'duration_minutes' => $durationMinutes,
+                'timezone' => $company->timezone ?? 'Europe/Istanbul',
+                'locale' => $locale,
+            ]);
+            $icsFilename = $icsService->getFilename($company->name, $locale);
 
             $outbox = MessageOutbox::create([
                 'company_id' => $company->id,
@@ -114,16 +133,32 @@ class InterviewController extends Controller
                 'metadata' => [
                     'candidate_id' => $candidate->id,
                     'job_id' => $job->id,
-                    'interview_url' => $interview->getInterviewUrl(),
+                    'interview_url' => $interviewUrl,
+                    'attachments' => [
+                        [
+                            'filename' => $icsFilename,
+                            'content' => base64_encode($icsContent),
+                            'mime_type' => 'text/calendar',
+                        ],
+                    ],
                 ],
             ]);
 
+            // Mark invitation sent
+            $interview->update(['invitation_sent_at' => now()]);
+
             // Process immediately (async via queue in production)
-            ProcessOutboxMessagesJob::dispatch(1);
+            ProcessOutboxMessagesJob::dispatch($outbox->id);
+
+            Log::info('Interview invitation email queued', [
+                'interview_id' => $interview->id,
+                'outbox_id' => $outbox->id,
+                'candidate_email' => $candidate->email,
+            ]);
 
             return true;
         } catch (\Exception $e) {
-            \Log::error('Failed to send interview invitation email', [
+            Log::error('Failed to send interview invitation email', [
                 'interview_id' => $interview->id,
                 'candidate_id' => $candidate->id,
                 'error' => $e->getMessage(),
@@ -308,6 +343,9 @@ class InterviewController extends Controller
 
         AnalyzeInterviewJob::dispatch($interview);
 
+        // Send completion email to candidate
+        $this->sendInterviewCompletionEmail($interview);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -317,6 +355,81 @@ class InterviewController extends Controller
                 'message' => 'Mulakatiniz basariyla tamamlandi. Tesekkur ederiz!',
             ],
         ]);
+    }
+
+    /**
+     * Send interview completion email to candidate.
+     * Triggered when interview is completed.
+     */
+    private function sendInterviewCompletionEmail(Interview $interview): bool
+    {
+        try {
+            $interview->load(['candidate', 'job', 'job.company']);
+
+            $candidate = $interview->candidate;
+            $company = $interview->job->company;
+            $job = $interview->job;
+
+            if (!$candidate || !$candidate->email) {
+                Log::warning('Cannot send completion email: no candidate email', [
+                    'interview_id' => $interview->id,
+                ]);
+                return false;
+            }
+
+            // Don't send if already sent
+            if ($interview->completion_email_sent_at) {
+                Log::info('Completion email already sent', ['interview_id' => $interview->id]);
+                return true;
+            }
+
+            $locale = 'tr';
+            $emailService = new EmailTemplateService();
+            $rendered = $emailService->renderInterviewCompleted([
+                'company' => $company,
+                'candidate' => $candidate,
+                'job' => $job,
+                'locale' => $locale,
+            ]);
+
+            $outbox = MessageOutbox::create([
+                'company_id' => $company->id,
+                'channel' => MessageOutbox::CHANNEL_EMAIL,
+                'recipient' => $candidate->email,
+                'recipient_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
+                'subject' => $rendered['subject'],
+                'body' => $rendered['body'],
+                'template_id' => 'interview_completed',
+                'related_type' => 'interview',
+                'related_id' => $interview->id,
+                'status' => MessageOutbox::STATUS_PENDING,
+                'priority' => 5, // Normal priority
+                'metadata' => [
+                    'candidate_id' => $candidate->id,
+                    'job_id' => $job->id,
+                ],
+            ]);
+
+            // Mark completion email sent
+            $interview->update(['completion_email_sent_at' => now()]);
+
+            // Process immediately
+            ProcessOutboxMessagesJob::dispatch($outbox->id);
+
+            Log::info('Interview completion email queued', [
+                'interview_id' => $interview->id,
+                'outbox_id' => $outbox->id,
+                'candidate_email' => $candidate->email,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send interview completion email', [
+                'interview_id' => $interview->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function show(Request $request, string $id): JsonResponse

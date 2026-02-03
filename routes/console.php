@@ -32,3 +32,31 @@ Schedule::command('kvkk:process-employee-retention')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/employee-retention.log'));
+
+// ===========================================
+// MESSAGE OUTBOX WORKER
+// ===========================================
+
+// Register outbox processing command
+Artisan::command('outbox:process {--batch=50}', function (int $batch = 50) {
+    dispatch(new \App\Jobs\ProcessOutboxMessagesJob($batch));
+    $this->info("Outbox processing job dispatched (batch size: {$batch})");
+})->purpose('Process pending outbox messages');
+
+// Process outbox messages (runs every minute)
+Schedule::command('outbox:process --batch=50')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/outbox.log'));
+
+// ===========================================
+// INTERVIEW REMINDERS
+// ===========================================
+
+// Send interview reminder emails (runs hourly)
+// Sends reminders for interviews expiring within 24 hours
+Schedule::command('interviews:send-reminders')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/interview-reminders.log'));

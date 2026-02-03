@@ -22,14 +22,36 @@ class ProcessOutboxMessagesJob implements ShouldQueue
     public int $backoff = 30;
 
     protected int $batchSize;
+    protected ?string $singleMessageId;
 
-    public function __construct(int $batchSize = 50)
+    /**
+     * @param int|string $batchSizeOrMessageId If string (UUID), process single message. If int, batch size.
+     */
+    public function __construct(int|string $batchSizeOrMessageId = 50)
     {
-        $this->batchSize = $batchSize;
+        if (is_string($batchSizeOrMessageId) && strlen($batchSizeOrMessageId) > 10) {
+            // UUID passed - process single message
+            $this->singleMessageId = $batchSizeOrMessageId;
+            $this->batchSize = 1;
+        } else {
+            $this->singleMessageId = null;
+            $this->batchSize = (int) $batchSizeOrMessageId;
+        }
     }
 
     public function handle(): void
     {
+        // Single message mode (immediate dispatch)
+        if ($this->singleMessageId) {
+            $message = MessageOutbox::find($this->singleMessageId);
+            if ($message && $message->status === 'pending') {
+                Log::info('Outbox: Processing single message', ['id' => $this->singleMessageId]);
+                $this->processMessage($message);
+            }
+            return;
+        }
+
+        // Batch mode
         $messages = MessageOutbox::readyToSend()
             ->limit($this->batchSize)
             ->get();
@@ -163,6 +185,7 @@ class ProcessOutboxMessagesJob implements ShouldQueue
     /**
      * Send Email via Laravel Mail with tenant branding.
      * NOTE: No reply-to header is set (noreply compatible).
+     * Supports .ics and other attachments via metadata.
      */
     protected function sendEmail(MessageOutbox $message): ?string
     {
@@ -179,11 +202,26 @@ class ProcessOutboxMessagesJob implements ShouldQueue
 
         $fromAddress = config('mail.from.address', 'noreply@talentqx.com');
 
+        // Extract attachments from metadata
+        $attachments = $message->metadata['attachments'] ?? [];
+
         // NOTE: No reply-to header set per spec (noreply compatible)
-        Mail::html($message->body, function (Message $mail) use ($message, $fromName, $fromAddress) {
+        Mail::html($message->body, function (Message $mail) use ($message, $fromName, $fromAddress, $attachments) {
             $mail->to($message->recipient, $message->recipient_name)
                  ->subject($message->subject)
                  ->from($fromAddress, $fromName);
+
+            // Add attachments (e.g., .ics calendar files)
+            foreach ($attachments as $attachment) {
+                $filename = $attachment['filename'] ?? 'attachment';
+                $content = base64_decode($attachment['content'] ?? '');
+                $mimeType = $attachment['mime_type'] ?? 'application/octet-stream';
+
+                if ($content) {
+                    $mail->attachData($content, $filename, ['mime' => $mimeType]);
+                }
+            }
+
             // No replyTo() - emails are noreply
         });
 
@@ -192,6 +230,7 @@ class ProcessOutboxMessagesJob implements ShouldQueue
             'subject' => $message->subject,
             'from_name' => $fromName,
             'from_address' => $fromAddress,
+            'attachments' => count($attachments),
         ]);
 
         return 'SMTP_' . now()->format('Ymd_His') . '_' . substr(md5($message->id), 0, 8);

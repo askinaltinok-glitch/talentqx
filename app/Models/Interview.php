@@ -28,6 +28,11 @@ class Interview extends Model
         'device_info',
         'ip_address',
         'browser_info',
+        // Email tracking
+        'invitation_sent_at',
+        'reminder_sent_at',
+        'completion_email_sent_at',
+        'scheduled_at',
     ];
 
     protected $casts = [
@@ -36,6 +41,11 @@ class Interview extends Model
         'completed_at' => 'datetime',
         'device_info' => 'array',
         'video_duration_seconds' => 'integer',
+        // Email tracking
+        'invitation_sent_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
+        'completion_email_sent_at' => 'datetime',
+        'scheduled_at' => 'datetime',
     ];
 
     protected $attributes = [

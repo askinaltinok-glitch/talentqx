@@ -149,6 +149,138 @@ class EmailTemplateService
     }
 
     /**
+     * Render interview reminder email (24 hours before).
+     *
+     * Short, clean copy:
+     * - Greet by first name
+     * - Remind interview is upcoming
+     * - Show company name
+     * - CTA button → interview link
+     * - Neutral, supportive tone
+     */
+    public function renderInterviewReminder(array $data): array
+    {
+        $company = $data['company'];
+        $candidate = $data['candidate'];
+        $interviewUrl = $data['interview_url'];
+        $expiresAt = $data['expires_at'] ?? null;
+        $locale = $data['locale'] ?? 'tr';
+
+        $companyName = $this->getCompanyName($company);
+        $firstName = is_object($candidate)
+            ? $candidate->first_name
+            : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
+
+        // Subject per spec: Reminder: Your Interview for {{company.legal_name}}
+        $subject = $locale === 'tr'
+            ? "Hatırlatma: {$companyName} Mülakatınız"
+            : "Reminder: Your Interview for {$companyName}";
+
+        $preheader = $locale === 'tr'
+            ? "{$firstName}, mülakatınız yaklaşıyor"
+            : "{$firstName}, your interview is coming up";
+
+        // Format expiry
+        $expiryInfo = '';
+        if ($expiresAt) {
+            $expiryDate = is_string($expiresAt) ? $expiresAt : $expiresAt->format('d.m.Y H:i');
+            $expiryInfo = $locale === 'tr'
+                ? "Son katılım: <strong>{$expiryDate}</strong>"
+                : "Deadline: <strong>{$expiryDate}</strong>";
+        }
+
+        $body = $this->buildEmailHtml([
+            'company' => $company,
+            'headline' => $locale === 'tr' ? 'Mülakat Hatırlatması' : 'Interview Reminder',
+            'headline_icon' => '⏰',
+            'greeting' => $locale === 'tr' ? "Merhaba {$firstName}," : "Hello {$firstName},",
+            'message' => $locale === 'tr'
+                ? "<strong>{$companyName}</strong> için online mülakatınız hâlâ sizi bekliyor. Mülakatı tamamlamak için aşağıdaki butona tıklayın."
+                : "Your online interview for <strong>{$companyName}</strong> is still waiting for you. Click the button below to complete your interview.",
+            'details' => [],
+            'cta_text' => $locale === 'tr' ? 'Mülakata Başla' : 'Start Interview',
+            'cta_url' => $interviewUrl,
+            'footer_note' => implode('<br>', array_filter([
+                $expiryInfo,
+                '',
+                $locale === 'tr'
+                    ? 'Sessiz bir ortamda, kamera ve mikrofon erişimi olan bir cihazdan katılmanızı öneririz.'
+                    : 'We recommend joining from a quiet environment with camera and microphone access.',
+            ])),
+            'locale' => $locale,
+            'preheader' => $preheader,
+        ]);
+
+        return [
+            'subject' => $subject,
+            'body' => $body,
+            'preheader' => $preheader,
+        ];
+    }
+
+    /**
+     * Render interview completion email.
+     *
+     * Purpose: Close the loop, reassure candidate
+     * - Thank candidate
+     * - Confirm interview completed successfully
+     * - State evaluation is in progress
+     * - No timelines promised
+     * - Neutral, professional, calm tone
+     */
+    public function renderInterviewCompleted(array $data): array
+    {
+        $company = $data['company'];
+        $candidate = $data['candidate'];
+        $job = $data['job'] ?? null;
+        $locale = $data['locale'] ?? 'tr';
+
+        $companyName = $this->getCompanyName($company);
+        $jobTitle = is_object($job) ? $job->title : ($job['title'] ?? '');
+        $firstName = is_object($candidate)
+            ? $candidate->first_name
+            : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
+
+        // Subject per spec
+        $subject = $locale === 'tr'
+            ? "Mülakatınız Tamamlandı – Teşekkürler"
+            : "Thank you for completing your interview";
+
+        $preheader = $locale === 'tr'
+            ? "{$firstName}, mülakatınız başarıyla alındı"
+            : "{$firstName}, your interview has been received";
+
+        $message = $locale === 'tr'
+            ? "<strong>{$companyName}</strong> için mülakatınızı başarıyla tamamladınız. Yanıtlarınız değerlendirme sürecine alınmıştır."
+            : "You have successfully completed your interview for <strong>{$companyName}</strong>. Your responses have been submitted for evaluation.";
+
+        $body = $this->buildEmailHtml([
+            'company' => $company,
+            'headline' => $locale === 'tr' ? 'Mülakat Tamamlandı' : 'Interview Completed',
+            'headline_icon' => '✓',
+            'greeting' => $locale === 'tr' ? "Merhaba {$firstName}," : "Hello {$firstName},",
+            'message' => $message,
+            'details' => array_filter([
+                ['label' => $locale === 'tr' ? 'Şirket' : 'Company', 'value' => $companyName],
+                $jobTitle ? ['label' => $locale === 'tr' ? 'Pozisyon' : 'Position', 'value' => $jobTitle] : null,
+            ]),
+            'cta_text' => null,
+            'cta_url' => null,
+            'footer_note' => $locale === 'tr'
+                ? 'Değerlendirme süreciyle ilgili herhangi bir işlem yapmanıza gerek yoktur. Gerektiğinde sizinle iletişime geçilecektir.'
+                : 'You don\'t need to take any action regarding the evaluation process. You will be contacted when needed.',
+            'locale' => $locale,
+            'preheader' => $preheader,
+        ]);
+
+        return [
+            'subject' => $subject,
+            'body' => $body,
+            'preheader' => $preheader,
+        ];
+    }
+
+    /**
      * Render password reset email.
      */
     public function renderPasswordReset(array $data): array
