@@ -4,6 +4,8 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import type { Interview } from '../types';
 import StatusBadge from '../components/StatusBadge';
+import { CopilotDrawer, CopilotButton } from '../components/copilot';
+import { useCopilotStore } from '../stores/copilotStore';
 import toast from 'react-hot-toast';
 
 export default function InterviewDetail() {
@@ -11,10 +13,18 @@ export default function InterviewDetail() {
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeResponse, setActiveResponse] = useState(0);
+  const { setContext } = useCopilotStore();
 
   useEffect(() => {
     if (id) loadInterview();
   }, [id]);
+
+  // Set Copilot context when interview is loaded
+  useEffect(() => {
+    if (id) {
+      setContext({ type: 'interview', id });
+    }
+  }, [id, setContext]);
 
   const loadInterview = async () => {
     try {
@@ -70,6 +80,11 @@ export default function InterviewDetail() {
             {interview.job.title}
           </p>
         </div>
+        <CopilotButton
+          context={{ type: 'interview', id: interview.id }}
+          variant="primary"
+          size="md"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -305,6 +320,9 @@ export default function InterviewDetail() {
           </div>
         </div>
       </div>
+
+      {/* Copilot Drawer */}
+      <CopilotDrawer />
     </div>
   );
 }

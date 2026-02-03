@@ -1023,3 +1023,111 @@ export interface ExportResponse {
   download_url?: string;
   expires_at?: string;
 }
+
+// ===========================================
+// COPILOT TYPES
+// ===========================================
+
+export type CopilotContextType = 'candidate' | 'interview' | 'job' | 'comparison';
+export type CopilotConfidence = 'low' | 'medium' | 'high';
+export type CopilotCategory = 'candidate_analysis' | 'comparison' | 'decision_guidance' | 'system_help' | 'unknown';
+
+export interface CopilotContext {
+  type: CopilotContextType;
+  id: string;
+}
+
+export interface CopilotStructuredResponse {
+  answer: string;
+  confidence: CopilotConfidence;
+  category: CopilotCategory;
+  bullets: string[];
+  risks: string[];
+  next_best_actions: string[];
+  needs_human: boolean;
+}
+
+export interface CopilotMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string | CopilotStructuredResponse;
+  guardrail_triggered?: boolean;
+  created_at: string;
+}
+
+export interface CopilotChatResponse {
+  success: boolean;
+  data?: {
+    conversation_id: string;
+    message_id: string;
+    response: CopilotStructuredResponse;
+    context_type: CopilotContextType | null;
+    guardrail_triggered: boolean;
+    guardrail_reason?: string;
+    metadata?: {
+      latency_ms: number;
+      tokens_used: number | null;
+    };
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+export interface CopilotContextPreview {
+  type: CopilotContextType;
+  id: string;
+  summary: string;
+  available_data: {
+    has_assessment: boolean;
+    has_interview: boolean;
+    has_cv_analysis: boolean;
+  };
+  preview: {
+    position?: string;
+    overall_score?: number;
+    risk_flags?: number;
+  };
+}
+
+export interface CopilotConversation {
+  id: string;
+  title: string | null;
+  context_type: CopilotContextType | null;
+  context_id: string | null;
+  last_message_at: string | null;
+  created_at: string;
+}
+
+export interface CopilotHistoryResponse {
+  success: boolean;
+  data: {
+    conversation_id?: string;
+    title?: string;
+    context_type?: CopilotContextType;
+    context_id?: string;
+    messages?: CopilotMessage[];
+    conversations?: CopilotConversation[];
+  };
+}
+
+export const COPILOT_CONFIDENCE_COLORS: Record<CopilotConfidence, string> = {
+  low: 'bg-red-100 text-red-800 border-red-200',
+  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  high: 'bg-green-100 text-green-800 border-green-200',
+};
+
+export const COPILOT_CONFIDENCE_LABELS: Record<CopilotConfidence, { tr: string; en: string }> = {
+  low: { tr: 'Düşük Güven', en: 'Low Confidence' },
+  medium: { tr: 'Orta Güven', en: 'Medium Confidence' },
+  high: { tr: 'Yüksek Güven', en: 'High Confidence' },
+};
+
+export const COPILOT_CATEGORY_LABELS: Record<CopilotCategory, { tr: string; en: string }> = {
+  candidate_analysis: { tr: 'Aday Analizi', en: 'Candidate Analysis' },
+  comparison: { tr: 'Karşılaştırma', en: 'Comparison' },
+  decision_guidance: { tr: 'Karar Desteği', en: 'Decision Guidance' },
+  system_help: { tr: 'Sistem Yardımı', en: 'System Help' },
+  unknown: { tr: 'Genel', en: 'General' },
+};

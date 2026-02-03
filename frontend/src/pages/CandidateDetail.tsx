@@ -6,16 +6,26 @@ import type { Candidate } from '../types';
 import StatusBadge from '../components/StatusBadge';
 import ScoreCircle from '../components/ScoreCircle';
 import RecommendationBadge from '../components/RecommendationBadge';
+import { CopilotDrawer, CopilotButton } from '../components/copilot';
+import { useCopilotStore } from '../stores/copilotStore';
 import toast from 'react-hot-toast';
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { setContext } = useCopilotStore();
 
   useEffect(() => {
     if (id) loadCandidate();
   }, [id]);
+
+  // Set Copilot context when candidate is loaded
+  useEffect(() => {
+    if (id) {
+      setContext({ type: 'candidate', id });
+    }
+  }, [id, setContext]);
 
   const loadCandidate = async () => {
     try {
@@ -70,15 +80,22 @@ export default function CandidateDetail() {
             {candidate.job.title} &bull; {candidate.email}
           </p>
         </div>
-        {(candidate as any).interview && (
-          <Link
-            to={`/interviews/${(candidate as any).interview.id}`}
-            className="btn-primary"
-          >
-            <PlayIcon className="h-5 w-5 mr-2" />
-            Mulakati Izle
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <CopilotButton
+            context={{ type: 'candidate', id: candidate.id }}
+            variant="primary"
+            size="md"
+          />
+          {(candidate as any).interview && (
+            <Link
+              to={`/interviews/${(candidate as any).interview.id}`}
+              className="btn-primary"
+            >
+              <PlayIcon className="h-5 w-5 mr-2" />
+              Mulakati Izle
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -292,6 +309,9 @@ export default function CandidateDetail() {
           </div>
         </div>
       </div>
+
+      {/* Copilot Drawer */}
+      <CopilotDrawer />
     </div>
   );
 }
