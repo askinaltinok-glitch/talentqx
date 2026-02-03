@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminCompanyController;
 use App\Http\Controllers\Api\ApplyController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordController;
@@ -117,6 +118,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
         });
         Route::post('/change-password', [PasswordController::class, 'changePassword']);
+
+        // Company subscription status (needed before customer.scope check)
+        Route::get('/company/subscription-status', [CompanyController::class, 'subscriptionStatus']);
 
         // Routes that require password to be changed first
         Route::middleware('force.password.change')->group(function () {

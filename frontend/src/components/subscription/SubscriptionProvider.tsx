@@ -10,16 +10,26 @@ interface SubscriptionProviderProps {
 /**
  * SubscriptionProvider fetches and caches subscription status
  * and renders locked page if subscription is expired (not in grace period)
+ * Platform admins bypass subscription checks entirely.
  */
 export default function SubscriptionProvider({ children }: SubscriptionProviderProps) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { state, isLoading, fetchStatus } = useSubscriptionStore();
 
+  // Platform admins bypass all subscription checks
+  const isPlatformAdmin = user?.is_platform_admin === true;
+
   useEffect(() => {
-    if (isAuthenticated) {
+    // Don't fetch subscription status for platform admins - they bypass everything
+    if (isAuthenticated && !isPlatformAdmin) {
       fetchStatus();
     }
-  }, [isAuthenticated, fetchStatus]);
+  }, [isAuthenticated, isPlatformAdmin, fetchStatus]);
+
+  // Platform admins always get through
+  if (isPlatformAdmin) {
+    return <>{children}</>;
+  }
 
   // Show loading state only on initial fetch
   if (isLoading && !state) {
