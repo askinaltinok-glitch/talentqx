@@ -6,10 +6,8 @@ use App\Models\CopilotConversation;
 use App\Models\CopilotMessage;
 use App\Models\User;
 use Exception;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class CopilotService
 {
@@ -24,8 +22,16 @@ class CopilotService
         private CopilotLogger $logger
     ) {
         $this->apiKey = config('services.openai.api_key');
-        $this->model = config('services.openai.model', 'gpt-4-turbo-preview');
+        $this->model = config('services.openai.model', 'gpt-4o');
         $this->timeout = config('services.openai.timeout', 120);
+    }
+
+    /**
+     * Check if Copilot is enabled.
+     */
+    public function isEnabled(): bool
+    {
+        return config('copilot.enabled', true) && !empty($this->apiKey);
     }
 
     /**
@@ -37,6 +43,16 @@ class CopilotService
         ?array $contextSpec = null,
         ?string $conversationId = null
     ): array {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'COPILOT_DISABLED',
+                    'message' => 'AI Copilot is not available.',
+                ],
+            ];
+        }
+
         $startTime = microtime(true);
 
         // Get or create conversation
@@ -46,8 +62,8 @@ class CopilotService
             $contextSpec
         );
 
-        // Log the request
-        $this->logger->logRequest($user, $conversation->id, $message, $contextSpec);
+        // Log the request (KVKK-safe: no message content)
+        $this->logger->logRequest($user, $conversation->id, $contextSpec);
 
         // Step 1: Validate input with guardrails
         $inputValidation = $this->guardrails->validateInput($message);
@@ -64,79 +80,83 @@ class CopilotService
         // Step 2: Classify intent
         $intent = $this->guardrails->classifyIntent($message);
 
-        // Step 3: Build context
+        // Step 3: Build KVKK-safe context (no PII)
         $context = $this->buildContextForRequest($user, $contextSpec);
 
-        // Log context access for audit
+        // Log context access for audit (type + id only, no PII)
         if ($contextSpec) {
             $this->logger->logContextAccess(
                 $user,
                 $conversation->id,
                 $contextSpec['type'],
-                $contextSpec['id'],
-                array_keys($context)
+                $contextSpec['id']
             );
         }
 
-        // Step 4: Build prompts
+        // Step 4: Build prompts (structured output enforced)
         $systemPrompt = $this->promptBuilder->buildSystemPrompt($context);
         $userPrompt = $this->promptBuilder->buildUserPrompt($message, $intent);
 
-        // Step 5: Get conversation history for context
-        $conversationHistory = $conversation->getHistoryForPrompt(10);
+        // Step 5: Get conversation history for context (limited, no PII)
+        $conversationHistory = $conversation->getHistoryForPrompt(6);
 
-        // Step 6: Build messages array
-        $messages = $this->promptBuilder->buildMessagesArray(
+        // Step 6: Build input array for Responses API
+        $input = $this->promptBuilder->buildInputArray(
             $systemPrompt,
             $conversationHistory,
             $userPrompt
         );
 
-        // Step 7: Save user message
-        $userMessage = CopilotMessage::createUserMessage(
+        // Step 7: Save user message (content stored for history)
+        CopilotMessage::createUserMessage(
             $conversation->id,
             $message,
-            $this->buildContextSnapshot($contextSpec, $context)
+            $this->buildContextSnapshot($contextSpec)
         );
 
         try {
-            // Step 8: Call OpenAI API
-            $response = $this->callOpenAI($messages);
+            // Step 8: Call OpenAI Responses API
+            $response = $this->callOpenAI($input);
 
-            // Step 9: Filter output
-            $filteredResponse = $this->guardrails->filterOutput($response['content']);
+            // Step 9: Parse structured JSON output
+            $parsedResponse = $this->parseStructuredResponse($response['content']);
 
-            // Step 10: Validate output
-            $outputValidation = $this->guardrails->validateOutput($filteredResponse);
+            // Step 10: Filter output with guardrails
+            $filteredAnswer = $this->guardrails->filterOutput($parsedResponse['answer']);
+            $parsedResponse['answer'] = $filteredAnswer;
+
+            // Step 11: Validate output
+            $outputValidation = $this->guardrails->validateOutput($filteredAnswer);
 
             if ($outputValidation->isBlocked()) {
-                // Regenerate with stricter instructions (rare case)
-                $filteredResponse = $this->handleBlockedOutput($context, $message);
+                $parsedResponse = $this->getFallbackResponse('Response filtered by guardrails.');
+                $parsedResponse['needs_human'] = true;
             }
 
-            // Step 11: Calculate latency and costs
+            // Step 12: Calculate latency and costs
             $latencyMs = (int) ((microtime(true) - $startTime) * 1000);
             $tokenUsage = $response['usage'] ?? [];
             $estimatedCost = $this->logger->calculateEstimatedCost(
-                $tokenUsage['prompt_tokens'] ?? 0,
-                $tokenUsage['completion_tokens'] ?? 0,
+                $tokenUsage['input_tokens'] ?? $tokenUsage['prompt_tokens'] ?? 0,
+                $tokenUsage['output_tokens'] ?? $tokenUsage['completion_tokens'] ?? 0,
                 $this->model
             );
 
-            // Step 12: Save assistant message
+            // Step 13: Save assistant message
             $metadata = [
                 'model' => $this->model,
-                'prompt_tokens' => $tokenUsage['prompt_tokens'] ?? null,
-                'completion_tokens' => $tokenUsage['completion_tokens'] ?? null,
+                'input_tokens' => $tokenUsage['input_tokens'] ?? $tokenUsage['prompt_tokens'] ?? null,
+                'output_tokens' => $tokenUsage['output_tokens'] ?? $tokenUsage['completion_tokens'] ?? null,
                 'total_tokens' => $tokenUsage['total_tokens'] ?? null,
                 'latency_ms' => $latencyMs,
                 'estimated_cost_usd' => $estimatedCost,
+                'structured' => true,
             ];
 
             $assistantMessage = CopilotMessage::createAssistantMessage(
                 $conversation->id,
-                $filteredResponse,
-                $this->buildContextSnapshot($contextSpec, $context),
+                json_encode($parsedResponse, JSON_UNESCAPED_UNICODE),
+                $this->buildContextSnapshot($contextSpec),
                 $metadata
             );
 
@@ -144,17 +164,16 @@ class CopilotService
             $conversation->touchLastMessage();
             $conversation->generateTitle();
 
-            // Log response
-            $this->logger->logResponse($conversation->id, $assistantMessage->id, $metadata);
-            $this->logger->logApiCost($conversation->id, $estimatedCost, $tokenUsage);
+            // Log response (no content, only metadata)
+            $this->logger->logResponse($conversation->id, $assistantMessage->id, $metadata, $intent);
 
             return [
                 'success' => true,
                 'data' => [
                     'conversation_id' => $conversation->id,
                     'message_id' => $assistantMessage->id,
-                    'response' => $filteredResponse,
-                    'context_used' => $this->buildContextSnapshot($contextSpec, $context),
+                    'response' => $parsedResponse,
+                    'context_type' => $contextSpec['type'] ?? null,
                     'guardrail_triggered' => false,
                     'metadata' => [
                         'latency_ms' => $latencyMs,
@@ -166,8 +185,7 @@ class CopilotService
             $this->logger->logError(
                 $conversation->id,
                 'api_error',
-                $e->getMessage(),
-                ['message_length' => strlen($message)]
+                $e->getMessage()
             );
 
             throw $e;
@@ -223,8 +241,7 @@ class CopilotService
                     'messages' => $messages->map(fn($m) => [
                         'id' => $m->id,
                         'role' => $m->role,
-                        'content' => $m->content,
-                        'context_used' => $m->context_snapshot,
+                        'content' => $m->role === 'assistant' ? json_decode($m->content, true) : $m->content,
                         'guardrail_triggered' => $m->guardrail_triggered,
                         'created_at' => $m->created_at->toIso8601String(),
                     ]),
@@ -291,7 +308,7 @@ class CopilotService
     }
 
     /**
-     * Build context for request.
+     * Build KVKK-safe context for request.
      */
     private function buildContextForRequest(User $user, ?array $contextSpec): array
     {
@@ -315,20 +332,30 @@ class CopilotService
         string $message,
         GuardrailResult $result
     ): array {
-        // Log the block
+        // Log the block (no message content)
         $this->logger->logGuardrailBlock(
             $user,
             $conversation->id,
-            $result->reason,
-            $message
+            $result->reason
         );
+
+        // Create structured blocked response
+        $blockedResponse = [
+            'answer' => $result->alternativeResponse,
+            'confidence' => 'high',
+            'category' => 'system_help',
+            'bullets' => [],
+            'risks' => [],
+            'next_best_actions' => ['Rephrase your question to focus on assessment data analysis.'],
+            'needs_human' => false,
+        ];
 
         // Save the blocked message
         $blockedMessage = CopilotMessage::createBlockedMessage(
             $conversation->id,
             CopilotMessage::ROLE_ASSISTANT,
             $message,
-            $result->alternativeResponse,
+            json_encode($blockedResponse, JSON_UNESCAPED_UNICODE),
             $result->reason
         );
 
@@ -339,8 +366,8 @@ class CopilotService
             'data' => [
                 'conversation_id' => $conversation->id,
                 'message_id' => $blockedMessage->id,
-                'response' => $result->alternativeResponse,
-                'context_used' => null,
+                'response' => $blockedResponse,
+                'context_type' => null,
                 'guardrail_triggered' => true,
                 'guardrail_reason' => $result->reason,
             ],
@@ -348,31 +375,9 @@ class CopilotService
     }
 
     /**
-     * Handle blocked output (regenerate with stricter prompt).
+     * Build context snapshot for message (no PII).
      */
-    private function handleBlockedOutput(array $context, string $originalMessage): string
-    {
-        // This should be rare - add extra instructions and regenerate
-        $systemPrompt = $this->promptBuilder->buildSystemPrompt($context);
-        $systemPrompt .= "\n\nIMPORTANT: Do NOT make any hiring decisions or recommendations. Only provide objective analysis of the data.";
-
-        $userPrompt = $this->promptBuilder->buildUserPrompt($originalMessage, 'general_question');
-        $userPrompt .= "\n\nRemember: Only provide analysis, not decisions.";
-
-        $messages = [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => $userPrompt],
-        ];
-
-        $response = $this->callOpenAI($messages);
-
-        return $this->guardrails->filterOutput($response['content']);
-    }
-
-    /**
-     * Build context snapshot for message.
-     */
-    private function buildContextSnapshot(?array $contextSpec, array $context): ?array
+    private function buildContextSnapshot(?array $contextSpec): ?array
     {
         if (!$contextSpec) {
             return null;
@@ -381,15 +386,155 @@ class CopilotService
         return [
             'type' => $contextSpec['type'],
             'id' => $contextSpec['id'],
-            'fields' => array_keys($context),
         ];
     }
 
     /**
-     * Call OpenAI API.
+     * Parse structured JSON response from model.
+     * Improved extraction: strips markdown fences and extra text before json_decode.
      */
-    private function callOpenAI(array $messages): array
+    private function parseStructuredResponse(string $content): array
     {
+        $content = trim($content);
+
+        // Step 1: Remove markdown code blocks (```json ... ``` or ``` ... ```)
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $content, $matches)) {
+            $content = trim($matches[1]);
+        }
+
+        // Step 2: Try to extract JSON object if there's extra text before/after
+        // Look for the first { and last } to extract JSON
+        $firstBrace = strpos($content, '{');
+        $lastBrace = strrpos($content, '}');
+
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $jsonCandidate = substr($content, $firstBrace, $lastBrace - $firstBrace + 1);
+
+            // Try to parse the extracted JSON
+            $decoded = json_decode($jsonCandidate, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $this->normalizeStructuredResponse($decoded);
+            }
+        }
+
+        // Step 3: Try parsing the whole content as-is
+        $decoded = json_decode($content, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $this->normalizeStructuredResponse($decoded);
+        }
+
+        // Fallback for non-JSON response
+        return $this->getFallbackResponse($content);
+    }
+
+    /**
+     * Normalize structured response to ensure all required fields.
+     */
+    private function normalizeStructuredResponse(array $data): array
+    {
+        return [
+            'answer' => $data['answer'] ?? '',
+            'confidence' => in_array($data['confidence'] ?? '', ['low', 'medium', 'high'])
+                ? $data['confidence']
+                : 'medium',
+            'category' => in_array($data['category'] ?? '', [
+                'candidate_analysis', 'comparison', 'decision_guidance', 'system_help', 'unknown'
+            ]) ? $data['category'] : 'unknown',
+            'bullets' => is_array($data['bullets'] ?? null) ? $data['bullets'] : [],
+            'risks' => is_array($data['risks'] ?? null) ? $data['risks'] : [],
+            'next_best_actions' => is_array($data['next_best_actions'] ?? null) ? $data['next_best_actions'] : [],
+            'needs_human' => (bool) ($data['needs_human'] ?? false),
+        ];
+    }
+
+    /**
+     * Get fallback response for non-JSON or failed parsing.
+     */
+    private function getFallbackResponse(string $rawText): array
+    {
+        return [
+            'answer' => $rawText,
+            'confidence' => 'low',
+            'category' => 'unknown',
+            'bullets' => [],
+            'risks' => [],
+            'next_best_actions' => [],
+            'needs_human' => true,
+        ];
+    }
+
+    /**
+     * Call OpenAI Responses API.
+     *
+     * @throws CopilotUnavailableException If API fails and fallback is disabled
+     */
+    private function callOpenAI(array $input): array
+    {
+        $payload = [
+            'model' => $this->model,
+            'input' => $input,
+        ];
+
+        // Add structured output instruction if enabled
+        if (config('copilot.structured_output', true)) {
+            $payload['text'] = [
+                'format' => [
+                    'type' => 'json_object',
+                ],
+            ];
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiKey,
+            'Content-Type' => 'application/json',
+        ])->timeout($this->timeout)->post('https://api.openai.com/v1/responses', $payload);
+
+        if (!$response->successful()) {
+            Log::error('OpenAI Copilot Responses API error', [
+                'status' => $response->status(),
+                'error' => $response->json('error.message') ?? $response->body(),
+            ]);
+
+            // Only fallback if explicitly allowed
+            if (config('copilot.allow_fallback', false)) {
+                return $this->callOpenAIChatCompletions($input);
+            }
+
+            // Fallback disabled - throw specific exception for 503 response
+            throw new CopilotUnavailableException('Copilot service temporarily unavailable');
+        }
+
+        $data = $response->json();
+
+        // Parse Responses API format
+        $content = $data['output_text']
+            ?? $data['output'][0]['content'][0]['text']
+            ?? $data['output'][0]['content']
+            ?? '';
+
+        return [
+            'content' => $content,
+            'usage' => $data['usage'] ?? [],
+            'model' => $data['model'] ?? $this->model,
+        ];
+    }
+
+    /**
+     * Fallback to Chat Completions API.
+     */
+    private function callOpenAIChatCompletions(array $input): array
+    {
+        // Convert input array to messages format
+        $messages = [];
+        foreach ($input as $item) {
+            $messages[] = [
+                'role' => $item['role'],
+                'content' => $item['content'],
+            ];
+        }
+
         $payload = [
             'model' => $this->model,
             'messages' => $messages,
@@ -397,15 +542,20 @@ class CopilotService
             'max_tokens' => 4096,
         ];
 
+        // Add JSON mode if structured output enabled
+        if (config('copilot.structured_output', true)) {
+            $payload['response_format'] = ['type' => 'json_object'];
+        }
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type' => 'application/json',
         ])->timeout($this->timeout)->post('https://api.openai.com/v1/chat/completions', $payload);
 
         if (!$response->successful()) {
-            Log::error('OpenAI Copilot error', [
+            Log::error('OpenAI Copilot Chat Completions error', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'error' => $response->json('error.message') ?? $response->body(),
             ]);
             throw new Exception('OpenAI API error: ' . $response->status());
         }

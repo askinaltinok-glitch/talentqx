@@ -7,28 +7,42 @@ use App\Models\Interview;
 use App\Models\Job;
 use Illuminate\Support\Collection;
 
+/**
+ * KVKK-Safe Context Builder
+ *
+ * IMPORTANT: This class builds context for the LLM.
+ * NO PII (names, emails, phones, addresses) should be included.
+ * Use anonymized labels like "Candidate ABC123" instead of real names.
+ */
 class CopilotContextBuilder
 {
     /**
-     * Build context data for a given entity type and ID.
+     * Build KVKK-safe context data for a given entity type and ID.
+     * Returns context with kvkk_safe=true to confirm no PII is included.
      */
     public function buildContext(string $type, string $id, string $companyId): array
     {
-        return match ($type) {
+        $context = match ($type) {
             'candidate' => $this->buildCandidateContext($id, $companyId),
             'interview' => $this->buildInterviewContext($id, $companyId),
             'job' => $this->buildJobContext($id, $companyId),
             'comparison' => $this->buildComparisonContext($id, $companyId),
             default => $this->buildEmptyContext($type),
         };
+
+        // Mark context as KVKK-safe (no PII) - this is sent to LLM
+        $context['kvkk_safe'] = true;
+
+        return $context;
     }
 
     /**
-     * Get a preview summary of context for an entity.
+     * Get a preview summary of context for an entity (UI display - can include name).
+     * Returns preview with ui_safe=true to confirm this is for display only, NOT for LLM.
      */
     public function getContextPreview(string $type, string $id, string $companyId): array
     {
-        return match ($type) {
+        $preview = match ($type) {
             'candidate' => $this->getCandidatePreview($id, $companyId),
             'interview' => $this->getInterviewPreview($id, $companyId),
             'job' => $this->getJobPreview($id, $companyId),
@@ -39,10 +53,32 @@ class CopilotContextBuilder
                 'available_data' => [],
             ],
         };
+
+        // Mark as UI-safe (may contain PII for display) - NOT for LLM
+        $preview['ui_safe'] = true;
+
+        return $preview;
     }
 
     /**
-     * Build full context for a candidate.
+     * Generate anonymized label for candidate (KVKK-safe).
+     */
+    private function getAnonymizedLabel(string $id): string
+    {
+        return 'Candidate ' . strtoupper(substr($id, 0, 6));
+    }
+
+    /**
+     * Check if transcripts should be included.
+     */
+    private function shouldIncludeTranscripts(): bool
+    {
+        return config('copilot.include_transcripts', false);
+    }
+
+    /**
+     * Build KVKK-safe context for a candidate.
+     * NO PII: No name, email, phone, address.
      */
     private function buildCandidateContext(string $id, string $companyId): array
     {
@@ -60,18 +96,19 @@ class CopilotContextBuilder
 
         $context = [
             'type' => 'candidate',
-            'id' => $candidate->id,
+            'entity_id' => $candidate->id,
+            'display_label' => $this->getAnonymizedLabel($candidate->id),
             'candidate' => [
                 'id' => $candidate->id,
-                'name' => $candidate->full_name,
+                'display_label' => $this->getAnonymizedLabel($candidate->id),
                 'status' => $candidate->status,
                 'applied_at' => $candidate->created_at?->toIso8601String(),
                 'source' => $candidate->source,
                 'tags' => $candidate->tags ?? [],
+                // NO: name, email, phone, address
             ],
             'position' => $this->buildPositionContext($candidate->job),
             'assessment' => null,
-            'interview_responses' => [],
             'risk_factors' => [],
             'available_data' => [
                 'has_cv' => !empty($candidate->cv_url),
@@ -81,11 +118,15 @@ class CopilotContextBuilder
             ],
         ];
 
-        // Add CV analysis if available
+        // Add CV analysis if available (no PII from CV)
         if (!empty($candidate->cv_parsed_data)) {
             $context['cv_analysis'] = [
                 'match_score' => $candidate->cv_match_score,
-                'parsed_data' => $candidate->cv_parsed_data,
+                // Only include non-PII data from CV
+                'skills' => $candidate->cv_parsed_data['skills'] ?? [],
+                'experience_years' => $candidate->cv_parsed_data['experience_years'] ?? null,
+                'education_level' => $candidate->cv_parsed_data['education_level'] ?? null,
+                // NO: name, email, phone, address from CV
             ];
         }
 
@@ -102,10 +143,12 @@ class CopilotContextBuilder
                 'duration_minutes' => $interview->getDurationInMinutes(),
             ];
 
-            // Add responses (questions and answers)
-            $context['interview_responses'] = $this->buildInterviewResponses($interview);
+            // Add responses ONLY if transcripts are enabled
+            if ($this->shouldIncludeTranscripts()) {
+                $context['interview_responses'] = $this->buildInterviewResponses($interview);
+            }
 
-            // Add assessment/analysis if available
+            // Add assessment/analysis if available (this is safe - derived data)
             if ($interview->analysis) {
                 $context['available_data']['has_assessment'] = true;
                 $context['assessment'] = $this->buildAssessmentContext($interview->analysis);
@@ -117,7 +160,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Build full context for an interview.
+     * Build KVKK-safe context for an interview.
      */
     private function buildInterviewContext(string $id, string $companyId): array
     {
@@ -134,13 +177,15 @@ class CopilotContextBuilder
             return $this->buildEmptyContext('interview');
         }
 
-        return [
+        $context = [
             'type' => 'interview',
-            'id' => $interview->id,
+            'entity_id' => $interview->id,
+            'display_label' => $this->getAnonymizedLabel($interview->candidate->id),
             'candidate' => [
                 'id' => $interview->candidate->id,
-                'name' => $interview->candidate->full_name,
+                'display_label' => $this->getAnonymizedLabel($interview->candidate->id),
                 'status' => $interview->candidate->status,
+                // NO: name, email, phone
             ],
             'position' => $this->buildPositionContext($interview->job),
             'interview' => [
@@ -149,7 +194,6 @@ class CopilotContextBuilder
                 'completed_at' => $interview->completed_at?->toIso8601String(),
                 'duration_minutes' => $interview->getDurationInMinutes(),
             ],
-            'interview_responses' => $this->buildInterviewResponses($interview),
             'assessment' => $interview->analysis ? $this->buildAssessmentContext($interview->analysis) : null,
             'risk_factors' => $interview->analysis ? $this->buildRiskFactors($interview->analysis) : [],
             'available_data' => [
@@ -158,10 +202,17 @@ class CopilotContextBuilder
                 'has_responses' => $interview->responses->isNotEmpty(),
             ],
         ];
+
+        // Add responses ONLY if transcripts are enabled
+        if ($this->shouldIncludeTranscripts()) {
+            $context['interview_responses'] = $this->buildInterviewResponses($interview);
+        }
+
+        return $context;
     }
 
     /**
-     * Build context for a job position.
+     * Build context for a job position (no PII here).
      */
     private function buildJobContext(string $id, string $companyId): array
     {
@@ -179,7 +230,7 @@ class CopilotContextBuilder
 
         return [
             'type' => 'job',
-            'id' => $job->id,
+            'entity_id' => $job->id,
             'position' => $this->buildPositionContext($job),
             'candidates_summary' => [
                 'total' => $job->candidates->count(),
@@ -195,8 +246,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Build comparison context for multiple candidates.
-     * The ID should be comma-separated candidate IDs.
+     * Build KVKK-safe comparison context for multiple candidates.
      */
     private function buildComparisonContext(string $ids, string $companyId): array
     {
@@ -220,7 +270,7 @@ class CopilotContextBuilder
 
             $comparisonData[] = [
                 'id' => $candidate->id,
-                'name' => $candidate->full_name,
+                'display_label' => $this->getAnonymizedLabel($candidate->id),
                 'status' => $candidate->status,
                 'overall_score' => $analysis?->overall_score,
                 'competency_scores' => $analysis?->competency_scores ?? [],
@@ -228,10 +278,10 @@ class CopilotContextBuilder
                 'cheating_risk_score' => $analysis?->cheating_risk_score,
                 'recommendation' => $analysis?->getRecommendation(),
                 'confidence' => $analysis?->getConfidencePercent(),
+                // NO: name, email, phone
             ];
         }
 
-        // Get the job from the first candidate for position context
         $job = $candidates->first()?->job;
 
         return [
@@ -247,7 +297,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Build position/job context.
+     * Build position/job context (no PII).
      */
     private function buildPositionContext(?Job $job): ?array
     {
@@ -269,14 +319,15 @@ class CopilotContextBuilder
     }
 
     /**
-     * Build interview responses context.
+     * Build interview responses context (only if transcripts enabled).
+     * Excludes transcript content by default.
      */
     private function buildInterviewResponses(Interview $interview): array
     {
         $responses = [];
 
         foreach ($interview->responses as $response) {
-            $responses[] = [
+            $responseData = [
                 'order' => $response->response_order,
                 'question' => [
                     'id' => $response->question?->id,
@@ -285,18 +336,24 @@ class CopilotContextBuilder
                     'competency' => $response->question?->competency_code,
                 ],
                 'answer' => [
-                    'transcript' => $response->transcript,
                     'duration_seconds' => $response->duration_seconds,
                     'confidence' => $response->transcript_confidence,
                 ],
             ];
+
+            // Only include transcript if explicitly enabled
+            if ($this->shouldIncludeTranscripts() && $response->transcript) {
+                $responseData['answer']['transcript'] = $response->transcript;
+            }
+
+            $responses[] = $responseData;
         }
 
         return $responses;
     }
 
     /**
-     * Build assessment context from analysis.
+     * Build assessment context from analysis (derived data, no PII).
      */
     private function buildAssessmentContext($analysis): array
     {
@@ -310,11 +367,13 @@ class CopilotContextBuilder
             'reasons' => $analysis->getReasons(),
             'suggested_questions' => $analysis->getSuggestedQuestions(),
             'analyzed_at' => $analysis->analyzed_at?->toIso8601String(),
+            'cheating_risk_score' => $analysis->cheating_risk_score,
+            'cheating_level' => $analysis->cheating_level,
         ];
     }
 
     /**
-     * Build risk factors from analysis.
+     * Build risk factors from analysis (derived data, no PII).
      */
     private function buildRiskFactors($analysis): array
     {
@@ -328,7 +387,7 @@ class CopilotContextBuilder
                     'category' => $flag['category'] ?? 'unknown',
                     'description' => $flag['description'] ?? '',
                     'severity' => $flag['severity'] ?? 'medium',
-                    'evidence' => $flag['evidence'] ?? '',
+                    // NO: evidence that might contain PII
                 ];
             }
         }
@@ -338,10 +397,9 @@ class CopilotContextBuilder
             $riskFactors[] = [
                 'type' => 'cheating_risk',
                 'category' => 'integrity',
-                'description' => 'Potential integrity concerns detected in responses',
+                'description' => 'Potential integrity concerns detected',
                 'severity' => $analysis->cheating_level,
                 'score' => $analysis->cheating_risk_score,
-                'flags' => $analysis->cheating_flags ?? [],
             ];
         }
 
@@ -364,7 +422,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Build summary of top candidates.
+     * Build KVKK-safe summary of top candidates.
      */
     private function buildTopCandidatesSummary(Collection $candidates): array
     {
@@ -373,17 +431,18 @@ class CopilotContextBuilder
             ->take(10)
             ->map(fn($c) => [
                 'id' => $c->id,
-                'name' => $c->full_name,
+                'display_label' => $this->getAnonymizedLabel($c->id),
                 'overall_score' => $c->latestInterview?->analysis?->overall_score,
                 'risk_flags' => $c->latestInterview?->analysis?->getRedFlagsCount() ?? 0,
                 'recommendation' => $c->latestInterview?->analysis?->getRecommendation(),
+                // NO: name
             ])
             ->values()
             ->toArray();
     }
 
     /**
-     * Get preview for a candidate.
+     * Get preview for a candidate (UI display - CAN include name for display).
      */
     private function getCandidatePreview(string $id, string $companyId): array
     {
@@ -402,6 +461,7 @@ class CopilotContextBuilder
 
         $analysis = $candidate->latestInterview?->analysis;
 
+        // Preview is for UI display, so name is OK here
         return [
             'type' => 'candidate',
             'id' => $candidate->id,
@@ -412,7 +472,7 @@ class CopilotContextBuilder
                 'has_cv_analysis' => !empty($candidate->cv_parsed_data),
             ],
             'preview' => [
-                'name' => $candidate->full_name,
+                'name' => $candidate->full_name, // OK for UI display
                 'position' => $candidate->job?->title,
                 'status' => $candidate->status,
                 'overall_score' => $analysis?->overall_score,
@@ -423,7 +483,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Get preview for an interview.
+     * Get preview for an interview (UI display).
      */
     private function getInterviewPreview(string $id, string $companyId): array
     {
@@ -449,7 +509,7 @@ class CopilotContextBuilder
                 'has_responses' => $interview->responses()->exists(),
             ],
             'preview' => [
-                'candidate_name' => $interview->candidate->full_name,
+                'candidate_name' => $interview->candidate->full_name, // OK for UI
                 'position' => $interview->job?->title,
                 'status' => $interview->status,
                 'overall_score' => $interview->analysis?->overall_score,
@@ -459,7 +519,7 @@ class CopilotContextBuilder
     }
 
     /**
-     * Get preview for a job.
+     * Get preview for a job (UI display).
      */
     private function getJobPreview(string $id, string $companyId): array
     {
@@ -499,7 +559,7 @@ class CopilotContextBuilder
     {
         return [
             'type' => $type,
-            'id' => null,
+            'entity_id' => null,
             'error' => 'Context not found or not accessible',
             'available_data' => [],
         ];

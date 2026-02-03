@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Copilot\CopilotService;
+use App\Services\Copilot\CopilotUnavailableException;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,20 @@ class CopilotController extends Controller
             );
 
             return response()->json($result);
+        } catch (CopilotUnavailableException $e) {
+            // Service unavailable - return 503
+            Log::warning('Copilot service unavailable', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'copilot_unavailable',
+                    'message' => 'AI Copilot is temporarily unavailable. Please try again later.',
+                ],
+            ], 503);
         } catch (Exception $e) {
             Log::error('Copilot chat error', [
                 'user_id' => $request->user()->id,

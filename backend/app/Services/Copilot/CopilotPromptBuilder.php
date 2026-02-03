@@ -5,16 +5,51 @@ namespace App\Services\Copilot;
 class CopilotPromptBuilder
 {
     /**
+     * JSON output schema for structured responses.
+     */
+    private const OUTPUT_SCHEMA = <<<'SCHEMA'
+{
+  "answer": "Your main response text (can include markdown formatting)",
+  "confidence": "low|medium|high",
+  "category": "candidate_analysis|comparison|decision_guidance|system_help|unknown",
+  "bullets": ["Key point 1", "Key point 2"],
+  "risks": ["Risk or concern 1", "Risk or concern 2"],
+  "next_best_actions": ["Suggested action 1", "Suggested action 2"],
+  "needs_human": false
+}
+SCHEMA;
+
+    /**
      * Build the system prompt for the copilot.
+     * Enforces structured JSON output format.
      */
     public function buildSystemPrompt(array $context): string
     {
         $contextJson = json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
+        $schema = self::OUTPUT_SCHEMA;
+
         return <<<PROMPT
 You are TalentQX Copilot, an AI assistant helping HR professionals analyze candidate assessments and make informed hiring decisions.
 
-CAPABILITIES:
+## STRICT OUTPUT FORMAT
+
+You MUST respond ONLY with valid JSON matching this exact schema:
+{$schema}
+
+Field requirements:
+- "answer": Required string. Your main response with analysis and insights. Can use markdown formatting.
+- "confidence": Required. Must be exactly one of: "low", "medium", "high"
+- "category": Required. Must be exactly one of: "candidate_analysis", "comparison", "decision_guidance", "system_help", "unknown"
+- "bullets": Required array of strings. Key points or summary items. Can be empty array [].
+- "risks": Required array of strings. Any risks or concerns identified. Can be empty array [].
+- "next_best_actions": Required array of strings. Recommended next steps. Can be empty array [].
+- "needs_human": Required boolean. Set true if human review/decision is needed.
+
+NEVER include any text outside the JSON object. NEVER use markdown code blocks around the JSON.
+
+## CAPABILITIES
+
 - Analyze assessment results and competency scores
 - Summarize risk indicators and red flags
 - Compare candidates based on objective criteria
@@ -23,7 +58,8 @@ CAPABILITIES:
 - Interpret scores and explain what they mean
 - Identify training and development needs
 
-LIMITATIONS (NEVER DO):
+## LIMITATIONS (NEVER DO)
+
 - Make hiring/rejection decisions - always defer to the HR professional
 - Provide salary recommendations or compensation advice
 - Give legal advice or interpret employment law
@@ -31,29 +67,35 @@ LIMITATIONS (NEVER DO):
 - Make judgments based on protected characteristics (age, gender, ethnicity, religion, etc.)
 - Access or reference data not provided in the context
 
-RESPONSE STYLE:
+## RESPONSE GUIDELINES
+
 - Be concise and professional
-- Use bullet points and tables for clarity when appropriate
+- Use bullet points and tables in the "answer" field for clarity
 - Cite specific data points and scores when available
 - Acknowledge uncertainty when data is incomplete
 - Always defer final decisions to the HR professional
-- Use markdown formatting for readability
 - When discussing risk factors, maintain objectivity and avoid alarmist language
+- Set "needs_human": true for any decision that requires HR judgment
 
-SCORING GUIDELINES:
+## SCORING GUIDELINES
+
 - Scores are typically on a 0-100 scale
 - 70+ is generally considered meeting threshold for most positions
 - 85+ indicates high performer potential
 - Below 50 suggests significant gaps requiring attention
 - Red flags should be verified through follow-up questions, not used as disqualifiers alone
 
-CONTEXT DATA:
+## CONTEXT DATA (KVKK-Safe, No PII)
+
+The following context contains anonymized data. Candidate names, emails, and other personal identifiers have been removed for privacy compliance.
+
 {$contextJson}
 PROMPT;
     }
 
     /**
      * Build the user prompt with the message and additional instructions.
+     * Reinforces JSON output requirement.
      */
     public function buildUserPrompt(string $message, string $intent): string
     {
@@ -66,12 +108,45 @@ Based on the context data provided, please help with the following:
 
 {$instructions}
 
-Remember to:
+Guidelines:
 - Only use data from the provided context
 - Be specific with scores and metrics when available
 - Highlight both strengths and concerns objectively
 - Do not make the final hiring decision - that's for the HR professional
+
+IMPORTANT: Respond with valid JSON only, following the exact schema from the system prompt.
 PROMPT;
+    }
+
+    /**
+     * Build input array for OpenAI Responses API.
+     * This format is used by the /v1/responses endpoint.
+     */
+    public function buildInputArray(
+        string $systemPrompt,
+        array $conversationHistory,
+        string $userMessage
+    ): array {
+        $input = [
+            ['role' => 'system', 'content' => $systemPrompt],
+        ];
+
+        // Add conversation history (limit to last 6 messages for context window)
+        $recentHistory = array_slice($conversationHistory, -6);
+        foreach ($recentHistory as $msg) {
+            $input[] = [
+                'role' => $msg['role'],
+                'content' => $msg['content'],
+            ];
+        }
+
+        // Add current user message
+        $input[] = [
+            'role' => 'user',
+            'content' => $userMessage,
+        ];
+
+        return $input;
     }
 
     /**
