@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Company extends Model
 {
     use HasFactory, HasUuids;
+
+    /**
+     * Grace period duration in days after subscription expires.
+     */
+    public const GRACE_PERIOD_DAYS = 60;
 
     protected $fillable = [
         'name',
@@ -22,12 +28,16 @@ class Company extends Model
         'country',
         'subscription_plan',
         'subscription_ends_at',
+        'is_premium',
+        'grace_period_ends_at',
         'settings',
     ];
 
     protected $casts = [
         'settings' => 'array',
         'subscription_ends_at' => 'datetime',
+        'is_premium' => 'boolean',
+        'grace_period_ends_at' => 'datetime',
     ];
 
     public function users(): HasMany
@@ -54,6 +64,81 @@ class Company extends Model
     {
         return $this->subscription_ends_at === null ||
                $this->subscription_ends_at->isFuture();
+    }
+
+    /**
+     * Check if the company is in grace period (subscription expired but within 60 days).
+     */
+    public function isInGracePeriod(): bool
+    {
+        // If subscription is active, not in grace period
+        if ($this->isSubscriptionActive()) {
+            return false;
+        }
+
+        // If grace_period_ends_at is set, check against it
+        if ($this->grace_period_ends_at) {
+            return $this->grace_period_ends_at->isFuture();
+        }
+
+        // Otherwise, calculate based on subscription_ends_at + 60 days
+        if ($this->subscription_ends_at) {
+            return $this->subscription_ends_at->addDays(self::GRACE_PERIOD_DAYS)->isFuture();
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the grace period end date.
+     */
+    public function getGracePeriodEndDate(): ?Carbon
+    {
+        if ($this->grace_period_ends_at) {
+            return $this->grace_period_ends_at;
+        }
+
+        if ($this->subscription_ends_at) {
+            return $this->subscription_ends_at->copy()->addDays(self::GRACE_PERIOD_DAYS);
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if the company has marketplace access (requires premium subscription).
+     */
+    public function hasMarketplaceAccess(): bool
+    {
+        return $this->is_premium && $this->isSubscriptionActive();
+    }
+
+    /**
+     * Get the comprehensive subscription status.
+     */
+    public function getSubscriptionStatus(): array
+    {
+        $isActive = $this->isSubscriptionActive();
+        $isInGrace = $this->isInGracePeriod();
+
+        if ($isActive) {
+            $status = 'active';
+        } elseif ($isInGrace) {
+            $status = 'grace_period';
+        } else {
+            $status = 'expired';
+        }
+
+        return [
+            'status' => $status,
+            'is_active' => $isActive,
+            'is_in_grace_period' => $isInGrace,
+            'is_premium' => $this->is_premium,
+            'subscription_plan' => $this->subscription_plan,
+            'subscription_ends_at' => $this->subscription_ends_at?->toIso8601String(),
+            'grace_period_ends_at' => $this->getGracePeriodEndDate()?->toIso8601String(),
+            'has_marketplace_access' => $this->hasMarketplaceAccess(),
+        ];
     }
 
     /**

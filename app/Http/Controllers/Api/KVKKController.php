@@ -113,6 +113,21 @@ class KVKKController extends Controller
             ]);
         }
 
+        if ($format === 'csv') {
+            $filename = $this->exportService->exportAsCsv($candidate);
+            $url = Storage::disk('local')->url($filename);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'format' => 'csv',
+                    'download_url' => $url,
+                    'expires_at' => now()->addHours(24)->toIso8601String(),
+                ],
+                'message' => 'CSV raporu olusturuldu.',
+            ]);
+        }
+
         $data = $this->exportService->exportAsJson($candidate);
 
         return response()->json([

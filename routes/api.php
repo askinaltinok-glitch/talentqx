@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\ApplyController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
@@ -12,6 +14,8 @@ use App\Http\Controllers\Api\JobController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\KVKKController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\MarketplaceController;
+use App\Http\Controllers\Api\MarketplaceAccessController;
 use App\Http\Controllers\Api\PositionTemplateController;
 use App\Http\Controllers\Api\PrivacyController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +35,13 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
     });
+
+    // Password management (public)
+    Route::post('/forgot-password', [PasswordController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1'); // 5 requests per minute
+    Route::post('/verify-reset-token', [PasswordController::class, 'verifyResetToken']);
+    Route::post('/reset-password', [PasswordController::class, 'resetPassword'])
+        ->middleware('throttle:10,1'); // 10 requests per minute
 
     // Public interview routes (token-based)
     Route::prefix('interviews/public')->group(function () {
@@ -67,6 +78,17 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
+    // PUBLIC APPLY ROUTES (QR Code Landing)
+    // ===========================================
+    Route::prefix('apply')->group(function () {
+        // GET job info for apply page
+        Route::get('/{companySlug}/{branchSlug}/{roleCode}', [ApplyController::class, 'show']);
+        // POST submit application
+        Route::post('/{companySlug}/{branchSlug}/{roleCode}', [ApplyController::class, 'submit'])
+            ->middleware('throttle:10,1'); // Rate limit: 10 requests per minute
+    });
+
+    // ===========================================
     // INTERVIEW SESSION ROUTES (Public, token-less)
     // ===========================================
     Route::prefix('interview-sessions')->group(function () {
@@ -85,14 +107,29 @@ Route::prefix('v1')->group(function () {
         Route::get('/{reportId}/status', [ReportController::class, 'status']);
     });
 
-    // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
-
-    // Auth
-    Route::prefix('auth')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [AuthController::class, 'me']);
+    // ===========================================
+    // PUBLIC MARKETPLACE ACCESS ROUTES (Token-based)
+    // ===========================================
+    Route::prefix('marketplace-access')->group(function () {
+        Route::get('/{token}', [MarketplaceAccessController::class, 'show']);
+        Route::post('/{token}/approve', [MarketplaceAccessController::class, 'approve']);
+        Route::post('/{token}/reject', [MarketplaceAccessController::class, 'reject']);
     });
+
+    // Protected routes (auth required)
+    // customer.scope middleware enforces default-deny for non-platform users
+    // subscription.access middleware enforces subscription and grace period restrictions
+    Route::middleware(['auth:sanctum', 'customer.scope', 'subscription.access'])->group(function () {
+
+        // Routes exempt from ForcePasswordChange (user can access even if must_change_password=true)
+        Route::prefix('auth')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::get('/me', [AuthController::class, 'me']);
+        });
+        Route::post('/change-password', [PasswordController::class, 'changePassword']);
+
+        // Routes that require password to be changed first
+        Route::middleware('force.password.change')->group(function () {
 
     // Position Templates
     Route::prefix('positions/templates')->group(function () {
@@ -110,6 +147,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/{id}/publish', [JobController::class, 'publish']);
         Route::post('/{id}/generate-questions', [JobController::class, 'generateQuestions']);
         Route::get('/{id}/questions', [JobController::class, 'questions']);
+        // QR Code endpoints
+        Route::post('/{id}/qr-code', [JobController::class, 'generateQRCode']);
+        Route::get('/{id}/qr-code/preview', [JobController::class, 'previewQRCode']);
     });
 
     // Candidates
@@ -205,6 +245,16 @@ Route::prefix('v1')->group(function () {
     Route::put('/jobs/{id}/retention', [KVKKController::class, 'updateRetention']);
 
     // ===========================================
+    // MARKETPLACE MODULE (Premium only)
+    // ===========================================
+    Route::prefix('marketplace')->group(function () {
+        Route::get('/candidates', [MarketplaceController::class, 'index']);
+        Route::post('/candidates/{id}/request-access', [MarketplaceController::class, 'requestAccess']);
+        Route::get('/candidates/{id}/full-profile', [MarketplaceController::class, 'fullProfile']);
+        Route::get('/my-requests', [MarketplaceController::class, 'myRequests']);
+    });
+
+    // ===========================================
     // ANTI-CHEAT MODULE
     // ===========================================
 
@@ -225,27 +275,45 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
-    // SALES CONSOLE (MINI CRM)
+    // PLATFORM ADMIN ONLY ROUTES
+    // These routes require is_platform_admin = true
     // ===========================================
 
-    Route::prefix('leads')->group(function () {
-        Route::get('/', [LeadController::class, 'index']);
-        Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
-        Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
-        Route::post('/', [LeadController::class, 'store']);
-        Route::get('/{lead}', [LeadController::class, 'show']);
-        Route::put('/{lead}', [LeadController::class, 'update']);
-        Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
-        Route::delete('/{lead}', [LeadController::class, 'destroy']);
+    Route::middleware('platform.admin')->group(function () {
 
-        // Activities
-        Route::post('/{lead}/activities', [LeadController::class, 'addActivity']);
-        Route::put('/{lead}/activities/{activity}', [LeadController::class, 'updateActivity']);
+        // ===========================================
+        // SALES CONSOLE (MINI CRM) - Platform-level sales
+        // ===========================================
+        Route::prefix('leads')->group(function () {
+            Route::get('/', [LeadController::class, 'index']);
+            Route::get('/pipeline-stats', [LeadController::class, 'pipelineStats']);
+            Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
+            Route::post('/', [LeadController::class, 'store']);
+            Route::get('/{lead}', [LeadController::class, 'show']);
+            Route::put('/{lead}', [LeadController::class, 'update']);
+            Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
+            Route::delete('/{lead}', [LeadController::class, 'destroy']);
 
-        // Checklist
-        Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
-        Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
-    });
-});
+            // Activities
+            Route::post('/{lead}/activities', [LeadController::class, 'addActivity']);
+            Route::put('/{lead}/activities/{activity}', [LeadController::class, 'updateActivity']);
+
+            // Checklist
+            Route::patch('/{lead}/checklist/{item}', [LeadController::class, 'toggleChecklist']);
+            Route::get('/{lead}/checklist-progress', [LeadController::class, 'checklistProgress']);
+        });
+
+        // ===========================================
+        // PLATFORM ANALYTICS - AI costs, usage stats
+        // ===========================================
+        Route::prefix('platform')->group(function () {
+            Route::get('/ai-costs', [AssessmentController::class, 'costStats']);
+            Route::get('/usage-stats', [AssessmentController::class, 'dashboardStats']);
+        });
+
+    }); // End of platform.admin middleware group
+
+        }); // End of force.password.change middleware group
+    }); // End of auth:sanctum middleware group
 
 }); // End of v1 prefix group

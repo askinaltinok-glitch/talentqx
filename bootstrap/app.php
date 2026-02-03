@@ -14,10 +14,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\TenantMiddleware::class,
         ]);
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            'tenant' => \App\Http\Middleware\TenantMiddleware::class,
+            'require.tenant' => \App\Http\Middleware\RequireTenant::class,
+            'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
+            'platform.admin' => \App\Http\Middleware\RequirePlatformAdmin::class,
+            'customer.scope' => \App\Http\Middleware\RequireCustomerScope::class,
+            'subscription.access' => \App\Http\Middleware\SubscriptionAccessMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
