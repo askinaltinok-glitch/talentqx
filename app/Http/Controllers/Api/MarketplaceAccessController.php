@@ -59,7 +59,7 @@ class MarketplaceAccessController extends Controller
             ], 400);
         }
 
-        $accessRequest->load(['requestingCompany:id,name', 'requestingUser:id,name,email', 'candidate']);
+        $accessRequest->load(['requestingCompany:id,name', 'requestingUser:id,first_name,last_name,email', 'candidate']);
 
         // Get anonymous profile of the candidate
         $candidateProfile = $accessRequest->candidate?->getAnonymousProfile();
@@ -73,7 +73,7 @@ class MarketplaceAccessController extends Controller
                     'name' => $accessRequest->requestingCompany->name,
                 ],
                 'requesting_user' => [
-                    'name' => $accessRequest->requestingUser->name,
+                    'name' => $accessRequest->requestingUser->full_name,
                     'email' => $accessRequest->requestingUser->email,
                 ],
                 'request_message' => $accessRequest->request_message,
