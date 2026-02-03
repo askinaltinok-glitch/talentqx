@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
@@ -242,6 +243,16 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('/anti-cheat/similar-responses', [InterviewController::class, 'similarResponses']);
+
+    // ===========================================
+    // AI COPILOT MODULE
+    // ===========================================
+
+    Route::prefix('copilot')->group(function () {
+        Route::post('/chat', [CopilotController::class, 'chat']);
+        Route::get('/context/{type}/{id}', [CopilotController::class, 'contextPreview']);
+        Route::get('/history', [CopilotController::class, 'history']);
+    });
 
     // ===========================================
     // INTERVIEW REPORTS (Protected)
