@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCompanyController;
 use App\Http\Controllers\Api\ApplyController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\InterviewController;
@@ -14,10 +17,13 @@ use App\Http\Controllers\Api\JobController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\KVKKController;
 use App\Http\Controllers\Api\LeadController;
-use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\MarketplaceAccessController;
+use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\PositionTemplateController;
 use App\Http\Controllers\Api\PrivacyController;
+use App\Http\Controllers\Api\PublicApplyController;
+use App\Http\Controllers\Api\QuestionImportController;
+use App\Http\Controllers\Api\TaxonomyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -89,6 +95,23 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
+    // QR APPLY ROUTES (Short Code Based)
+    // /i/{token} frontend -> /api/v1/qr-apply/{token}
+    // ===========================================
+    Route::prefix('qr-apply')->group(function () {
+        // GET job info for QR landing page
+        Route::get('/{token}', [PublicApplyController::class, 'show']);
+        // POST start application (create candidate + interview)
+        Route::post('/{token}', [PublicApplyController::class, 'start'])
+            ->middleware('throttle:10,1');
+        // POST submit answer
+        Route::post('/{token}/answers', [PublicApplyController::class, 'submitAnswer'])
+            ->middleware('throttle:30,1');
+        // POST complete interview
+        Route::post('/{token}/complete', [PublicApplyController::class, 'complete']);
+    });
+
+    // ===========================================
     // INTERVIEW SESSION ROUTES (Public, token-less)
     // ===========================================
     Route::prefix('interview-sessions')->group(function () {
@@ -108,7 +131,8 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
-    // PUBLIC MARKETPLACE ACCESS ROUTES (Token-based)
+    // MARKETPLACE ACCESS ROUTES (Public, token-based)
+    // Allows candidate owners to approve/reject access requests via email link
     // ===========================================
     Route::prefix('marketplace-access')->group(function () {
         Route::get('/{token}', [MarketplaceAccessController::class, 'show']);
@@ -118,8 +142,7 @@ Route::prefix('v1')->group(function () {
 
     // Protected routes (auth required)
     // customer.scope middleware enforces default-deny for non-platform users
-    // subscription.access middleware enforces subscription and grace period restrictions
-    Route::middleware(['auth:sanctum', 'customer.scope', 'subscription.access'])->group(function () {
+    Route::middleware(['auth:sanctum', 'customer.scope'])->group(function () {
 
         // Routes exempt from ForcePasswordChange (user can access even if must_change_password=true)
         Route::prefix('auth')->group(function () {
@@ -128,13 +151,30 @@ Route::prefix('v1')->group(function () {
         });
         Route::post('/change-password', [PasswordController::class, 'changePassword']);
 
+        // Company subscription status (needed before customer.scope check)
+        Route::get('/company/subscription-status', [CompanyController::class, 'subscriptionStatus']);
+
         // Routes that require password to be changed first
         Route::middleware('force.password.change')->group(function () {
 
-    // Position Templates
+    // Position Templates (legacy)
     Route::prefix('positions/templates')->group(function () {
         Route::get('/', [PositionTemplateController::class, 'index']);
         Route::get('/{slug}', [PositionTemplateController::class, 'show']);
+    });
+
+    // ===========================================
+    // JOB TAXONOMY SYSTEM
+    // ===========================================
+    Route::prefix('taxonomy')->group(function () {
+        Route::get('/domains', [TaxonomyController::class, 'domains']);
+        Route::get('/domains/{domainId}/subdomains', [TaxonomyController::class, 'subdomains']);
+        Route::get('/subdomains/{subdomainId}/positions', [TaxonomyController::class, 'positions']);
+        Route::get('/positions/search', [TaxonomyController::class, 'searchPositions']);
+        Route::get('/positions/{positionId}', [TaxonomyController::class, 'positionDetail']);
+        Route::get('/archetypes', [TaxonomyController::class, 'archetypes']);
+        Route::get('/competencies', [TaxonomyController::class, 'competencies']);
+        Route::get('/tree', [TaxonomyController::class, 'tree']);
     });
 
     // Jobs
@@ -150,15 +190,18 @@ Route::prefix('v1')->group(function () {
         // QR Code endpoints
         Route::post('/{id}/qr-code', [JobController::class, 'generateQRCode']);
         Route::get('/{id}/qr-code/preview', [JobController::class, 'previewQRCode']);
+        Route::get('/{id}/qr-info', [JobController::class, 'qrInfo']);
     });
 
     // Candidates
     Route::prefix('candidates')->group(function () {
         Route::get('/', [CandidateController::class, 'index']);
         Route::post('/', [CandidateController::class, 'store']);
+        Route::post('/bulk-send-invites', [CandidateController::class, 'bulkSendInvites']);
         Route::get('/{id}', [CandidateController::class, 'show']);
         Route::patch('/{id}/status', [CandidateController::class, 'updateStatus']);
         Route::post('/{id}/cv', [CandidateController::class, 'uploadCv']);
+        Route::post('/{id}/send-interview-invite', [CandidateController::class, 'sendInterviewInvite']);
         Route::delete('/{id}', [CandidateController::class, 'destroy']);
         // KVKK - Right to be Forgotten & Export
         Route::delete('/{id}/erase', [KVKKController::class, 'eraseCandidate']);
@@ -167,6 +210,7 @@ Route::prefix('v1')->group(function () {
 
     // Interviews
     Route::prefix('interviews')->group(function () {
+        Route::get('/', [InterviewController::class, 'index']);
         Route::post('/', [InterviewController::class, 'store']);
         Route::get('/{id}', [InterviewController::class, 'show']);
         Route::post('/{id}/analyze', [InterviewController::class, 'analyze']);
@@ -177,6 +221,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/stats', [DashboardController::class, 'stats']);
         Route::post('/compare', [DashboardController::class, 'compare']);
         Route::get('/leaderboard', [DashboardController::class, 'leaderboard']);
+        Route::get('/punctuality', [DashboardController::class, 'punctuality']);
+        Route::get('/punctuality/export', [DashboardController::class, 'punctualityExport']);
     });
 
     // ===========================================
@@ -245,25 +291,37 @@ Route::prefix('v1')->group(function () {
     Route::put('/jobs/{id}/retention', [KVKKController::class, 'updateRetention']);
 
     // ===========================================
-    // MARKETPLACE MODULE (Premium only)
-    // ===========================================
-    Route::prefix('marketplace')->group(function () {
-        Route::get('/candidates', [MarketplaceController::class, 'index']);
-        Route::post('/candidates/{id}/request-access', [MarketplaceController::class, 'requestAccess']);
-        Route::get('/candidates/{id}/full-profile', [MarketplaceController::class, 'fullProfile']);
-        Route::get('/my-requests', [MarketplaceController::class, 'myRequests']);
-    });
-
-    // ===========================================
     // ANTI-CHEAT MODULE
     // ===========================================
 
     Route::prefix('interviews')->group(function () {
         Route::post('/{id}/analyze-cheating', [InterviewController::class, 'analyzeCheating']);
         Route::get('/{id}/cheating-report', [InterviewController::class, 'cheatingReport']);
+        Route::get('/{id}/report', [InterviewController::class, 'report']);
     });
 
     Route::get('/anti-cheat/similar-responses', [InterviewController::class, 'similarResponses']);
+
+    // ===========================================
+    // AI COPILOT MODULE
+    // ===========================================
+
+    Route::prefix('copilot')->group(function () {
+        Route::post('/chat', [CopilotController::class, 'chat']);
+        Route::get('/context/{type}/{id}', [CopilotController::class, 'contextPreview']);
+        Route::get('/history', [CopilotController::class, 'history']);
+    });
+
+    // ===========================================
+    // MARKETPLACE MODULE (Premium Feature)
+    // ===========================================
+
+    Route::prefix('marketplace')->group(function () {
+        Route::get('/candidates', [MarketplaceController::class, 'listCandidates']);
+        Route::post('/candidates/{id}/request-access', [MarketplaceController::class, 'requestAccess']);
+        Route::get('/candidates/{id}/full-profile', [MarketplaceController::class, 'getFullProfile']);
+        Route::get('/my-requests', [MarketplaceController::class, 'myRequests']);
+    });
 
     // ===========================================
     // INTERVIEW REPORTS (Protected)
@@ -273,6 +331,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/session/{sessionId}', [ReportController::class, 'listForSession']);
         Route::delete('/{reportId}', [ReportController::class, 'delete']);
     });
+
+    // ===========================================
+    // AI PROVIDERS - For all authenticated users
+    // ===========================================
+    Route::get('/ai-providers/enabled', [AdminCompanyController::class, 'getEnabledProviders']);
 
     // ===========================================
     // PLATFORM ADMIN ONLY ROUTES
@@ -309,6 +372,44 @@ Route::prefix('v1')->group(function () {
         Route::prefix('platform')->group(function () {
             Route::get('/ai-costs', [AssessmentController::class, 'costStats']);
             Route::get('/usage-stats', [AssessmentController::class, 'dashboardStats']);
+        });
+
+        // ===========================================
+        // ADMIN COMPANY MANAGEMENT - Subscription admin
+        // ===========================================
+        Route::prefix('admin/companies')->group(function () {
+            Route::get('/', [AdminCompanyController::class, 'index']);
+            Route::get('/{id}', [AdminCompanyController::class, 'show']);
+            Route::patch('/{id}/subscription', [AdminCompanyController::class, 'updateSubscription']);
+            Route::patch('/{id}/credits', [AdminCompanyController::class, 'updateCredits']);
+            Route::get('/{id}/credit-history', [AdminCompanyController::class, 'creditHistory']);
+            Route::patch('/{id}/ai-settings', [AdminCompanyController::class, 'updateCompanyAiSettings']);
+        });
+
+        // ===========================================
+        // ADMIN AI SETTINGS - Platform-wide AI configuration
+        // ===========================================
+        Route::prefix('admin/ai-settings')->group(function () {
+            Route::get('/', [AdminCompanyController::class, 'getAiSettings']);
+            Route::patch('/', [AdminCompanyController::class, 'updateAiSettings']);
+        });
+
+        // ===========================================
+        // ADMIN AI PROVIDERS - Provider management
+        // ===========================================
+        Route::prefix('admin/ai-providers')->group(function () {
+            Route::get('/', [AdminCompanyController::class, 'getAiProviders']);
+            Route::get('/enabled', [AdminCompanyController::class, 'getEnabledProviders']);
+            Route::post('/{provider}/test', [AdminCompanyController::class, 'testAiProvider']);
+        });
+
+        // ===========================================
+        // ADMIN QUESTION IMPORT
+        // ===========================================
+        Route::prefix('admin/questions')->group(function () {
+            Route::get('/roles', [QuestionImportController::class, 'roles']);
+            Route::post('/import/validate', [QuestionImportController::class, 'validate']);
+            Route::post('/import/save', [QuestionImportController::class, 'save']);
         });
 
     }); // End of platform.admin middleware group
