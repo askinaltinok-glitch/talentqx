@@ -12,8 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Trim trailing slashes from API requests to prevent 405 errors
+        $middleware->prepend(\App\Http\Middleware\TrimTrailingSlash::class);
+
+        // Note: EnsureFrontendRequestsAreStateful removed - using token-based auth only
+        // ForceJsonResponse ensures no 302 redirects - always JSON errors
         $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\TenantMiddleware::class,
         ]);
 
@@ -25,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => \App\Http\Middleware\RequirePlatformAdmin::class,
             'customer.scope' => \App\Http\Middleware\RequireCustomerScope::class,
             'subscription.access' => \App\Http\Middleware\SubscriptionAccessMiddleware::class,
+            'api.token' => \App\Http\Middleware\ApiTokenAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
