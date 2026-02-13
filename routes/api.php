@@ -1,6 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAnalyticsController;
 use App\Http\Controllers\Api\AdminCompanyController;
+use App\Http\Controllers\Api\AdminFormInterviewController;
+use App\Http\Controllers\Api\AdminInterviewTemplateController;
+use App\Http\Controllers\Api\AdminOutcomesController;
+use App\Http\Controllers\Api\AdminPackageController;
 use App\Http\Controllers\Api\ApplyController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\AssessmentController;
@@ -11,9 +16,14 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\FormInterviewController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\InterviewSessionController;
+use App\Http\Controllers\Api\InterviewTemplateController;
 use App\Http\Controllers\Api\JobController;
+use App\Http\Controllers\Api\PackageController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\KVKKController;
 use App\Http\Controllers\Api\LeadController;
@@ -24,6 +34,14 @@ use App\Http\Controllers\Api\PrivacyController;
 use App\Http\Controllers\Api\PublicApplyController;
 use App\Http\Controllers\Api\QuestionImportController;
 use App\Http\Controllers\Api\TaxonomyController;
+use App\Http\Controllers\Api\V1\PoolCandidateController;
+use App\Http\Controllers\Api\Admin\PoolCompanyController;
+use App\Http\Controllers\Api\Admin\TalentRequestController;
+use App\Http\Controllers\Api\Admin\PresentationController;
+use App\Http\Controllers\Api\Admin\AssessmentStubController;
+use App\Http\Controllers\Api\Admin\ML\DatasetController;
+use App\Http\Controllers\Api\Admin\ML\HealthController as MlHealthController;
+use App\Http\Controllers\Api\Admin\ML\LearningController as MlLearningController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -84,6 +102,17 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
+    // PAYMENT CALLBACK (Public, no auth required)
+    // ===========================================
+    Route::post('/payments/callback', [PaymentController::class, 'callback']);
+
+    // ===========================================
+    // PUBLIC PACKAGES (No auth required)
+    // ===========================================
+    Route::get('/packages', [PackageController::class, 'index']);
+    Route::get('/packages/{slug}', [PackageController::class, 'show']);
+
+    // ===========================================
     // PUBLIC APPLY ROUTES (QR Code Landing)
     // ===========================================
     Route::prefix('apply')->group(function () {
@@ -140,6 +169,93 @@ Route::prefix('v1')->group(function () {
         Route::post('/{token}/reject', [MarketplaceAccessController::class, 'reject']);
     });
 
+    // ===========================================
+    // INTERVIEW TEMPLATES (API Token auth, no user auth required)
+    // Rate limit: 60/min for all template reads
+    // ===========================================
+    Route::prefix('interview-templates')->middleware(['api.token', 'throttle:60,1'])->group(function () {
+        Route::get('/', [InterviewTemplateController::class, 'index'])
+            ->name('interview-templates.index');
+
+        Route::get('/check/{version}/{language}/{positionCode}', [InterviewTemplateController::class, 'check'])
+            ->name('interview-templates.check');
+
+        Route::get('/{version}/{language}/{positionCode}/parsed', [InterviewTemplateController::class, 'showParsed'])
+            ->name('interview-templates.show.parsed');
+
+        Route::get('/{version}/{language}/{positionCode?}', [InterviewTemplateController::class, 'show'])
+            ->name('interview-templates.show');
+    });
+
+    // ===========================================
+    // FORM INTERVIEWS (API Token auth, no user auth required)
+    // Template-based interview sessions with DecisionEngine scoring
+    // Rate limits: create=10/min, others=60/min
+    // ===========================================
+    Route::prefix('form-interviews')->middleware('api.token')->group(function () {
+        Route::post('/', [FormInterviewController::class, 'create'])
+            ->middleware('throttle:10,1') // 10 creates per minute
+            ->name('form-interviews.create');
+
+        Route::get('/{id}', [FormInterviewController::class, 'show'])
+            ->middleware('throttle:60,1')
+            ->name('form-interviews.show');
+
+        Route::post('/{id}/answers', [FormInterviewController::class, 'addAnswers'])
+            ->middleware('throttle:60,1')
+            ->name('form-interviews.answers');
+
+        Route::post('/{id}/complete', [FormInterviewController::class, 'complete'])
+            ->middleware('throttle:30,1') // Slightly stricter - scoring is expensive
+            ->name('form-interviews.complete');
+
+        Route::get('/{id}/score', [FormInterviewController::class, 'score'])
+            ->middleware('throttle:60,1')
+            ->name('form-interviews.score');
+    });
+
+    // ===========================================
+    // CANDIDATE SUPPLY ENGINE (API Token auth)
+    // Pool candidate management for talent supply
+    // Separate from ATS /candidates routes
+    // ===========================================
+    Route::prefix('pool-candidates')->middleware('api.token')->group(function () {
+        // Create pool candidate
+        Route::post('/', [PoolCandidateController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('pool-candidates.store');
+
+        // Get pool statistics
+        Route::get('/stats', [PoolCandidateController::class, 'stats'])
+            ->middleware('throttle:60,1')
+            ->name('pool-candidates.stats');
+
+        // List pool candidates with filters
+        Route::get('/pool', [PoolCandidateController::class, 'pool'])
+            ->middleware('throttle:60,1')
+            ->name('pool-candidates.pool');
+
+        // Get candidate details
+        Route::get('/{candidate}', [PoolCandidateController::class, 'show'])
+            ->middleware('throttle:60,1')
+            ->name('pool-candidates.show');
+
+        // Start interview for candidate
+        Route::post('/{candidate}/start-interview', [PoolCandidateController::class, 'startInterview'])
+            ->middleware('throttle:10,1')
+            ->name('pool-candidates.start-interview');
+
+        // Mark as presented to company
+        Route::post('/{candidate}/present', [PoolCandidateController::class, 'present'])
+            ->middleware('throttle:30,1')
+            ->name('pool-candidates.present');
+
+        // Mark as hired
+        Route::post('/{candidate}/hire', [PoolCandidateController::class, 'hire'])
+            ->middleware('throttle:30,1')
+            ->name('pool-candidates.hire');
+    });
+
     // Protected routes (auth required)
     // customer.scope middleware enforces default-deny for non-platform users
     Route::middleware(['auth:sanctum', 'customer.scope'])->group(function () {
@@ -151,11 +267,31 @@ Route::prefix('v1')->group(function () {
         });
         Route::post('/change-password', [PasswordController::class, 'changePassword']);
 
+        // ===========================================
+        // PROFILE ROUTES
+        // ===========================================
+        Route::prefix('profile')->group(function () {
+            Route::get('/', [ProfileController::class, 'show']);
+            Route::put('/', [ProfileController::class, 'update']);
+            Route::get('/billing', [ProfileController::class, 'getBilling']);
+            Route::put('/billing', [ProfileController::class, 'updateBilling']);
+            Route::post('/request-password-reset', [ProfileController::class, 'requestPasswordReset']);
+        });
+
         // Company subscription status (needed before customer.scope check)
         Route::get('/company/subscription-status', [CompanyController::class, 'subscriptionStatus']);
 
         // Routes that require password to be changed first
         Route::middleware('force.password.change')->group(function () {
+
+    // ===========================================
+    // PAYMENT ROUTES (Authenticated)
+    // ===========================================
+    Route::prefix('payments')->group(function () {
+        Route::post('/checkout', [PaymentController::class, 'checkout']);
+        Route::get('/history', [PaymentController::class, 'history']);
+        Route::get('/{id}', [PaymentController::class, 'show']);
+    });
 
     // Position Templates (legacy)
     Route::prefix('positions/templates')->group(function () {
@@ -181,6 +317,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('jobs')->group(function () {
         Route::get('/', [JobController::class, 'index']);
         Route::post('/', [JobController::class, 'store']);
+        Route::post('/improve-description', [JobController::class, 'improveDescription']);
         Route::get('/{id}', [JobController::class, 'show']);
         Route::put('/{id}', [JobController::class, 'update']);
         Route::delete('/{id}', [JobController::class, 'destroy']);
@@ -410,6 +547,208 @@ Route::prefix('v1')->group(function () {
             Route::get('/roles', [QuestionImportController::class, 'roles']);
             Route::post('/import/validate', [QuestionImportController::class, 'validate']);
             Route::post('/import/save', [QuestionImportController::class, 'save']);
+        });
+
+        // ===========================================
+        // ADMIN PACKAGE MANAGEMENT
+        // ===========================================
+        Route::prefix('admin/packages')->group(function () {
+            Route::get('/', [AdminPackageController::class, 'index']);
+            Route::post('/', [AdminPackageController::class, 'store']);
+            Route::get('/stats', [AdminPackageController::class, 'stats']);
+            Route::get('/{id}', [AdminPackageController::class, 'show']);
+            Route::put('/{id}', [AdminPackageController::class, 'update']);
+            Route::delete('/{id}', [AdminPackageController::class, 'destroy']);
+            Route::patch('/{id}/toggle-active', [AdminPackageController::class, 'toggleActive']);
+            Route::post('/reorder', [AdminPackageController::class, 'reorder']);
+        });
+
+        // ===========================================
+        // ADMIN INTERVIEW TEMPLATES - CRUD for template management
+        // Rate limits: 120/min read, 30/min write
+        // ===========================================
+        Route::prefix('admin/interview-templates')->group(function () {
+            // Bulk operations
+            Route::post('/import', [AdminInterviewTemplateController::class, 'import'])
+                ->middleware('throttle:10,1'); // Lower limit for bulk
+
+            // Read operations - 120/min
+            Route::get('/', [AdminInterviewTemplateController::class, 'index'])
+                ->middleware('throttle:120,1');
+            Route::get('/{id}', [AdminInterviewTemplateController::class, 'show'])
+                ->middleware('throttle:120,1');
+            Route::get('/{id}/audit-logs', [AdminInterviewTemplateController::class, 'auditLogs'])
+                ->middleware('throttle:120,1');
+            Route::get('/{id}/export', [AdminInterviewTemplateController::class, 'export'])
+                ->middleware('throttle:120,1');
+
+            // Write operations - 30/min
+            Route::post('/', [AdminInterviewTemplateController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::put('/{id}', [AdminInterviewTemplateController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/activate', [AdminInterviewTemplateController::class, 'activate'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/publish', [AdminInterviewTemplateController::class, 'publish'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/clone', [AdminInterviewTemplateController::class, 'clone'])
+                ->middleware('throttle:30,1');
+            Route::delete('/{id}', [AdminInterviewTemplateController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // ADMIN ANALYTICS - Interview Results Dashboard
+        // ===========================================
+        Route::prefix('admin/analytics')->group(function () {
+            Route::get('/interviews/summary', [AdminAnalyticsController::class, 'interviewsSummary'])
+                ->middleware('throttle:60,1');
+            Route::get('/interviews', [AdminAnalyticsController::class, 'interviewsList'])
+                ->middleware('throttle:60,1');
+            Route::get('/interviews/{id}', [AdminAnalyticsController::class, 'interviewDetail'])
+                ->middleware('throttle:60,1');
+            // Calibration baseline endpoint (legacy)
+            Route::get('/positions/baseline', [AdminAnalyticsController::class, 'positionBaseline'])
+                ->middleware('throttle:120,1');
+            // Calibration baseline v2 (industry + rolling window)
+            Route::get('/positions/baseline-v2', [AdminAnalyticsController::class, 'positionBaselineV2'])
+                ->middleware('throttle:120,1');
+            // Drift detection endpoint
+            Route::get('/drift', [AdminAnalyticsController::class, 'driftSummary'])
+                ->middleware('throttle:60,1');
+            // Model health (decision→outcome accuracy)
+            Route::get('/model-health', [AdminAnalyticsController::class, 'modelHealth'])
+                ->middleware('throttle:60,1');
+            // Candidate Supply Engine metrics
+            Route::get('/candidate-supply', [AdminAnalyticsController::class, 'candidateSupplyMetrics'])
+                ->middleware('throttle:60,1');
+            // Company Consumption Layer metrics
+            Route::get('/consumption', [AdminAnalyticsController::class, 'consumptionMetrics'])
+                ->middleware('throttle:60,1');
+        });
+
+        // ===========================================
+        // ADMIN ML - Machine Learning / Learning Core
+        // ===========================================
+        Route::prefix('admin/ml')->group(function () {
+            // Dataset export (csv/jsonl)
+            Route::get('/dataset/export', [DatasetController::class, 'export'])
+                ->middleware('throttle:10,1');
+            // ML model health metrics
+            Route::get('/health', [MlHealthController::class, 'index'])
+                ->middleware('throttle:60,1');
+            // Learning health (closed-loop learning metrics)
+            Route::get('/learning-health', [MlLearningController::class, 'health'])
+                ->middleware('throttle:60,1');
+            // Feature importance
+            Route::get('/features', [MlLearningController::class, 'features'])
+                ->middleware('throttle:60,1');
+            // Learning events log
+            Route::get('/learning-events', [MlLearningController::class, 'events'])
+                ->middleware('throttle:60,1');
+        });
+
+        // ===========================================
+        // ADMIN FORM INTERVIEWS - Operations Dashboard
+        // ===========================================
+        Route::prefix('admin/form-interviews')->group(function () {
+            Route::get('/stats', [AdminFormInterviewController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [AdminFormInterviewController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}', [AdminFormInterviewController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}/decision-packet', [AdminFormInterviewController::class, 'decisionPacket'])
+                ->middleware('throttle:30,1');
+            Route::get('/{id}/decision-packet.pdf', [AdminFormInterviewController::class, 'decisionPacketPdf'])
+                ->middleware('throttle:10,1');
+            Route::patch('/{id}/notes', [AdminFormInterviewController::class, 'updateNotes'])
+                ->middleware('throttle:30,1');
+            Route::delete('/{id}', [AdminFormInterviewController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+            // Assessment stubs (Maritime)
+            Route::post('/{id}/english-assessment/complete', [AssessmentStubController::class, 'completeEnglishAssessment'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/video/attach', [AssessmentStubController::class, 'attachVideo'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/video/complete', [AssessmentStubController::class, 'completeVideoAssessment'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // ADMIN OUTCOMES - Ground Truth Data for Calibration
+        // ===========================================
+        Route::prefix('admin/outcomes')->group(function () {
+            Route::get('/stats', [AdminOutcomesController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/model-health', [AdminOutcomesController::class, 'modelHealth'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [AdminOutcomesController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::get('/{interview_id}', [AdminOutcomesController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::post('/', [AdminOutcomesController::class, 'store'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // COMPANY CONSUMPTION LAYER - Pool Companies
+        // ===========================================
+        Route::prefix('admin/pool-companies')->group(function () {
+            Route::get('/stats', [PoolCompanyController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [PoolCompanyController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/', [PoolCompanyController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/{poolCompany}', [PoolCompanyController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::put('/{poolCompany}', [PoolCompanyController::class, 'update'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // COMPANY CONSUMPTION LAYER - Talent Requests
+        // ===========================================
+        Route::prefix('admin/talent-requests')->group(function () {
+            Route::get('/stats', [TalentRequestController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [TalentRequestController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/', [TalentRequestController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/{talentRequest}', [TalentRequestController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::put('/{talentRequest}', [TalentRequestController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/{talentRequest}/close', [TalentRequestController::class, 'close'])
+                ->middleware('throttle:30,1');
+            Route::get('/{talentRequest}/matching-candidates', [TalentRequestController::class, 'matchingCandidates'])
+                ->middleware('throttle:60,1');
+            Route::post('/{talentRequest}/present', [TalentRequestController::class, 'presentCandidates'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // COMPANY CONSUMPTION LAYER - Presentations
+        // ===========================================
+        Route::prefix('admin/presentations')->group(function () {
+            Route::get('/stats', [PresentationController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [PresentationController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::get('/{presentation}', [PresentationController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::post('/{presentation}/view', [PresentationController::class, 'markViewed'])
+                ->middleware('throttle:30,1');
+            Route::post('/{presentation}/feedback', [PresentationController::class, 'recordFeedback'])
+                ->middleware('throttle:30,1');
+            Route::post('/{presentation}/reject', [PresentationController::class, 'reject'])
+                ->middleware('throttle:30,1');
+            Route::post('/{presentation}/interview', [PresentationController::class, 'interview'])
+                ->middleware('throttle:30,1');
+            Route::post('/{presentation}/hire', [PresentationController::class, 'hire'])
+                ->middleware('throttle:30,1');
         });
 
     }); // End of platform.admin middleware group
