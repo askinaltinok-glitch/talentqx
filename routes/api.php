@@ -39,9 +39,12 @@ use App\Http\Controllers\Api\Admin\PoolCompanyController;
 use App\Http\Controllers\Api\Admin\TalentRequestController;
 use App\Http\Controllers\Api\Admin\PresentationController;
 use App\Http\Controllers\Api\Admin\AssessmentStubController;
+use App\Http\Controllers\Api\Admin\CandidatePoolController;
 use App\Http\Controllers\Api\Admin\ML\DatasetController;
 use App\Http\Controllers\Api\Admin\ML\HealthController as MlHealthController;
 use App\Http\Controllers\Api\Admin\ML\LearningController as MlLearningController;
+use App\Http\Controllers\Api\Admin\Analytics\SupplyAnalyticsController;
+use App\Http\Controllers\Api\Maritime\MaritimeCandidateController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -99,6 +102,36 @@ Route::prefix('v1')->group(function () {
     Route::prefix('contact')->group(function () {
         Route::post('/', [ContactController::class, 'submit']);
         Route::post('/newsletter', [ContactController::class, 'newsletter']);
+    });
+
+    // ===========================================
+    // PUBLIC MARITIME CANDIDATE INTAKE (No auth)
+    // Self-registration for maritime candidates
+    // ===========================================
+    Route::prefix('maritime')->group(function () {
+        // Registration and application
+        Route::post('/apply', [MaritimeCandidateController::class, 'apply'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.apply');
+
+        // Start interview for existing candidate
+        Route::post('/candidates/{id}/start-interview', [MaritimeCandidateController::class, 'startInterview'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.start-interview');
+
+        // Check application status (public - for candidate self-service)
+        Route::get('/candidates/{id}/status', [MaritimeCandidateController::class, 'status'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.status');
+
+        // Form dropdown data
+        Route::get('/ranks', [MaritimeCandidateController::class, 'ranks'])
+            ->middleware('throttle:120,1')
+            ->name('maritime.ranks');
+
+        Route::get('/certificates', [MaritimeCandidateController::class, 'certificates'])
+            ->middleware('throttle:120,1')
+            ->name('maritime.certificates');
     });
 
     // ===========================================
@@ -646,6 +679,51 @@ Route::prefix('v1')->group(function () {
             // Learning events log
             Route::get('/learning-events', [MlLearningController::class, 'events'])
                 ->middleware('throttle:60,1');
+            // Model versions list
+            Route::get('/versions', [MlLearningController::class, 'versions'])
+                ->middleware('throttle:60,1');
+            // Rollback to specific version
+            Route::post('/rollback', [MlLearningController::class, 'rollback'])
+                ->middleware('throttle:10,1');
+            // Fairness metrics
+            Route::get('/fairness', [MlLearningController::class, 'fairness'])
+                ->middleware('throttle:60,1');
+            // Generate fairness report (for daily job)
+            Route::post('/fairness/generate', [MlLearningController::class, 'generateFairnessReport'])
+                ->middleware('throttle:5,1');
+        });
+
+        // ===========================================
+        // ADMIN SUPPLY ANALYTICS - Investor-grade metrics
+        // ===========================================
+        Route::prefix('admin/analytics/supply')->group(function () {
+            // Funnel metrics (registration → hire)
+            Route::get('/funnel', [SupplyAnalyticsController::class, 'funnel'])
+                ->middleware('throttle:60,1');
+
+            // Channel quality (CAC optimization)
+            Route::get('/channel-quality', [SupplyAnalyticsController::class, 'channelQuality'])
+                ->middleware('throttle:60,1');
+
+            // Time-to-hire metrics
+            Route::get('/time-to-hire', [SupplyAnalyticsController::class, 'timeToHire'])
+                ->middleware('throttle:60,1');
+
+            // Pool health metrics
+            Route::get('/pool-health', [SupplyAnalyticsController::class, 'poolHealth'])
+                ->middleware('throttle:60,1');
+
+            // Company consumption metrics
+            Route::get('/company', [SupplyAnalyticsController::class, 'companyMetrics'])
+                ->middleware('throttle:60,1');
+
+            // Weekly trends (for charts)
+            Route::get('/trends', [SupplyAnalyticsController::class, 'trends'])
+                ->middleware('throttle:60,1');
+
+            // Combined dashboard (single call)
+            Route::get('/dashboard', [SupplyAnalyticsController::class, 'dashboard'])
+                ->middleware('throttle:30,1');
         });
 
         // ===========================================
@@ -667,6 +745,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [AdminFormInterviewController::class, 'destroy'])
                 ->middleware('throttle:30,1');
             // Assessment stubs (Maritime)
+            Route::get('/{id}/assessment-status', [AssessmentStubController::class, 'assessmentStatus'])
+                ->middleware('throttle:60,1');
             Route::post('/{id}/english-assessment/complete', [AssessmentStubController::class, 'completeEnglishAssessment'])
                 ->middleware('throttle:30,1');
             Route::post('/{id}/video/attach', [AssessmentStubController::class, 'attachVideo'])
@@ -689,6 +769,20 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:60,1');
             Route::post('/', [AdminOutcomesController::class, 'store'])
                 ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // ADMIN CANDIDATE POOL - Assessment UX
+        // ===========================================
+        Route::prefix('admin/candidate-pool')->group(function () {
+            Route::get('/stats', [CandidatePoolController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/action-required', [CandidatePoolController::class, 'actionRequired'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [CandidatePoolController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}', [CandidatePoolController::class, 'show'])
+                ->middleware('throttle:60,1');
         });
 
         // ===========================================
