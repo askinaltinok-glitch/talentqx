@@ -33,6 +33,13 @@ Schedule::command('kvkk:process-employee-retention')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/employee-retention.log'));
 
+// Retention cleanup: delete incomplete >90d, anonymize completed >2y (runs daily at 3:15 AM)
+Schedule::command('retention:cleanup --force')
+    ->dailyAt('03:15')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/retention-cleanup.log'));
+
 // ===========================================
 // MESSAGE OUTBOX WORKER
 // ===========================================
@@ -60,3 +67,44 @@ Schedule::command('interviews:send-reminders')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/interview-reminders.log'));
+
+// Mark no-show interviews (runs every 5 minutes)
+// Marks interviews as no-show if candidate didn't join within grace period
+Schedule::command('interviews:mark-no-show --grace-minutes=10')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/interview-noshow.log'));
+
+// ===========================================
+// STCW CERTIFICATE EXPIRY CHECK
+// ===========================================
+
+// Check for expiring/expired certificates (runs nightly at 4 AM)
+// Marks expired certs, logs expiring-soon warnings, generates risk flags
+Schedule::command('certificates:check-expiry --days=90')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/certificate-expiry.log'));
+
+// ===========================================
+// CRM MAILBOX POLLING (IMAP)
+// ===========================================
+
+// Poll all configured IMAP mailboxes for inbound reply matching (every 2 minutes)
+Schedule::command('crm:mailbox-poll --mailbox=all')
+    ->everyTwoMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/crm-mailbox.log'));
+
+// ===========================================
+// CREDIT SYSTEM SCHEDULED TASKS
+// ===========================================
+
+// Reset monthly credits for all companies (runs at midnight on the 1st of each month)
+Schedule::command('credits:reset-monthly')
+    ->monthlyOn(1, '00:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/credits-reset.log'));

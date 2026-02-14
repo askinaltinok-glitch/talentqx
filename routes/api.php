@@ -45,6 +45,15 @@ use App\Http\Controllers\Api\Admin\ML\HealthController as MlHealthController;
 use App\Http\Controllers\Api\Admin\ML\LearningController as MlLearningController;
 use App\Http\Controllers\Api\Admin\Analytics\SupplyAnalyticsController;
 use App\Http\Controllers\Api\Maritime\MaritimeCandidateController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\Admin\CertificationController;
+use App\Http\Controllers\Api\Admin\DemoController;
+use App\Http\Controllers\Api\Admin\Crm\CrmCompanyController;
+use App\Http\Controllers\Api\Admin\Crm\CrmContactController;
+use App\Http\Controllers\Api\Admin\Crm\CrmLeadController;
+use App\Http\Controllers\Api\Admin\Crm\CrmTemplateController;
+use App\Http\Controllers\Api\Admin\Crm\ResearchController;
+use App\Http\Controllers\Api\PublicLeadController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -105,6 +114,13 @@ Route::prefix('v1')->group(function () {
     });
 
     // ===========================================
+    // PUBLIC LEAD INTAKE (Website form → CRM)
+    // ===========================================
+    Route::post('/public/leads', [PublicLeadController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('public.leads.store');
+
+    // ===========================================
     // PUBLIC MARITIME CANDIDATE INTAKE (No auth)
     // Self-registration for maritime candidates
     // ===========================================
@@ -124,6 +140,15 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:60,1')
             ->name('maritime.status');
 
+        // Candidate-facing assessment attach (public, after interview completion)
+        Route::post('/candidates/{id}/english/attach', [MaritimeCandidateController::class, 'attachEnglish'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.english.attach');
+
+        Route::post('/candidates/{id}/video/attach', [MaritimeCandidateController::class, 'attachVideo'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.video.attach');
+
         // Form dropdown data
         Route::get('/ranks', [MaritimeCandidateController::class, 'ranks'])
             ->middleware('throttle:120,1')
@@ -132,6 +157,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/certificates', [MaritimeCandidateController::class, 'certificates'])
             ->middleware('throttle:120,1')
             ->name('maritime.certificates');
+    });
+
+    // ===========================================
+    // CERTIFICATE UPLOAD (Candidate-facing)
+    // ===========================================
+    Route::prefix('certificates')->group(function () {
+        Route::post('/upload', [CertificateController::class, 'upload'])
+            ->middleware('throttle:10,1')
+            ->name('certificates.upload');
+
+        Route::get('/{candidateId}', [CertificateController::class, 'status'])
+            ->middleware('throttle:60,1')
+            ->name('certificates.status');
     });
 
     // ===========================================
@@ -843,6 +881,123 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:30,1');
             Route::post('/{presentation}/hire', [PresentationController::class, 'hire'])
                 ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // STCW & CERTIFICATION ENGINE
+        // ===========================================
+        Route::prefix('admin/certificates')->group(function () {
+            Route::get('/', [CertificationController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/{id}/verify', [CertificationController::class, 'verify'])
+                ->middleware('throttle:30,1');
+            Route::post('/{id}/reject', [CertificationController::class, 'reject'])
+                ->middleware('throttle:30,1');
+        });
+
+        Route::get('admin/certificate-types', [CertificationController::class, 'types'])
+            ->middleware('throttle:120,1');
+
+        Route::prefix('admin/candidates')->group(function () {
+            Route::get('/{id}/certification-status', [CertificationController::class, 'candidateStatus'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}/stcw-compliance', [CertificationController::class, 'stcwCompliance'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}/certification-summary', [CertificationController::class, 'certificationSummary'])
+                ->middleware('throttle:60,1');
+        });
+
+        Route::get('admin/talent-requests/{id}/certification-ready', [CertificationController::class, 'certificationReady'])
+            ->middleware('throttle:60,1');
+
+        Route::get('admin/certification-analytics', [CertificationController::class, 'analytics'])
+            ->middleware('throttle:60,1');
+
+        // ===========================================
+        // SALES CRM - Companies, Contacts, Leads, Email, Files
+        // ===========================================
+        Route::prefix('admin/crm')->group(function () {
+            // Companies
+            Route::get('/companies', [CrmCompanyController::class, 'index'])
+                ->middleware('throttle:120,1');
+            Route::post('/companies', [CrmCompanyController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/companies/{id}', [CrmCompanyController::class, 'show'])
+                ->middleware('throttle:120,1');
+            Route::put('/companies/{id}', [CrmCompanyController::class, 'update'])
+                ->middleware('throttle:30,1');
+
+            // Contacts
+            Route::post('/contacts', [CrmContactController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::put('/contacts/{id}', [CrmContactController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::delete('/contacts/{id}', [CrmContactController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+
+            // Leads
+            Route::get('/leads/stats', [CrmLeadController::class, 'stats'])
+                ->middleware('throttle:120,1');
+            Route::get('/leads', [CrmLeadController::class, 'index'])
+                ->middleware('throttle:120,1');
+            Route::post('/leads', [CrmLeadController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/leads/{id}', [CrmLeadController::class, 'show'])
+                ->middleware('throttle:120,1');
+            Route::patch('/leads/{id}', [CrmLeadController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/leads/{id}/note', [CrmLeadController::class, 'addNote'])
+                ->middleware('throttle:30,1');
+            Route::post('/leads/{id}/tasks', [CrmLeadController::class, 'addTask'])
+                ->middleware('throttle:30,1');
+            Route::post('/leads/{id}/files', [CrmLeadController::class, 'uploadFile'])
+                ->middleware('throttle:30,1');
+            Route::post('/leads/{id}/send-email', [CrmLeadController::class, 'sendEmail'])
+                ->middleware('throttle:30,1');
+
+            // Tasks
+            Route::patch('/tasks/{id}/done', [CrmLeadController::class, 'completeTask'])
+                ->middleware('throttle:30,1');
+
+            // Email Templates
+            Route::get('/templates', [CrmTemplateController::class, 'index'])
+                ->middleware('throttle:120,1');
+            Route::post('/templates', [CrmTemplateController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::put('/templates/{id}', [CrmTemplateController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::delete('/templates/{id}', [CrmTemplateController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+            Route::post('/templates/{id}/preview', [CrmTemplateController::class, 'preview'])
+                ->middleware('throttle:60,1');
+
+            // Research
+            Route::get('/research/stats', [ResearchController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/research/jobs', [ResearchController::class, 'jobs'])
+                ->middleware('throttle:60,1');
+            Route::post('/research/jobs', [ResearchController::class, 'createJob'])
+                ->middleware('throttle:30,1');
+            Route::get('/research/jobs/{id}', [ResearchController::class, 'showJob'])
+                ->middleware('throttle:60,1');
+            Route::get('/research/jobs/{id}/candidates', [ResearchController::class, 'candidates'])
+                ->middleware('throttle:60,1');
+            Route::post('/research/jobs/{id}/candidates', [ResearchController::class, 'addCandidate'])
+                ->middleware('throttle:30,1');
+            Route::post('/research/candidates/{id}/accept', [ResearchController::class, 'acceptCandidate'])
+                ->middleware('throttle:30,1');
+            Route::post('/research/candidates/{id}/reject', [ResearchController::class, 'rejectCandidate'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // DEMO MODE - Investor Demo Candidate Creation
+        // ===========================================
+        Route::prefix('admin/demo')->group(function () {
+            Route::post('/create-candidate', [DemoController::class, 'createCandidate'])
+                ->middleware('throttle:10,1');
+            Route::delete('/cleanup', [DemoController::class, 'cleanup'])
+                ->middleware('throttle:5,1');
         });
 
     }); // End of platform.admin middleware group
