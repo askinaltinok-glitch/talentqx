@@ -9,17 +9,22 @@ use Exception;
 
 class OpenAIProvider implements LLMProviderInterface
 {
-    private string $apiKey;
+    private ?string $apiKey;
     private string $model;
     private string $whisperModel;
     private int $timeout;
 
-    public function __construct()
-    {
-        $this->apiKey = config('services.openai.api_key');
-        $this->model = config('services.openai.model', 'gpt-4-turbo-preview');
-        $this->whisperModel = config('services.openai.whisper_model', 'whisper-1');
-        $this->timeout = config('services.openai.timeout', 120);
+    public function __construct(
+        ?string $apiKey = null,
+        ?string $model = null,
+        ?string $whisperModel = null,
+        ?int $timeout = null
+    ) {
+        // Use provided values or fall back to config (for backward compatibility)
+        $this->apiKey = $apiKey ?? config('services.openai.api_key');
+        $this->model = $model ?? config('services.openai.model', 'gpt-4-turbo-preview');
+        $this->whisperModel = $whisperModel ?? config('services.openai.whisper_model', 'whisper-1');
+        $this->timeout = $timeout ?? config('services.openai.timeout', 120);
     }
 
     public function generateQuestions(array $competencies, array $questionRules, array $context = []): array
@@ -48,6 +53,10 @@ class OpenAIProvider implements LLMProviderInterface
 
     public function transcribeAudio(string $audioPath, string $language = 'tr'): array
     {
+        if (empty($this->apiKey)) {
+            throw new Exception('OpenAI API key is not configured');
+        }
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
         ])->timeout($this->timeout)->attach(
@@ -81,6 +90,10 @@ class OpenAIProvider implements LLMProviderInterface
 
     private function chat(string $systemPrompt, string $userPrompt, array $options = []): string
     {
+        if (empty($this->apiKey)) {
+            throw new Exception('OpenAI API key is not configured');
+        }
+
         $payload = array_merge([
             'model' => $this->model,
             'messages' => [
@@ -300,20 +313,82 @@ PROMPT;
 
     public function test(): array
     {
+        if (empty($this->apiKey)) {
+            return [
+                'success' => false,
+                'provider' => 'openai',
+                'error' => 'API key is not configured',
+            ];
+        }
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
-            ])->get('https://api.openai.com/v1/models');
+            ])->timeout(30)->get('https://api.openai.com/v1/models');
 
             return [
                 'success' => $response->successful(),
+                'provider' => 'openai',
                 'models_available' => $response->successful(),
             ];
         } catch (Exception $e) {
             return [
                 'success' => false,
+                'provider' => 'openai',
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    public function getModelInfo(): array
+    {
+        return [
+            'provider' => 'openai',
+            'model' => $this->model,
+        ];
+    }
+
+    public function improveJobDescription(string $title, string $description, string $positionType = ''): array
+    {
+        $systemPrompt = <<<PROMPT
+Sen profesyonel bir is ilani yazarisin. Kullanicinin girdigi is ilani aciklamasini daha profesyonel, net ve cekici hale getireceksin.
+
+KURALLAR:
+1. Turkce dil bilgisi kurallarini uygula
+2. Profesyonel bir dil kullan
+3. Gereksiz tekrarlari kaldir
+4. Net ve anlasilir cumle yapilari kur
+5. Is saatlerini ve sartlari duzenli listele
+6. Pozitif ve davetkar bir ton kullan
+7. Cok uzun olmasin, ozet ve etkili olsun
+
+CIKTI FORMATI (JSON):
+{
+    "improved_description": "Duzenlenmis aciklama metni",
+    "improvements_made": ["Yapilan iyilestirme 1", "Yapilan iyilestirme 2"]
+}
+
+Sadece JSON formatinda cevap ver, baska aciklama ekleme.
+PROMPT;
+
+        $userPrompt = "ILAN BASLIGI: {$title}\n";
+        if ($positionType) {
+            $userPrompt .= "POZISYON TURU: {$positionType}\n";
+        }
+        $userPrompt .= "\nORIJINAL ACIKLAMA:\n{$description}\n\nBu aciklamayi profesyonelce duzenle.";
+
+        try {
+            $response = $this->chat($systemPrompt, $userPrompt, [
+                'response_format' => ['type' => 'json_object'],
+                'temperature' => 0.6,
+            ]);
+
+            return $this->parseJsonResponse($response);
+        } catch (Exception $e) {
+            Log::error('Job description improvement failed', [
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         }
     }
 }

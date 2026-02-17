@@ -4,19 +4,37 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\Interview;
 use App\Models\Job;
+use App\Notifications\InterviewInvitationNotification;
+use App\Services\Copilot\RedFlagActionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class CandidateController extends Controller
 {
+    public function __construct(
+        private RedFlagActionService $redFlagActionService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $query = Candidate::with(['job', 'latestInterview.analysis'])
-            ->whereHas('job', function ($q) use ($request) {
-                $q->where('company_id', $request->user()->company_id);
+        $user = $request->user();
+
+        $query = Candidate::with(['job.company', 'latestInterview.analysis']);
+
+        // Platform admin sees all, regular users see only their company
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
             });
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('job', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+            });
+        }
 
         if ($request->has('job_id')) {
             $query->where('job_id', $request->job_id);
@@ -24,6 +42,18 @@ class CandidateController extends Controller
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+
+        // Filter by interview status (pending, in_progress, completed, cancelled)
+        if ($request->has('interview_status')) {
+            $interviewStatus = $request->interview_status;
+            if ($interviewStatus === 'none') {
+                $query->whereDoesntHave('interviews');
+            } else {
+                $query->whereHas('latestInterview', function ($q) use ($interviewStatus) {
+                    $q->where('status', $interviewStatus);
+                });
+            }
         }
 
         if ($request->has('has_red_flags') && $request->boolean('has_red_flags')) {
@@ -83,7 +113,17 @@ class CandidateController extends Controller
                 'job' => [
                     'id' => $candidate->job->id,
                     'title' => $candidate->job->title,
+                    'company' => [
+                        'id' => $candidate->job->company->id ?? null,
+                        'name' => $candidate->job->company->name ?? null,
+                    ],
                 ],
+                'company_name' => $candidate->job->company->name ?? null,
+                'has_interview' => $candidate->latestInterview !== null,
+                'interview_status' => $candidate->latestInterview?->status,
+                'interview_url' => $candidate->latestInterview?->status === 'completed'
+                    ? null
+                    : $candidate->latestInterview?->getInterviewUrl(),
                 'interview' => $candidate->latestInterview ? [
                     'id' => $candidate->latestInterview->id,
                     'status' => $candidate->latestInterview->status,
@@ -118,8 +158,14 @@ class CandidateController extends Controller
             'referrer_name' => 'nullable|string|max:255',
         ]);
 
-        $job = Job::where('company_id', $request->user()->company_id)
-            ->findOrFail($validated['job_id']);
+        $user = $request->user();
+        $jobQuery = Job::query();
+
+        if (!$user->is_platform_admin) {
+            $jobQuery->where('company_id', $user->company_id);
+        }
+
+        $job = $jobQuery->findOrFail($validated['job_id']);
 
         $candidate = Candidate::create([
             'job_id' => $job->id,
@@ -146,11 +192,17 @@ class CandidateController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $candidate = Candidate::with(['job.template', 'latestInterview.analysis', 'latestInterview.responses.question'])
-            ->whereHas('job', function ($q) use ($request) {
-                $q->where('company_id', $request->user()->company_id);
-            })
-            ->findOrFail($id);
+        $user = $request->user();
+
+        $query = Candidate::with(['job.template', 'job.company', 'latestInterview.analysis', 'latestInterview.responses.question']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -189,16 +241,7 @@ class CandidateController extends Controller
                         'video_segment_url' => $r->video_segment_url,
                     ]),
                 ] : null,
-                'analysis' => $candidate->latestInterview?->analysis ? [
-                    'id' => $candidate->latestInterview->analysis->id,
-                    'overall_score' => $candidate->latestInterview->analysis->overall_score,
-                    'competency_scores' => $candidate->latestInterview->analysis->competency_scores,
-                    'behavior_analysis' => $candidate->latestInterview->analysis->behavior_analysis,
-                    'red_flag_analysis' => $candidate->latestInterview->analysis->red_flag_analysis,
-                    'culture_fit' => $candidate->latestInterview->analysis->culture_fit,
-                    'decision_snapshot' => $candidate->latestInterview->analysis->decision_snapshot,
-                    'question_analyses' => $candidate->latestInterview->analysis->question_analyses,
-                ] : null,
+                'analysis' => $candidate->latestInterview?->analysis ? $this->buildAnalysisResponse($candidate->latestInterview->analysis) : null,
                 'internal_notes' => $candidate->internal_notes,
                 'tags' => $candidate->tags,
                 'created_at' => $candidate->created_at,
@@ -213,9 +256,16 @@ class CandidateController extends Controller
             'note' => 'nullable|string',
         ]);
 
-        $candidate = Candidate::whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($id);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($id);
 
         $candidate->updateStatus(
             $validated['status'],
@@ -239,9 +289,16 @@ class CandidateController extends Controller
             'cv' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
-        $candidate = Candidate::whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($id);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($id);
 
         $path = $request->file('cv')->store('cvs/' . $candidate->id, 's3');
 
@@ -259,9 +316,16 @@ class CandidateController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $candidate = Candidate::whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($id);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($id);
 
         if ($candidate->cv_url) {
             Storage::disk('s3')->delete($candidate->cv_url);
@@ -279,5 +343,204 @@ class CandidateController extends Controller
             'success' => true,
             'message' => 'Aday ve tum iliskili veriler silindi.',
         ]);
+    }
+
+    /**
+     * Send interview invitation to a single candidate.
+     */
+    public function sendInterviewInvite(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $query = Candidate::with(['job']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($id);
+
+        // Check if interview already exists and is completed
+        $existingInterview = Interview::where('candidate_id', $candidate->id)->first();
+        if ($existingInterview && $existingInterview->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu aday mülakatı zaten tamamlamış.',
+            ], 422);
+        }
+
+        // Create interview if not exists
+        if (!$existingInterview) {
+            $existingInterview = Interview::create([
+                'candidate_id' => $candidate->id,
+                'job_id' => $candidate->job_id,
+                'status' => 'pending',
+            ]);
+        }
+
+        // Send invitation email
+        Notification::route('mail', $candidate->email)
+            ->notify(new InterviewInvitationNotification($existingInterview, 'written'));
+
+        // Update interview
+        $existingInterview->update(['invitation_sent_at' => now()]);
+
+        // Update candidate status
+        $candidate->update(['status' => Candidate::STATUS_INTERVIEW_PENDING]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mülakat daveti gönderildi.',
+            'data' => [
+                'interview_url' => $existingInterview->getInterviewUrl(),
+            ],
+        ]);
+    }
+
+    /**
+     * Send interview invitations to multiple candidates.
+     */
+    public function bulkSendInvites(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'candidate_ids' => 'required|array|min:1',
+            'candidate_ids.*' => 'uuid',
+        ]);
+
+        $user = $request->user();
+        $sentCount = 0;
+        $skippedCount = 0;
+
+        foreach ($validated['candidate_ids'] as $candidateId) {
+            $query = Candidate::with(['job']);
+
+            if (!$user->is_platform_admin) {
+                $query->whereHas('job', function ($q) use ($user) {
+                    $q->where('company_id', $user->company_id);
+                });
+            }
+
+            $candidate = $query->find($candidateId);
+            if (!$candidate) {
+                $skippedCount++;
+                continue;
+            }
+
+            // Check if interview already completed
+            $existingInterview = Interview::where('candidate_id', $candidate->id)->first();
+            if ($existingInterview && $existingInterview->status === 'completed') {
+                $skippedCount++;
+                continue;
+            }
+
+            // Create interview if not exists
+            if (!$existingInterview) {
+                $existingInterview = Interview::create([
+                    'candidate_id' => $candidate->id,
+                    'job_id' => $candidate->job_id,
+                    'status' => 'pending',
+                ]);
+            }
+
+            // Send invitation email
+            Notification::route('mail', $candidate->email)
+                ->notify(new InterviewInvitationNotification($existingInterview, 'written'));
+
+            // Update interview
+            $existingInterview->update(['invitation_sent_at' => now()]);
+
+            // Update candidate status
+            $candidate->update(['status' => Candidate::STATUS_INTERVIEW_PENDING]);
+
+            $sentCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$sentCount} adaya davet gönderildi.",
+            'sent_count' => $sentCount,
+            'skipped_count' => $skippedCount,
+        ]);
+    }
+
+    /**
+     * Build analysis response with suggested actions.
+     */
+    private function buildAnalysisResponse($analysis): array
+    {
+        $redFlagAnalysis = $analysis->red_flag_analysis;
+        $suggestedActions = [];
+
+        // Generate suggested actions if there are red flags
+        if ($redFlagAnalysis && isset($redFlagAnalysis['flags']) && is_array($redFlagAnalysis['flags'])) {
+            // Map the flags to the format expected by RedFlagActionService
+            $mappedFlags = array_map(function ($flag) {
+                return [
+                    'code' => $flag['code'] ?? '',
+                    'level' => $this->mapSeverityToLevel($flag['severity'] ?? 'medium'),
+                    'label' => $flag['code'] ?? '',
+                    'evidence' => $flag['detected_phrase'] ?? '',
+                ];
+            }, $redFlagAnalysis['flags']);
+
+            // Determine overall risk level from flags
+            $riskLevel = $this->determineRiskLevel($redFlagAnalysis['flags']);
+
+            // Get recommended actions
+            $actionResult = $this->redFlagActionService->getRecommendedActions($mappedFlags, $riskLevel);
+            $suggestedActions = $actionResult['actions'];
+        }
+
+        return [
+            'id' => $analysis->id,
+            'overall_score' => $analysis->overall_score,
+            'competency_scores' => $analysis->competency_scores,
+            'behavior_analysis' => $analysis->behavior_analysis,
+            'red_flag_analysis' => $redFlagAnalysis,
+            'culture_fit' => $analysis->culture_fit,
+            'decision_snapshot' => $analysis->decision_snapshot,
+            'question_analyses' => $analysis->question_analyses,
+            'suggested_actions' => $suggestedActions,
+            'ai_model' => $analysis->ai_model,
+            'ai_provider' => $analysis->ai_model_version,
+            'analyzed_at' => $analysis->analyzed_at,
+        ];
+    }
+
+    /**
+     * Map severity string to numeric level.
+     */
+    private function mapSeverityToLevel(string $severity): int
+    {
+        return match (strtolower($severity)) {
+            'high', 'critical' => 1,
+            'medium', 'moderate' => 2,
+            default => 3,
+        };
+    }
+
+    /**
+     * Determine overall risk level from flags.
+     */
+    private function determineRiskLevel(array $flags): string
+    {
+        if (empty($flags)) {
+            return 'none';
+        }
+
+        $hasHigh = collect($flags)->contains(fn($f) =>
+            in_array(strtolower($f['severity'] ?? ''), ['high', 'critical'])
+        );
+
+        if ($hasHigh) {
+            return 'high';
+        }
+
+        $hasMedium = collect($flags)->contains(fn($f) =>
+            in_array(strtolower($f['severity'] ?? ''), ['medium', 'moderate'])
+        );
+
+        return $hasMedium ? 'medium' : 'low';
     }
 }

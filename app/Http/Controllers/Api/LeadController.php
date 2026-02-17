@@ -195,11 +195,19 @@ class LeadController extends Controller
 
         $lead->updateStatus($validated['status'], $validated['lost_reason'] ?? null);
 
-        return response()->json([
+        $response = [
             'success' => true,
             'data' => $lead->fresh(['activities']),
             'message' => 'Durum güncellendi',
-        ]);
+        ];
+
+        // If status changed to demo, include provisioning info
+        if ($validated['status'] === Lead::STATUS_DEMO) {
+            $response['message'] = 'Demo hesabı oluşturuldu ve giriş bilgileri mail ile gönderildi';
+            $response['demo_provisioned'] = true;
+        }
+
+        return response()->json($response);
     }
 
     /**

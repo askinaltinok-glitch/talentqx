@@ -71,6 +71,8 @@ class CrmCompanyController extends Controller
             'size_band' => ['nullable', Rule::in(CrmCompany::SIZE_BANDS)],
             'tags' => ['nullable', 'array'],
             'status' => ['nullable', Rule::in(CrmCompany::STATUSES)],
+            'operations' => ['nullable', 'array'],
+            'operations.*' => ['string', 'in:sea,river'],
         ]);
 
         $v['domain'] = CrmCompany::extractDomain($v['website'] ?? null);
@@ -128,6 +130,8 @@ class CrmCompanyController extends Controller
             'tags' => ['nullable', 'array'],
             'status' => ['nullable', Rule::in(CrmCompany::STATUSES)],
             'owner_user_id' => ['nullable', 'uuid'],
+            'operations' => ['nullable', 'array'],
+            'operations.*' => ['string', 'in:sea,river'],
         ]);
 
         if (isset($v['website'])) {

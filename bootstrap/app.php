@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.scope' => \App\Http\Middleware\RequireCustomerScope::class,
             'subscription.access' => \App\Http\Middleware\SubscriptionAccessMiddleware::class,
             'api.token' => \App\Http\Middleware\ApiTokenAuth::class,
+            'feature.access' => \App\Http\Middleware\EnsureFeatureAccess::class,
+            'platform.octopus_admin' => \App\Http\Middleware\RequireOctopusAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

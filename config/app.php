@@ -20,4 +20,13 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Feature Flags
+    |--------------------------------------------------------------------------
+    | Feature toggles for enabling/disabling specific functionality.
+    */
+    'marketplace_enabled' => (bool) env('MARKETPLACE_ENABLED', true),
+    'demo_mode' => (bool) env('DEMO_MODE', false),
 ];

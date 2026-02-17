@@ -19,18 +19,25 @@ class RequireCustomerScope
         'v1/auth',
         'v1/change-password',
 
+        // Company info (subscription status)
+        'v1/company',
+
         // Core hiring workflow
         'v1/positions/templates',
         'v1/jobs',
         'v1/candidates',
         'v1/interviews',
         'v1/dashboard',
+        'v1/assessment-results/dashboard-stats',
 
         // Reports (protected endpoints for generating/viewing)
         'v1/reports',
 
         // Marketplace (premium features)
         'v1/marketplace',
+
+        // AI Copilot
+        'v1/copilot',
     ];
 
     /**

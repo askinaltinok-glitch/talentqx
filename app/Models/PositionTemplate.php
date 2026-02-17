@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PositionTemplate extends Model
@@ -12,6 +13,7 @@ class PositionTemplate extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'job_position_id',
         'name',
         'slug',
         'description',
@@ -36,6 +38,11 @@ class PositionTemplate extends Model
     public function jobs(): HasMany
     {
         return $this->hasMany(Job::class, 'template_id');
+    }
+
+    public function jobPosition(): BelongsTo
+    {
+        return $this->belongsTo(JobPosition::class, 'job_position_id');
     }
 
     public function getCompetencyByCode(string $code): ?array

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Job;
 use App\Models\JobPosition;
 use App\Models\PositionTemplate;
+use App\Services\AI\LLMProviderFactory;
 use App\Services\Interview\QuestionGenerator;
 use App\Services\QRCode\QRCodeService;
 use Illuminate\Http\JsonResponse;
@@ -522,5 +523,44 @@ class JobController extends Controller
             'success' => true,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Improve job description using AI.
+     */
+    public function improveDescription(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|min:10',
+            'position_type' => 'nullable|string|max:100',
+        ]);
+
+        try {
+            $provider = LLMProviderFactory::createForCurrentUser();
+
+            $result = $provider->improveJobDescription(
+                $validated['title'],
+                $validated['description'],
+                $validated['position_type'] ?? ''
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'original' => $validated['description'],
+                    'improved' => $result['improved_description'] ?? $validated['description'],
+                    'improvements' => $result['improvements_made'] ?? [],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'AI_ERROR',
+                    'message' => 'Aciklama duzenlenemedi: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
     }
 }

@@ -8,7 +8,7 @@ use App\Models\ModelFeature;
 use App\Models\ModelPrediction;
 use App\Models\ModelWeight;
 use App\Models\PoolCandidate;
-use App\Services\FormInterview\FormInterviewService;
+use App\Services\Interview\FormInterviewService;
 use App\Services\ML\MlLearningService;
 use App\Services\ML\MlScoringService;
 use App\Services\ML\ModelFeatureService;

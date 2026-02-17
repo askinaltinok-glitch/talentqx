@@ -7,120 +7,288 @@ use App\Models\Candidate;
 use App\Models\MarketplaceAccessRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Marketplace Controller
+ *
+ * Handles marketplace candidate listing and access requests.
+ * All endpoints require authentication and premium subscription.
+ *
+ * NOTE: Marketplace is DISABLED in v1 via MARKETPLACE_ENABLED feature flag.
+ */
 class MarketplaceController extends Controller
 {
     /**
-     * List marketplace candidates (anonymous profiles).
-     * GET /v1/marketplace/candidates
-     *
-     * Requires premium subscription.
+     * Check if marketplace feature is enabled.
      */
-    public function index(Request $request): JsonResponse
+    private function isMarketplaceEnabled(): bool
     {
-        $company = $request->user()->company;
+        return config('app.marketplace_enabled', false);
+    }
 
-        // Check premium access
-        if (!$company->hasMarketplaceAccess()) {
+    /**
+     * Return 503 Service Unavailable when marketplace is disabled.
+     */
+    private function marketplaceDisabledResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'error' => [
+                'code' => 'MARKETPLACE_UNAVAILABLE',
+                'message' => 'Aday Havuzu özelliği şu anda aktif değildir. Yakında hizmetinizde olacak.',
+            ],
+        ], 503);
+    }
+
+    /**
+     * Check if user has marketplace access (platform admin or premium subscription).
+     */
+    private function hasMarketplaceAccess(Request $request): bool
+    {
+        $user = $request->user();
+
+        // Platform admins always have access
+        if ($user->is_platform_admin) {
+            return true;
+        }
+
+        // Check company's premium/marketplace access
+        return $user->company && $user->company->hasMarketplaceAccess();
+    }
+
+    /**
+     * GET /marketplace/candidates
+     * List candidates from other companies (anonymized profiles).
+     * Platform admins see full info with company details.
+     */
+    public function listCandidates(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Platform admin can always access, others need feature flag
+        if (!$user->is_platform_admin && !$this->isMarketplaceEnabled()) {
+            return $this->marketplaceDisabledResponse();
+        }
+
+        // Check marketplace access (platform admin or premium)
+        if (!$this->hasMarketplaceAccess($request)) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'premium_required',
-                    'message' => 'Marketplace erişimi için premium abonelik gereklidir.',
+                    'code' => 'MARKETPLACE_ACCESS_REQUIRED',
+                    'message' => 'Premium abonelik ve marketplace erişimi gereklidir.',
                 ],
             ], 403);
         }
 
-        $query = Candidate::marketplaceVisible()
-            ->with(['job:id,title,location', 'latestInterview.analysis'])
-            // Exclude own company's candidates
-            ->where('company_id', '!=', $company->id);
+        $perPage = min($request->input('per_page', 100), 200);
 
-        // Filter by skills
-        if ($request->has('skills')) {
-            $skills = is_array($request->skills) ? $request->skills : explode(',', $request->skills);
-            $query->where(function ($q) use ($skills) {
-                foreach ($skills as $skill) {
-                    $q->orWhereJsonContains('cv_parsed_data->skills', trim($skill));
-                }
+        // Get candidates - for admin include company info
+        $query = Candidate::with([
+            'job:id,title,location,company_id',
+            'job.company:id,name',
+            'job.branch:id,name',
+            'latestInterview.analysis'
+        ]);
+
+        // Only filter by completed interviews if not admin requesting all
+        if (!$user->is_platform_admin || !$request->boolean('include_all')) {
+            $query->whereHas('interviews', function ($q) {
+                $q->where('status', 'completed');
             });
         }
 
-        // Filter by minimum score
-        if ($request->has('min_score')) {
-            $query->whereHas('latestInterview.analysis', function ($q) use ($request) {
-                $q->where('overall_score', '>=', (int) $request->min_score);
+        // For non-admin users, exclude their own company's candidates
+        if (!$user->is_platform_admin && $user->company_id) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', '!=', $user->company_id);
             });
         }
 
-        // Filter by experience years
-        if ($request->has('min_experience')) {
-            $query->whereRaw("JSON_EXTRACT(cv_parsed_data, '$.experience_years') >= ?", [(int) $request->min_experience]);
+        // Filters
+        if ($request->filled('min_score')) {
+            $minScore = (int) $request->input('min_score');
+            $query->whereHas('latestInterview.analysis', function ($q) use ($minScore) {
+                $q->where('overall_score', '>=', $minScore);
+            });
         }
 
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
         }
 
-        $candidates = $query->orderByDesc('created_at')
-            ->paginate($request->get('per_page', 20));
+        if ($request->filled('company_id')) {
+            $query->whereHas('job', function ($q) use ($request) {
+                $q->where('company_id', $request->input('company_id'));
+            });
+        }
 
-        // Transform to anonymous profiles
-        $anonymousProfiles = $candidates->getCollection()->map(function ($candidate) use ($company) {
-            $profile = $candidate->getAnonymousProfile();
+        $candidates = $query->orderByDesc('created_at')->paginate($perPage);
 
-            // Add request status if the company has requested this candidate
-            $existingRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-                ->where('candidate_id', $candidate->id)
-                ->latest()
-                ->first();
+        // Platform admin gets full info with company details
+        if ($user->is_platform_admin) {
+            $fullCandidates = $candidates->getCollection()->map(function ($candidate) {
+                return $this->adminCandidateView($candidate);
+            });
 
-            $profile['access_request_status'] = $existingRequest?->status;
-            $profile['access_request_id'] = $existingRequest?->id;
+            return response()->json([
+                'success' => true,
+                'data' => $fullCandidates,
+                'meta' => [
+                    'current_page' => $candidates->currentPage(),
+                    'per_page' => $candidates->perPage(),
+                    'total' => $candidates->total(),
+                    'last_page' => $candidates->lastPage(),
+                ],
+            ]);
+        }
 
-            return $profile;
+        // Transform to anonymous profiles for non-admins
+        $anonymizedCandidates = $candidates->getCollection()->map(function ($candidate) use ($user) {
+            return $this->anonymizeCandidate($candidate, $user->company_id);
         });
 
         return response()->json([
             'success' => true,
-            'data' => $anonymousProfiles,
+            'data' => $anonymizedCandidates,
             'meta' => [
                 'current_page' => $candidates->currentPage(),
-                'last_page' => $candidates->lastPage(),
                 'per_page' => $candidates->perPage(),
                 'total' => $candidates->total(),
+                'last_page' => $candidates->lastPage(),
             ],
         ]);
     }
 
     /**
-     * Request access to a candidate's full profile.
-     * POST /v1/marketplace/candidates/{publicHash}/request-access
+     * Full candidate view for platform admins.
      */
-    public function requestAccess(Request $request, string $publicHash): JsonResponse
+    private function adminCandidateView(Candidate $candidate): array
     {
-        $company = $request->user()->company;
+        $analysis = $candidate->latestInterview?->analysis;
+        $job = $candidate->job;
+        $company = $job?->company;
+        $branch = $job?->branch;
 
-        // Check premium access
-        if (!$company->hasMarketplaceAccess()) {
+        return [
+            'id' => $candidate->id,
+            'first_name' => $candidate->first_name,
+            'last_name' => $candidate->last_name,
+            'full_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
+            'email' => $candidate->email,
+            'phone' => $candidate->phone,
+            'status' => $candidate->status,
+            'cv_match_score' => $candidate->cv_match_score,
+            'source' => $candidate->source,
+            'created_at' => $candidate->created_at->toIso8601String(),
+            // Job & Company info
+            'job_id' => $job?->id,
+            'job_title' => $job?->title,
+            'job_location' => $job?->location,
+            'company_id' => $company?->id,
+            'company_name' => $company?->name,
+            'branch_name' => $branch?->name,
+            // Combined company info for display
+            'company_display' => $this->buildCompanyDisplay($company, $branch, $job),
+            // Analysis
+            'overall_score' => $analysis?->overall_score,
+            'recommendation' => $analysis?->decision_snapshot['recommendation'] ?? null,
+            'interview_completed_at' => $candidate->latestInterview?->completed_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Build company display string: "Şirket Adı - Şube - İlan"
+     */
+    private function buildCompanyDisplay(?object $company, ?object $branch, ?object $job): string
+    {
+        $parts = [];
+
+        if ($company?->name) {
+            $parts[] = $company->name;
+        }
+
+        if ($branch?->name) {
+            $parts[] = $branch->name;
+        }
+
+        if ($job?->title) {
+            $parts[] = $job->title;
+        }
+
+        return implode(' - ', $parts) ?: '-';
+    }
+
+    /**
+     * POST /marketplace/candidates/{id}/request-access
+     * Request access to a candidate's full profile.
+     * Note: Platform admins don't need to request access - they have full access.
+     */
+    public function requestAccess(Request $request, string $candidateId): JsonResponse
+    {
+        $user = $request->user();
+
+        // Platform admin already has full access, no need to request
+        if ($user->is_platform_admin) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'premium_required',
-                    'message' => 'Marketplace erişimi için premium abonelik gereklidir.',
+                    'code' => 'ALREADY_HAS_ACCESS',
+                    'message' => 'Platform yöneticisi olarak tüm adaylara zaten erişiminiz var.',
+                ],
+            ], 400);
+        }
+
+        // Feature flag check for non-admins
+        if (!$this->isMarketplaceEnabled()) {
+            return $this->marketplaceDisabledResponse();
+        }
+
+        // Check marketplace access (premium)
+        if (!$this->hasMarketplaceAccess($request)) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'MARKETPLACE_ACCESS_REQUIRED',
+                    'message' => 'Premium abonelik ve marketplace erişimi gereklidir.',
                 ],
             ], 403);
         }
 
-        $candidate = Candidate::marketplaceVisible()
-            ->where('company_id', '!=', $company->id)
-            ->where('public_hash', $publicHash)
-            ->firstOrFail();
+        $validated = $request->validate([
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        // Find candidate
+        $candidate = Candidate::with('job.company')->find($candidateId);
+
+        if (!$candidate) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'CANDIDATE_NOT_FOUND',
+                    'message' => 'Aday bulunamadı.',
+                ],
+            ], 404);
+        }
+
+        $owningCompanyId = $candidate->job->company_id;
+
+        // Can't request access to own company's candidates
+        if ($owningCompanyId === $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OWN_CANDIDATE',
+                    'message' => 'Kendi şirketinizin adaylarına erişim talep edemezsiniz.',
+                ],
+            ], 400);
+        }
 
         // Check for existing pending request
-        $existingRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-            ->where('candidate_id', $candidate->id)
+        $existingRequest = MarketplaceAccessRequest::where('requesting_company_id', $user->company_id)
+            ->where('candidate_id', $candidateId)
             ->where('status', MarketplaceAccessRequest::STATUS_PENDING)
             ->first();
 
@@ -128,16 +296,15 @@ class MarketplaceController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'request_pending',
+                    'code' => 'REQUEST_EXISTS',
                     'message' => 'Bu aday için zaten bekleyen bir erişim talebiniz var.',
-                    'request_id' => $existingRequest->id,
                 ],
             ], 400);
         }
 
-        // Check for existing approved request
-        $approvedRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-            ->where('candidate_id', $candidate->id)
+        // Check for existing approved request (still valid)
+        $approvedRequest = MarketplaceAccessRequest::where('requesting_company_id', $user->company_id)
+            ->where('candidate_id', $candidateId)
             ->where('status', MarketplaceAccessRequest::STATUS_APPROVED)
             ->first();
 
@@ -145,25 +312,32 @@ class MarketplaceController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'already_approved',
-                    'message' => 'Bu aday profili için zaten erişim izniniz var.',
-                    'request_id' => $approvedRequest->id,
+                    'code' => 'ALREADY_APPROVED',
+                    'message' => 'Bu adaya zaten erişiminiz var.',
                 ],
             ], 400);
         }
 
-        $validated = $request->validate([
-            'message' => 'nullable|string|max:500',
-        ]);
-
+        // Create access request
         $accessRequest = MarketplaceAccessRequest::create([
-            'requesting_company_id' => $company->id,
-            'requesting_user_id' => $request->user()->id,
-            'candidate_id' => $candidate->id,
+            'requesting_company_id' => $user->company_id,
+            'requesting_user_id' => $user->id,
+            'candidate_id' => $candidateId,
+            'owning_company_id' => $owningCompanyId,
+            'status' => MarketplaceAccessRequest::STATUS_PENDING,
             'request_message' => $validated['message'] ?? null,
+            'access_token' => MarketplaceAccessRequest::generateToken(),
+            'token_expires_at' => now()->addDays(7), // 7 days to respond
         ]);
 
-        // TODO: Send notification to the candidate's company or candidate
+        Log::info('Marketplace access requested', [
+            'request_id' => $accessRequest->id,
+            'requesting_company_id' => $user->company_id,
+            'candidate_id' => $candidateId,
+            'owning_company_id' => $owningCompanyId,
+        ]);
+
+        // TODO: Send notification email to owning company
 
         return response()->json([
             'success' => true,
@@ -172,38 +346,69 @@ class MarketplaceController extends Controller
                 'status' => $accessRequest->status,
                 'token_expires_at' => $accessRequest->token_expires_at->toIso8601String(),
             ],
-            'message' => 'Erişim talebi başarıyla oluşturuldu.',
         ], 201);
     }
 
     /**
-     * Get full profile of a candidate (requires approved access).
-     * GET /v1/marketplace/candidates/{publicHash}/full-profile
+     * GET /marketplace/candidates/{id}/full-profile
+     * Get full profile of a candidate.
+     * Platform admins have direct access, others need approved access request.
      */
-    public function fullProfile(Request $request, string $publicHash): JsonResponse
+    public function getFullProfile(Request $request, string $candidateId): JsonResponse
     {
-        $company = $request->user()->company;
+        $user = $request->user();
 
-        // Check premium access
-        if (!$company->hasMarketplaceAccess()) {
+        // Platform admin can always access, others need feature flag
+        if (!$user->is_platform_admin && !$this->isMarketplaceEnabled()) {
+            return $this->marketplaceDisabledResponse();
+        }
+
+        // Check marketplace access (platform admin or premium)
+        if (!$this->hasMarketplaceAccess($request)) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'premium_required',
-                    'message' => 'Marketplace erişimi için premium abonelik gereklidir.',
+                    'code' => 'MARKETPLACE_ACCESS_REQUIRED',
+                    'message' => 'Premium abonelik ve marketplace erişimi gereklidir.',
                 ],
             ], 403);
         }
 
-        $candidate = Candidate::marketplaceVisible()
-            ->where('company_id', '!=', $company->id)
-            ->where('public_hash', $publicHash)
-            ->with(['job', 'latestInterview.analysis'])
-            ->firstOrFail();
+        // Find candidate with full data
+        $candidate = Candidate::with(['job:id,title,location,company_id', 'job.company:id,name', 'job.branch:id,name', 'interview.analysis'])
+            ->find($candidateId);
 
-        // Check for approved access request
-        $approvedRequest = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-            ->where('candidate_id', $candidate->id)
+        if (!$candidate) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'CANDIDATE_NOT_FOUND',
+                    'message' => 'Aday bulunamadı.',
+                ],
+            ], 404);
+        }
+
+        // Platform admin has full access to everything
+        if ($user->is_platform_admin) {
+            return response()->json([
+                'success' => true,
+                'data' => $this->fullCandidateProfile($candidate),
+            ]);
+        }
+
+        $owningCompanyId = $candidate->job->company_id;
+
+        // Own company's candidate - full access
+        if ($owningCompanyId === $user->company_id) {
+            return response()->json([
+                'success' => true,
+                'data' => $this->fullCandidateProfile($candidate),
+            ]);
+        }
+
+        // Check for approved access
+        $approvedRequest = MarketplaceAccessRequest::where('requesting_company_id', $user->company_id)
+            ->where('candidate_id', $candidateId)
             ->where('status', MarketplaceAccessRequest::STATUS_APPROVED)
             ->first();
 
@@ -211,80 +416,59 @@ class MarketplaceController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'access_not_granted',
-                    'message' => 'Bu aday profili için erişim izniniz yok.',
+                    'code' => 'ACCESS_NOT_APPROVED',
+                    'message' => 'Bu adayın tam profiline erişiminiz yok. Önce erişim talep edin.',
                 ],
             ], 403);
         }
 
-        // Return full profile with PII
+        Log::info('Marketplace full profile accessed', [
+            'request_id' => $approvedRequest->id,
+            'requesting_company_id' => $user->company_id,
+            'candidate_id' => $candidateId,
+        ]);
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $candidate->public_hash, // Use public_hash for consistency
-                'first_name' => $candidate->first_name,
-                'last_name' => $candidate->last_name,
-                'email' => $candidate->email,
-                'phone' => $candidate->phone,
-                'status' => $candidate->status,
-                'cv_match_score' => $candidate->cv_match_score,
-                'cv_parsed_data' => $candidate->cv_parsed_data,
-                'source' => $candidate->source,
-                'created_at' => $candidate->created_at->toIso8601String(),
-                'job' => $candidate->job ? [
-                    'id' => $candidate->job->id,
-                    'title' => $candidate->job->title,
-                    'location' => $candidate->job->location,
-                ] : null,
-                'latest_analysis' => $candidate->getLatestAnalysis() ? [
-                    'overall_score' => $candidate->getLatestAnalysis()->overall_score,
-                    'competency_scores' => $candidate->getLatestAnalysis()->competency_scores,
-                    'recommendation' => $candidate->getLatestAnalysis()->decision_snapshot['recommendation'] ?? null,
-                    'analyzed_at' => $candidate->getLatestAnalysis()->analyzed_at?->toIso8601String(),
-                ] : null,
-                'access_granted_at' => $approvedRequest->responded_at?->toIso8601String(),
-            ],
+            'data' => $this->fullCandidateProfile($candidate, $approvedRequest->responded_at),
         ]);
     }
 
     /**
+     * GET /marketplace/my-requests
      * List my access requests.
-     * GET /v1/marketplace/my-requests
      */
     public function myRequests(Request $request): JsonResponse
     {
-        $company = $request->user()->company;
+        $user = $request->user();
 
-        $query = MarketplaceAccessRequest::where('requesting_company_id', $company->id)
-            ->with(['candidate:id,public_hash,first_name,last_name,status,cv_match_score,cv_parsed_data,job_id', 'candidate.job:id,title,location', 'candidate.latestInterview.analysis']);
-
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        // Platform admin can always access
+        if (!$user->is_platform_admin && !$this->isMarketplaceEnabled()) {
+            return $this->marketplaceDisabledResponse();
         }
 
-        $requests = $query->orderByDesc('created_at')
-            ->paginate($request->get('per_page', 20));
+        $user = $request->user();
+        $perPage = min($request->input('per_page', 20), 50);
 
-        // Transform data (hide PII for pending/rejected requests)
+        $query = MarketplaceAccessRequest::with([
+            'candidate' => function ($q) {
+                $q->select('id', 'status', 'cv_match_score', 'source', 'created_at');
+            },
+            'candidate.job:id,title,location',
+            'candidate.interview.analysis:id,interview_id,overall_score',
+        ])
+            ->where('requesting_company_id', $user->company_id)
+            ->orderByDesc('created_at');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $requests = $query->paginate($perPage);
+
         $transformedRequests = $requests->getCollection()->map(function ($req) {
-            $candidateData = null;
-
-            if ($req->candidate) {
-                if ($req->isApproved()) {
-                    // Show full info for approved
-                    $candidateData = [
-                        'id' => $req->candidate->public_hash, // Use public_hash
-                        'first_name' => $req->candidate->first_name,
-                        'last_name' => $req->candidate->last_name,
-                        'status' => $req->candidate->status,
-                        'cv_match_score' => $req->candidate->cv_match_score,
-                    ];
-                } else {
-                    // Anonymous for pending/rejected (already uses public_hash)
-                    $candidateData = $req->candidate->getAnonymousProfile();
-                }
-            }
+            $candidate = $req->candidate;
+            $analysis = $candidate?->interview?->analysis;
 
             return [
                 'id' => $req->id,
@@ -294,7 +478,14 @@ class MarketplaceController extends Controller
                 'created_at' => $req->created_at->toIso8601String(),
                 'responded_at' => $req->responded_at?->toIso8601String(),
                 'token_expires_at' => $req->token_expires_at->toIso8601String(),
-                'candidate' => $candidateData,
+                'candidate' => $candidate ? [
+                    'id' => $candidate->id,
+                    'status' => $candidate->status,
+                    'cv_match_score' => $candidate->cv_match_score,
+                    'overall_score' => $analysis?->overall_score,
+                    'job_title' => $candidate->job?->title,
+                    'job_location' => $candidate->job?->location,
+                ] : null,
             ];
         });
 
@@ -303,10 +494,77 @@ class MarketplaceController extends Controller
             'data' => $transformedRequests,
             'meta' => [
                 'current_page' => $requests->currentPage(),
-                'last_page' => $requests->lastPage(),
                 'per_page' => $requests->perPage(),
                 'total' => $requests->total(),
+                'last_page' => $requests->lastPage(),
             ],
         ]);
+    }
+
+    /**
+     * Anonymize candidate data for marketplace listing.
+     */
+    private function anonymizeCandidate(Candidate $candidate, ?string $requestingCompanyId): array
+    {
+        $analysis = $candidate->latestInterview?->analysis;
+
+        // Check if there's an existing request (only if company_id is available)
+        $accessRequest = null;
+        if ($requestingCompanyId) {
+            $accessRequest = MarketplaceAccessRequest::where('requesting_company_id', $requestingCompanyId)
+                ->where('candidate_id', $candidate->id)
+                ->latest()
+                ->first();
+        }
+
+        return [
+            'id' => $candidate->id,
+            'status' => $candidate->status,
+            'cv_match_score' => $candidate->cv_match_score,
+            'source' => $candidate->source,
+            'created_at' => $candidate->created_at->toIso8601String(),
+            // Job info (anonymized company)
+            'job_title' => $candidate->job?->title,
+            'job_location' => $candidate->job?->location,
+            // Analysis summary
+            'overall_score' => $analysis?->overall_score,
+            'recommendation' => $analysis?->decision_snapshot['recommendation'] ?? null,
+            // Access request status
+            'access_request_status' => $accessRequest?->status,
+            'access_request_id' => $accessRequest?->id,
+        ];
+    }
+
+    /**
+     * Get full candidate profile data.
+     */
+    private function fullCandidateProfile(Candidate $candidate, ?\DateTimeInterface $accessGrantedAt = null): array
+    {
+        $analysis = $candidate->interview?->analysis;
+
+        return [
+            'id' => $candidate->id,
+            'first_name' => $candidate->first_name,
+            'last_name' => $candidate->last_name,
+            'email' => $candidate->email,
+            'phone' => $candidate->phone,
+            'status' => $candidate->status,
+            'cv_match_score' => $candidate->cv_match_score,
+            'cv_parsed_data' => $candidate->cv_parsed_data,
+            'source' => $candidate->source,
+            'created_at' => $candidate->created_at->toIso8601String(),
+            'job' => $candidate->job ? [
+                'id' => $candidate->job->id,
+                'title' => $candidate->job->title,
+                'location' => $candidate->job->location,
+            ] : null,
+            'latest_analysis' => $analysis ? [
+                'overall_score' => $analysis->overall_score,
+                'competency_scores' => $analysis->competency_scores ?? [],
+                'recommendation' => $analysis->decision_snapshot['recommendation'] ?? null,
+                'analyzed_at' => $analysis->analyzed_at?->toIso8601String(),
+            ] : null,
+            'access_granted_at' => $accessGrantedAt?->format('c'),
+        ];
     }
 }

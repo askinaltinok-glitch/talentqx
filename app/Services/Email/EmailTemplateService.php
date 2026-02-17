@@ -18,6 +18,7 @@ class EmailTemplateService
         $job = $data['job'] ?? null;
         $candidate = $data['candidate'];
         $locale = $data['locale'] ?? 'tr';
+        $roleCode = $data['role_code'] ?? null;
 
         $companyName = $this->getCompanyName($company);
         $branchName = is_object($branch) ? $branch->name : ($branch['name'] ?? '');
@@ -25,7 +26,7 @@ class EmailTemplateService
         $candidateName = is_object($candidate) ? trim($candidate->first_name . ' ' . $candidate->last_name) : ($candidate['name'] ?? 'Aday');
         $applicationId = is_object($candidate) ? substr($candidate->id, 0, 8) : substr($candidate['id'] ?? '', 0, 8);
 
-        $subject = $this->getSubject('application_received', $companyName, $locale);
+        $subject = $this->getSubject('application_received', $companyName, $locale, $jobTitle, $roleCode);
         $preheader = $locale === 'tr'
             ? "{$candidateName} - {$jobTitle} başvurusu alındı"
             : "{$candidateName} - Application received for {$jobTitle}";
@@ -61,10 +62,69 @@ class EmailTemplateService
     }
 
     /**
+     * Render new application notification email (sent to company/admin).
+     */
+    public function renderNewApplication(array $data): array
+    {
+        $company = $data['company'];
+        $job = $data['job'] ?? null;
+        $candidate = $data['candidate'];
+        $locale = $data['locale'] ?? 'tr';
+        $roleCode = $data['role_code'] ?? null;
+        $department = $data['department'] ?? null;
+
+        $companyName = $this->getCompanyName($company);
+        $jobTitle = is_object($job) ? $job->title : ($job['title'] ?? 'Pozisyon');
+        $candidateName = is_object($candidate) ? trim($candidate->first_name . ' ' . $candidate->last_name) : ($candidate['name'] ?? 'Aday');
+
+        $subject = $this->getSubject('new_application', $companyName, $locale, $jobTitle, $roleCode);
+        $preheader = $locale === 'tr'
+            ? "{$candidateName} – {$jobTitle} pozisyonuna yeni başvuru"
+            : "{$candidateName} – New application for {$jobTitle}";
+
+        $roleLabel = $roleCode ? str_replace('_', ' ', ucfirst($roleCode)) : null;
+
+        $details = [
+            ['label' => $locale === 'tr' ? 'Aday' : 'Candidate', 'value' => $candidateName],
+            ['label' => $locale === 'tr' ? 'Pozisyon' : 'Position', 'value' => $jobTitle],
+        ];
+        if ($roleLabel) {
+            $details[] = ['label' => $locale === 'tr' ? 'Rol' : 'Role', 'value' => $roleLabel];
+        }
+        if ($department) {
+            $details[] = ['label' => $locale === 'tr' ? 'Departman' : 'Department', 'value' => ucfirst($department)];
+        }
+
+        $body = $this->buildEmailHtml([
+            'company' => $company,
+            'headline' => $locale === 'tr' ? 'Yeni Başvuru Alındı' : 'New Application Received',
+            'headline_icon' => '📩',
+            'greeting' => $locale === 'tr' ? 'Merhaba,' : 'Hello,',
+            'message' => $locale === 'tr'
+                ? "<strong>{$candidateName}</strong>, <strong>{$jobTitle}</strong> pozisyonuna başvurdu."
+                : "<strong>{$candidateName}</strong> has applied for the <strong>{$jobTitle}</strong> position.",
+            'details' => $details,
+            'cta_text' => $locale === 'tr' ? 'Başvuruları Görüntüle' : 'View Applications',
+            'cta_url' => config('app.url') . '/admin/jobs',
+            'footer_note' => $locale === 'tr'
+                ? 'Bu bildirim otomatik olarak gönderilmiştir.'
+                : 'This notification was sent automatically.',
+            'locale' => $locale,
+            'preheader' => $preheader,
+        ]);
+
+        return [
+            'subject' => $subject,
+            'body' => $body,
+            'preheader' => $preheader,
+        ];
+    }
+
+    /**
      * Render interview invitation email.
      *
      * Final email spec:
-     * - Subject: TalentQX – {{company.name}} | Interview Invitation
+     * - Subject: Octopus AI – {{company.name}} | Interview Invitation
      * - Greet candidate by first name
      * - Clearly state the company
      * - Show duration + expiry
@@ -91,10 +151,12 @@ class EmailTemplateService
             ? $candidate->first_name
             : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
 
-        // Subject per spec: TalentQX – Company Name | Interview Invitation
+        // Subject: Octopus AI – Company Name | Role | Interview Invitation
+        $roleCode = $data['role_code'] ?? null;
+        $roleSuffix = $roleCode ? ' | ' . str_replace('_', ' ', ucfirst($roleCode)) : '';
         $subject = $locale === 'tr'
-            ? "TalentQX – {$companyName} | Mülakat Daveti"
-            : "TalentQX – {$companyName} | Interview Invitation";
+            ? "Octopus AI – {$companyName}{$roleSuffix} | Mülakat Daveti"
+            : "Octopus AI – {$companyName}{$roleSuffix} | Interview Invitation";
 
         $preheader = $locale === 'tr'
             ? "{$firstName}, {$companyName} sizi online mülakata davet ediyor"
@@ -136,6 +198,10 @@ class EmailTemplateService
                 $locale === 'tr'
                     ? 'Sessiz bir ortamda, kamera ve mikrofon erişimi olan bir cihazdan katılmanızı öneririz.'
                     : 'We recommend joining from a quiet environment with a device that has camera and microphone access.',
+                '',
+                $locale === 'tr'
+                    ? '📌 Not: Teknik bir sorun yaşamanız durumunda mülakat bağlantısını yeniden açabilirsiniz.'
+                    : '📌 Note: If you experience technical issues, you can reopen the interview link.',
             ])),
             'locale' => $locale,
             'preheader' => $preheader,
@@ -171,10 +237,9 @@ class EmailTemplateService
             ? $candidate->first_name
             : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
 
-        // Subject per spec: Reminder: Your Interview for {{company.legal_name}}
         $subject = $locale === 'tr'
-            ? "Hatırlatma: {$companyName} Mülakatınız"
-            : "Reminder: Your Interview for {$companyName}";
+            ? "Octopus AI – Hatırlatma: {$companyName} Mülakatınız"
+            : "Octopus AI – Reminder: Your Interview for {$companyName}";
 
         $preheader = $locale === 'tr'
             ? "{$firstName}, mülakatınız yaklaşıyor"
@@ -206,7 +271,79 @@ class EmailTemplateService
                 $locale === 'tr'
                     ? 'Sessiz bir ortamda, kamera ve mikrofon erişimi olan bir cihazdan katılmanızı öneririz.'
                     : 'We recommend joining from a quiet environment with camera and microphone access.',
+                '',
+                $locale === 'tr'
+                    ? '📌 Not: Teknik bir sorun yaşamanız durumunda mülakat bağlantısını yeniden açabilirsiniz.'
+                    : '📌 Note: If you experience technical issues, you can reopen the interview link.',
             ])),
+            'locale' => $locale,
+            'preheader' => $preheader,
+        ]);
+
+        return [
+            'subject' => $subject,
+            'body' => $body,
+            'preheader' => $preheader,
+        ];
+    }
+
+    /**
+     * Render last hour reminder email (T-1).
+     *
+     * Short, urgent but friendly:
+     * - Greet by first name
+     * - Clear "1 hour left" message
+     * - CTA button → interview link
+     */
+    public function renderLastHourReminder(array $data): array
+    {
+        $company = $data['company'];
+        $candidate = $data['candidate'];
+        $job = $data['job'] ?? null;
+        $interviewUrl = $data['interview_url'];
+        $scheduledAt = $data['scheduled_at'] ?? null;
+        $locale = $data['locale'] ?? 'tr';
+
+        $companyName = $this->getCompanyName($company);
+        $jobTitle = is_object($job) ? $job->title : ($job['title'] ?? '');
+        $firstName = is_object($candidate)
+            ? $candidate->first_name
+            : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
+
+        $subject = $locale === 'tr'
+            ? "Octopus AI – ⏰ 1 saat sonra: Mülakatınız başlıyor"
+            : "Octopus AI – ⏰ 1 hour left: Your interview is starting";
+
+        $preheader = $locale === 'tr'
+            ? "{$firstName}, mülakatınız 1 saat sonra başlayacak"
+            : "{$firstName}, your interview starts in 1 hour";
+
+        // Format time
+        $timeStr = '';
+        if ($scheduledAt) {
+            $timeStr = is_string($scheduledAt) ? $scheduledAt : $scheduledAt->format('H:i');
+        }
+
+        $body = $this->buildEmailHtml([
+            'company' => $company,
+            'headline' => $locale === 'tr' ? 'Son Hatırlatma' : 'Final Reminder',
+            'headline_icon' => '⏰',
+            'greeting' => $locale === 'tr' ? "Merhaba {$firstName}," : "Hello {$firstName},",
+            'message' => $locale === 'tr'
+                ? ($jobTitle
+                    ? "<strong>{$jobTitle}</strong> mülakatınız <strong>1 saat sonra</strong> başlayacak."
+                    : "Mülakatınız <strong>1 saat sonra</strong> başlayacak.")
+                : ($jobTitle
+                    ? "Your <strong>{$jobTitle}</strong> interview starts in <strong>1 hour</strong>."
+                    : "Your interview starts in <strong>1 hour</strong>."),
+            'details' => $timeStr ? [
+                ['label' => $locale === 'tr' ? 'Saat' : 'Time', 'value' => $timeStr],
+            ] : [],
+            'cta_text' => $locale === 'tr' ? 'Mülakata Katıl' : 'Join Interview',
+            'cta_url' => $interviewUrl,
+            'footer_note' => $locale === 'tr'
+                ? 'Bağlantıyı şimdiden test edebilirsiniz. Görüşmek üzere!<br><br>📌 Not: Teknik bir sorun yaşamanız durumunda mülakat bağlantısını yeniden açabilirsiniz.'
+                : 'You can test the link now. See you soon!<br><br>📌 Note: If you experience technical issues, you can reopen the interview link.',
             'locale' => $locale,
             'preheader' => $preheader,
         ]);
@@ -241,10 +378,9 @@ class EmailTemplateService
             ? $candidate->first_name
             : ($candidate['first_name'] ?? $candidate['name'] ?? 'Aday');
 
-        // Subject per spec
         $subject = $locale === 'tr'
-            ? "Mülakatınız Tamamlandı – Teşekkürler"
-            : "Thank you for completing your interview";
+            ? "Octopus AI – Mülakatınız Tamamlandı – Teşekkürler"
+            : "Octopus AI – Thank you for completing your interview";
 
         $preheader = $locale === 'tr'
             ? "{$firstName}, mülakatınız başarıyla alındı"
@@ -291,8 +427,8 @@ class EmailTemplateService
         $locale = $data['locale'] ?? 'tr';
 
         $subject = $locale === 'tr'
-            ? 'TalentQX — Şifre Sıfırlama Talebi'
-            : 'TalentQX — Password Reset Request';
+            ? 'Octopus AI — Şifre Sıfırlama Talebi'
+            : 'Octopus AI — Password Reset Request';
 
         $preheader = $locale === 'tr'
             ? 'Şifrenizi sıfırlamak için bağlantıya tıklayın'
@@ -326,20 +462,33 @@ class EmailTemplateService
     /**
      * Get email subject with company branding.
      */
-    private function getSubject(string $type, string $companyName, string $locale): string
+    private function getSubject(string $type, string $companyName, string $locale, ?string $jobTitle = null, ?string $roleCode = null): string
     {
+        // Build position suffix: prefer role_code label, fallback to jobTitle
+        $positionSuffix = '';
+        if ($roleCode) {
+            $roleLabel = str_replace('_', ' ', ucfirst($roleCode));
+            $positionSuffix = " — {$roleLabel}";
+        } elseif ($jobTitle && $jobTitle !== 'Pozisyon') {
+            $positionSuffix = " — {$jobTitle}";
+        }
+
         $subjects = [
             'application_received' => [
-                'tr' => "TalentQX • {$companyName} — Başvurunuz Alındı",
-                'en' => "TalentQX • {$companyName} — Application Received",
+                'tr' => "Octopus AI • {$companyName}{$positionSuffix} — Başvurunuz Alındı",
+                'en' => "Octopus AI • {$companyName}{$positionSuffix} — Application Received",
             ],
             'interview_invitation' => [
-                'tr' => "TalentQX • {$companyName} — Mülakat Daveti",
-                'en' => "TalentQX • {$companyName} — Interview Invitation",
+                'tr' => "Octopus AI • {$companyName}{$positionSuffix} — Mülakat Daveti",
+                'en' => "Octopus AI • {$companyName}{$positionSuffix} — Interview Invitation",
+            ],
+            'new_application' => [
+                'tr' => "Octopus AI • {$companyName}{$positionSuffix} — Yeni Başvuru",
+                'en' => "Octopus AI • {$companyName}{$positionSuffix} — New Application",
             ],
         ];
 
-        return $subjects[$type][$locale] ?? $subjects[$type]['tr'] ?? 'TalentQX';
+        return $subjects[$type][$locale] ?? $subjects[$type]['tr'] ?? 'Octopus AI';
     }
 
     /**
@@ -412,9 +561,9 @@ class EmailTemplateService
         $preheader = $params['preheader'];
 
         // Company branding
-        $companyName = $company ? $this->getCompanyName($company) : 'TalentQX';
+        $companyName = $company ? $this->getCompanyName($company) : 'Octopus AI';
         $companyLogo = $company ? $this->getCompanyLogo($company) : null;
-        $companyInitials = $company ? $this->getCompanyInitials($company) : 'TX';
+        $companyInitials = $company ? $this->getCompanyInitials($company) : 'OA';
         $primaryColor = $company ? $this->getCompanyColor($company) : self::DEFAULT_PRIMARY_COLOR;
 
         // Generate gradient end color
@@ -475,8 +624,8 @@ HTML;
         $privacyText = $locale === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy';
         $securityText = $locale === 'tr' ? 'Verileriniz güvende' : 'Your data is secure';
         $sentOnBehalf = $locale === 'tr'
-            ? "Bu e-posta <strong>{$companyName}</strong> adına TalentQX altyapısı kullanılarak gönderilmiştir."
-            : "This email was sent on behalf of <strong>{$companyName}</strong> using TalentQX infrastructure.";
+            ? "Bu e-posta <strong>{$companyName}</strong> adına Octopus AI altyapısı kullanılarak gönderilmiştir."
+            : "This email was sent on behalf of <strong>{$companyName}</strong> using Octopus AI infrastructure.";
 
         return <<<HTML
 <!DOCTYPE html>
@@ -566,7 +715,7 @@ HTML;
                     <tr>
                         <td style="padding: 24px 0; text-align: center;">
                             <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                                Powered by <a href="https://talentqx.com" style="color: {$primaryColor}; text-decoration: none; font-weight: 500;">TalentQX</a> — AI Destekli Mülakat Platformu
+                                Powered by <a href="https://octopus-ai.net" style="color: {$primaryColor}; text-decoration: none; font-weight: 500;">Octopus AI</a> — AI-Powered Interview Platform
                             </p>
                         </td>
                     </tr>

@@ -99,6 +99,79 @@ Schedule::command('crm:mailbox-poll --mailbox=all')
     ->appendOutputTo(storage_path('logs/crm-mailbox.log'));
 
 // ===========================================
+// MAIL AUTOPILOT — CRM SEQUENCES & OUTBOUND
+// ===========================================
+
+// Process sequence steps (every 5 minutes)
+Schedule::command('crm:run-sequences')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/crm-sequences.log'));
+
+// Send approved queued mails (every minute)
+Schedule::command('crm:send-queued-mails --batch=20')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/crm-outbound.log'));
+
+// ===========================================
+// SALES ENGINE — STALE LEAD DETECTION
+// ===========================================
+
+// Check for stale leads and fire no-reply triggers (every 6 hours)
+Schedule::command('crm:check-stale-leads')
+    ->everySixHours()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/crm-stale-leads.log'));
+
+// ===========================================
+// RESEARCH INTELLIGENCE AGENTS
+// ===========================================
+
+// Domain enrichment: classify new research companies (every hour)
+Schedule::command('research:run-agent domain_enrichment --sync')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/research-enrichment.log'));
+
+// Lead generator: push qualified companies to CRM (daily at 5 AM)
+Schedule::command('research:run-agent lead_generator --sync')
+    ->dailyAt('05:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/research-leads.log'));
+
+// ===========================================
+// ML FAIRNESS REPORTING
+// ===========================================
+
+// Generate ML fairness reports (runs daily at 6 AM)
+Schedule::command('ml:fairness-report --days=30')
+    ->dailyAt('06:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/ml-fairness.log'));
+
+// ===========================================
+// SYSTEM HEALTH & ML STABILITY
+// ===========================================
+
+// System health check (runs every 30 minutes)
+Schedule::command('system:health-check')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/system-health.log'));
+
+// ML stability check (runs daily at 6:30 AM)
+Schedule::command('ml:stability-check --days=7')
+    ->dailyAt('06:30')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/ml-stability.log'));
+
+// ===========================================
 // CREDIT SYSTEM SCHEDULED TASKS
 // ===========================================
 

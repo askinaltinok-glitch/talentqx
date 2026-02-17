@@ -15,8 +15,14 @@ class EmployeeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Employee::with(['latestAssessment.result'])
-            ->where('company_id', $request->user()->company_id);
+        $user = $request->user();
+        $query = Employee::with(['latestAssessment.result']);
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        } elseif ($request->has('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
 
         if ($request->has('role')) {
             $query->where('current_role', $request->role);
@@ -141,12 +147,17 @@ class EmployeeController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::with([
+        $user = $request->user();
+        $query = Employee::with([
             'assessmentSessions.template',
             'assessmentSessions.result',
-        ])
-            ->where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -156,8 +167,14 @@ class EmployeeController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         $validated = $request->validate([
             'employee_code' => 'nullable|string|max:50',
@@ -184,8 +201,14 @@ class EmployeeController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         // Store data for audit before delete
         $auditData = [
@@ -375,11 +398,18 @@ class EmployeeController extends Controller
 
     public function getLatestImportBatch(Request $request): JsonResponse
     {
-        $batch = EmployeeImportBatch::where('company_id', $request->user()->company_id)
+        $user = $request->user();
+        $query = EmployeeImportBatch::query()
             ->where('is_rolled_back', false)
-            ->where('imported_count', '>', 0)
-            ->latest()
-            ->first();
+            ->where('imported_count', '>', 0);
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        } elseif ($request->has('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $batch = $query->latest()->first();
 
         if (!$batch) {
             return response()->json([
@@ -405,10 +435,16 @@ class EmployeeController extends Controller
             'import_batch_id' => 'required|integer',
         ]);
 
-        $batch = EmployeeImportBatch::where('company_id', $request->user()->company_id)
+        $user = $request->user();
+        $query = EmployeeImportBatch::query()
             ->where('id', $validated['import_batch_id'])
-            ->where('is_rolled_back', false)
-            ->first();
+            ->where('is_rolled_back', false);
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $batch = $query->first();
 
         if (!$batch) {
             return response()->json([
@@ -443,32 +479,44 @@ class EmployeeController extends Controller
 
     public function stats(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
 
-        $totalEmployees = Employee::where('company_id', $companyId)->count();
-        $activeEmployees = Employee::where('company_id', $companyId)->where('status', 'active')->count();
+        // Build base query helper
+        $baseQuery = function() use ($user, $companyId, $request) {
+            $query = Employee::query();
+            if (!$user->is_platform_admin) {
+                $query->where('company_id', $companyId);
+            } elseif ($request->has('company_id')) {
+                $query->where('company_id', $request->company_id);
+            }
+            return $query;
+        };
 
-        $byRole = Employee::where('company_id', $companyId)
+        $totalEmployees = $baseQuery()->count();
+        $activeEmployees = $baseQuery()->where('status', 'active')->count();
+
+        $byRole = $baseQuery()
             ->selectRaw('current_role, count(*) as count')
             ->groupBy('current_role')
             ->pluck('count', 'current_role');
 
-        $byDepartment = Employee::where('company_id', $companyId)
+        $byDepartment = $baseQuery()
             ->whereNotNull('department')
             ->selectRaw('department, count(*) as count')
             ->groupBy('department')
             ->pluck('count', 'department');
 
-        $assessedCount = Employee::where('company_id', $companyId)
+        $assessedCount = $baseQuery()
             ->whereHas('latestAssessment', fn($q) => $q->where('status', 'completed'))
             ->count();
 
-        $highRiskCount = Employee::where('company_id', $companyId)
+        $highRiskCount = $baseQuery()
             ->whereHas('latestAssessment.result', fn($q) => $q->whereIn('risk_level', ['high', 'critical']))
             ->count();
 
         // Cheating risk stats
-        $highCheatingRiskCount = Employee::where('company_id', $companyId)
+        $highCheatingRiskCount = $baseQuery()
             ->whereHas('latestAssessment.result', fn($q) => $q->where('cheating_level', 'high'))
             ->count();
 
@@ -492,8 +540,14 @@ class EmployeeController extends Controller
      */
     public function erase(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         if ($employee->isErased()) {
             return response()->json([
@@ -539,8 +593,14 @@ class EmployeeController extends Controller
      */
     public function export(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         if ($employee->isErased()) {
             return response()->json([
@@ -580,8 +640,14 @@ class EmployeeController extends Controller
      */
     public function updateRetention(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $employee = $query->findOrFail($id);
 
         $validated = $request->validate([
             'retention_days' => 'required|integer|min:30|max:730', // 30 days to 2 years

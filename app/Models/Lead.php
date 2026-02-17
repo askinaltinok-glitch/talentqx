@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\Demo\DemoProvisioningService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Lead extends Model
 {
@@ -142,6 +144,10 @@ class Lead extends Model
                     $this->first_contact_at = now();
                 }
                 break;
+            case self::STATUS_DEMO:
+                // Auto-provision demo account when status changes to "demo"
+                $this->provisionDemoAccount();
+                break;
             case self::STATUS_WON:
                 $this->won_at = now();
                 break;
@@ -160,6 +166,35 @@ class Lead extends Model
             'new_status' => $newStatus,
             'description' => $lostReason ? "Kayıp nedeni: {$lostReason}" : null,
         ]);
+    }
+
+    /**
+     * Provision a demo account for this lead.
+     */
+    public function provisionDemoAccount(): array
+    {
+        try {
+            $service = app(DemoProvisioningService::class);
+            $result = $service->provisionForLead($this);
+
+            Log::info('Demo provisioning triggered for lead', [
+                'lead_id' => $this->id,
+                'email' => $this->email,
+                'success' => $result['success'],
+            ]);
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Demo provisioning failed', [
+                'lead_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
     }
 
     public function calculateScore(): int

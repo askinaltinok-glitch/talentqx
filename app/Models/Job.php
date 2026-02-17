@@ -2,24 +2,42 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Job extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, BelongsToTenant;
 
     protected $table = 'job_postings';
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($job) {
+            if (empty($job->public_token)) {
+                $job->public_token = Str::random(12);
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
+        'branch_id',
         'template_id',
+        'job_position_id',
         'created_by',
         'title',
         'slug',
+        'public_token',
+        'qr_enabled',
+        'role_code',
         'description',
         'location',
         'employment_type',
@@ -32,6 +50,8 @@ class Job extends Model
         'status',
         'published_at',
         'closes_at',
+        'qr_file_path',
+        'apply_url',
     ];
 
     protected $casts = [
@@ -43,6 +63,7 @@ class Job extends Model
         'published_at' => 'datetime',
         'closes_at' => 'datetime',
         'experience_years' => 'integer',
+        'qr_enabled' => 'boolean',
     ];
 
     protected $attributes = [
@@ -55,9 +76,19 @@ class Job extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function template(): BelongsTo
     {
         return $this->belongsTo(PositionTemplate::class, 'template_id');
+    }
+
+    public function jobPosition(): BelongsTo
+    {
+        return $this->belongsTo(JobPosition::class, 'job_position_id');
     }
 
     public function creator(): BelongsTo
@@ -113,5 +144,23 @@ class Job extends Model
                 $q->whereNull('closes_at')
                   ->orWhere('closes_at', '>', now());
             });
+    }
+
+    /**
+     * Get public apply URL for QR code.
+     */
+    public function getPublicApplyUrl(): string
+    {
+        return config('app.url') . '/apply/' . $this->public_token;
+    }
+
+    /**
+     * Generate or regenerate public token.
+     */
+    public function regeneratePublicToken(): string
+    {
+        $this->public_token = Str::random(12);
+        $this->save();
+        return $this->public_token;
     }
 }

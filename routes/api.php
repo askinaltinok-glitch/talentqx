@@ -45,6 +45,12 @@ use App\Http\Controllers\Api\Admin\ML\HealthController as MlHealthController;
 use App\Http\Controllers\Api\Admin\ML\LearningController as MlLearningController;
 use App\Http\Controllers\Api\Admin\Analytics\SupplyAnalyticsController;
 use App\Http\Controllers\Api\Maritime\MaritimeCandidateController;
+use App\Http\Controllers\Api\Maritime\CandidateNotificationController;
+use App\Http\Controllers\Api\Maritime\VesselReviewController;
+use App\Http\Controllers\Api\Maritime\ProfileActivityController;
+use App\Http\Controllers\Api\Maritime\MaritimeJobController;
+use App\Http\Controllers\Api\Maritime\CandidatePushTokenController;
+use App\Http\Controllers\Api\Admin\MaritimeJobAdminController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\Admin\CertificationController;
 use App\Http\Controllers\Api\Admin\DemoController;
@@ -53,7 +59,22 @@ use App\Http\Controllers\Api\Admin\Crm\CrmContactController;
 use App\Http\Controllers\Api\Admin\Crm\CrmLeadController;
 use App\Http\Controllers\Api\Admin\Crm\CrmTemplateController;
 use App\Http\Controllers\Api\Admin\Crm\ResearchController;
+use App\Http\Controllers\Api\Admin\Crm\CrmInboxController;
+use App\Http\Controllers\Api\Admin\Crm\CrmSequenceController;
+use App\Http\Controllers\Api\Admin\Crm\CrmOutboundQueueController;
+use App\Http\Controllers\Api\Admin\Crm\CrmInboundWebhookController;
+use App\Http\Controllers\Api\Admin\Crm\CrmDealController;
+use App\Http\Controllers\Api\Admin\Crm\CrmAnalyticsController;
+use App\Http\Controllers\Api\Admin\Crm\VesselReviewAdminController;
+use App\Http\Controllers\Api\Admin\SystemHealthController;
+use App\Http\Controllers\Api\PublicDemoController;
 use App\Http\Controllers\Api\PublicLeadController;
+use App\Http\Controllers\Api\Maritime\ApplyTrackingController;
+use App\Http\Controllers\Api\Admin\GeoAnalyticsController;
+use App\Http\Controllers\Api\Admin\JobListingController;
+use App\Http\Controllers\Api\Admin\JobApplicantsController;
+use App\Http\Controllers\Api\Public\JobListingController as PublicJobListingController;
+use App\Http\Controllers\Api\Public\JobApplyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -116,9 +137,27 @@ Route::prefix('v1')->group(function () {
     // ===========================================
     // PUBLIC LEAD INTAKE (Website form → CRM)
     // ===========================================
+    // Public demo (no auth, IP rate-limited 10/day)
+    Route::post('/public/demo/start', [PublicDemoController::class, 'start'])
+        ->middleware('throttle:10,1440')
+        ->name('public.demo.start');
+
     Route::post('/public/leads', [PublicLeadController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('public.leads.store');
+
+    // ===========================================
+    // PUBLIC JOB LISTINGS (No auth)
+    // ===========================================
+    Route::prefix('public/jobs')->group(function () {
+        Route::get('/', [PublicJobListingController::class, 'index'])
+            ->middleware('throttle:60,1');
+        Route::get('/{slug}', [PublicJobListingController::class, 'show'])
+            ->middleware('throttle:60,1');
+    });
+
+    Route::post('public/jobs/{jobListing}/apply', [JobApplyController::class, 'store'])
+        ->middleware('throttle:20,1');
 
     // ===========================================
     // PUBLIC MARITIME CANDIDATE INTAKE (No auth)
@@ -149,6 +188,61 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:10,1')
             ->name('maritime.video.attach');
 
+        // Candidate notifications (tiered)
+        Route::get('/candidates/{id}/notifications', [CandidateNotificationController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.notifications');
+
+        Route::post('/candidates/{id}/notifications/read', [CandidateNotificationController::class, 'markRead'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.notifications.read');
+
+        Route::get('/candidates/{id}/views', [CandidateNotificationController::class, 'viewStats'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.views');
+
+        // Vessel reviews (public)
+        Route::post('/reviews', [VesselReviewController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.reviews.store');
+
+        Route::get('/reviews', [VesselReviewController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.reviews.index');
+
+        Route::post('/reviews/{id}/report', [VesselReviewController::class, 'report'])
+            ->middleware('throttle:5,1')
+            ->name('maritime.reviews.report');
+
+        // Profile Activity (tier-gated)
+        Route::get('/candidates/{id}/profile-activity', [ProfileActivityController::class, 'index'])
+            ->middleware(['throttle:60,1', 'feature.access'])
+            ->name('maritime.profile-activity');
+
+        // Push Tokens
+        Route::post('/candidates/{id}/push-token', [CandidatePushTokenController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.push-token.store');
+        Route::delete('/candidates/{id}/push-token', [CandidatePushTokenController::class, 'destroy'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.push-token.destroy');
+
+        // Maritime Job Feed
+        Route::get('/jobs', [MaritimeJobController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.jobs.index');
+        Route::get('/jobs/{id}', [MaritimeJobController::class, 'show'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.jobs.show');
+        Route::post('/jobs/{id}/apply', [MaritimeJobController::class, 'apply'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.jobs.apply');
+
+        // Apply Form Event Tracking (drop-off analysis)
+        Route::post('/apply-events', [ApplyTrackingController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.apply-events');
+
         // Form dropdown data
         Route::get('/ranks', [MaritimeCandidateController::class, 'ranks'])
             ->middleware('throttle:120,1')
@@ -157,6 +251,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/certificates', [MaritimeCandidateController::class, 'certificates'])
             ->middleware('throttle:120,1')
             ->name('maritime.certificates');
+
+        Route::get('/countries', function () {
+            $countries = \Illuminate\Support\Facades\DB::table('countries')
+                ->where('active', 1)
+                ->orderBy('name')
+                ->get(['code', 'name', 'dial_code', 'flag']);
+            return response()->json(['data' => $countries]);
+        })->middleware('throttle:120,1')->name('maritime.countries');
     });
 
     // ===========================================
@@ -723,6 +825,14 @@ Route::prefix('v1')->group(function () {
             // Rollback to specific version
             Route::post('/rollback', [MlLearningController::class, 'rollback'])
                 ->middleware('throttle:10,1');
+            // Model weight freeze/unfreeze
+            Route::post('/versions/{id}/freeze', [MlLearningController::class, 'freeze'])
+                ->middleware('throttle:10,1');
+            Route::post('/versions/{id}/unfreeze', [MlLearningController::class, 'unfreeze'])
+                ->middleware('throttle:10,1');
+            // ML stability metrics
+            Route::get('/stability', [MlLearningController::class, 'stability'])
+                ->middleware('throttle:60,1');
             // Fairness metrics
             Route::get('/fairness', [MlLearningController::class, 'fairness'])
                 ->middleware('throttle:60,1');
@@ -765,6 +875,24 @@ Route::prefix('v1')->group(function () {
         });
 
         // ===========================================
+        // GEO ANALYTICS + DROP-OFF ANALYSIS
+        // ===========================================
+        Route::prefix('admin/analytics/geo')->group(function () {
+            Route::get('/dashboard', [GeoAnalyticsController::class, 'dashboard'])
+                ->middleware('throttle:30,1');
+            Route::get('/candidates', [GeoAnalyticsController::class, 'candidatesByCountry'])
+                ->middleware('throttle:60,1');
+            Route::get('/companies', [GeoAnalyticsController::class, 'companiesByCountry'])
+                ->middleware('throttle:60,1');
+            Route::get('/hourly', [GeoAnalyticsController::class, 'hourlyDistribution'])
+                ->middleware('throttle:60,1');
+            Route::get('/heatmap', [GeoAnalyticsController::class, 'heatMap'])
+                ->middleware('throttle:60,1');
+            Route::get('/drop-off', [GeoAnalyticsController::class, 'dropOff'])
+                ->middleware('throttle:60,1');
+        });
+
+        // ===========================================
         // ADMIN FORM INTERVIEWS - Operations Dashboard
         // ===========================================
         Route::prefix('admin/form-interviews')->group(function () {
@@ -782,6 +910,9 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:30,1');
             Route::delete('/{id}', [AdminFormInterviewController::class, 'destroy'])
                 ->middleware('throttle:30,1');
+            // Maritime Decision Engine
+            Route::get('/{id}/decision', [\App\Http\Controllers\Api\Admin\FormInterviewDecisionController::class, 'show'])
+                ->middleware('throttle:60,1');
             // Assessment stubs (Maritime)
             Route::get('/{id}/assessment-status', [AssessmentStubController::class, 'assessmentStatus'])
                 ->middleware('throttle:60,1');
@@ -927,6 +1058,12 @@ Route::prefix('v1')->group(function () {
             Route::put('/companies/{id}', [CrmCompanyController::class, 'update'])
                 ->middleware('throttle:30,1');
 
+            // Company Crew Import (CSV)
+            Route::post('/companies/{companyId}/crew-import/preview', [\App\Http\Controllers\Api\Admin\CompanyCrewImportController::class, 'preview'])
+                ->middleware('throttle:30,1');
+            Route::post('/companies/{companyId}/crew-import/import', [\App\Http\Controllers\Api\Admin\CompanyCrewImportController::class, 'import'])
+                ->middleware('throttle:30,1');
+
             // Contacts
             Route::post('/contacts', [CrmContactController::class, 'store'])
                 ->middleware('throttle:30,1');
@@ -971,7 +1108,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/templates/{id}/preview', [CrmTemplateController::class, 'preview'])
                 ->middleware('throttle:60,1');
 
-            // Research
+            // Research (Sprint-6: Jobs + Candidates)
             Route::get('/research/stats', [ResearchController::class, 'stats'])
                 ->middleware('throttle:60,1');
             Route::get('/research/jobs', [ResearchController::class, 'jobs'])
@@ -988,6 +1125,148 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:30,1');
             Route::post('/research/candidates/{id}/reject', [ResearchController::class, 'rejectCandidate'])
                 ->middleware('throttle:30,1');
+
+            // Research Intelligence (Sprint-7: Companies + Agents)
+            Route::post('/research/companies/import', [ResearchController::class, 'importCompanies'])
+                ->middleware('throttle:10,1');
+            Route::get('/research/companies', [ResearchController::class, 'companies'])
+                ->middleware('throttle:60,1');
+            Route::get('/research/companies/{id}', [ResearchController::class, 'companyDetail'])
+                ->middleware('throttle:60,1');
+            Route::post('/research/companies/{id}/push', [ResearchController::class, 'pushCompany'])
+                ->middleware('throttle:30,1');
+            Route::post('/research/companies/{id}/ignore', [ResearchController::class, 'ignoreCompany'])
+                ->middleware('throttle:30,1');
+            Route::post('/research/companies/{id}/classify', [ResearchController::class, 'classifyCompany'])
+                ->middleware('throttle:30,1');
+            Route::get('/research/runs', [ResearchController::class, 'runs'])
+                ->middleware('throttle:60,1');
+            Route::post('/research/run-agent', [ResearchController::class, 'runAgent'])
+                ->middleware('throttle:10,1');
+
+            // Sales Analytics
+            Route::get('/analytics/sales', [CrmAnalyticsController::class, 'salesDashboard'])
+                ->middleware('throttle:60,1');
+            Route::get('/analytics/shipping-campaign', [CrmAnalyticsController::class, 'shippingCampaignMetrics'])
+                ->middleware('throttle:60,1');
+
+            // Vessel Reviews (Admin moderation)
+            Route::get('/reviews/stats', [VesselReviewAdminController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/reviews', [VesselReviewAdminController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/reviews/{id}/approve', [VesselReviewAdminController::class, 'approve'])
+                ->middleware('throttle:30,1');
+            Route::post('/reviews/{id}/reject', [VesselReviewAdminController::class, 'reject'])
+                ->middleware('throttle:30,1');
+            Route::delete('/reviews/{id}', [VesselReviewAdminController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+
+            // Deals Pipeline
+            Route::get('/deals/stats', [CrmDealController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/deals/pipeline', [CrmDealController::class, 'pipeline'])
+                ->middleware('throttle:60,1');
+            Route::get('/deals', [CrmDealController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/deals', [CrmDealController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/deals/{id}', [CrmDealController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::patch('/deals/{id}', [CrmDealController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/deals/{id}/advance', [CrmDealController::class, 'advanceStage'])
+                ->middleware('throttle:30,1');
+            Route::post('/deals/{id}/win', [CrmDealController::class, 'win'])
+                ->middleware('throttle:30,1');
+            Route::post('/deals/{id}/lose', [CrmDealController::class, 'lose'])
+                ->middleware('throttle:30,1');
+
+            // Mail Autopilot — Inbox (Sprint-8)
+            Route::get('/inbox/stats', [CrmInboxController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/inbox/threads', [CrmInboxController::class, 'threads'])
+                ->middleware('throttle:60,1');
+            Route::get('/inbox/threads/{id}', [CrmInboxController::class, 'threadDetail'])
+                ->middleware('throttle:60,1');
+            Route::patch('/inbox/threads/{id}', [CrmInboxController::class, 'updateThread'])
+                ->middleware('throttle:30,1');
+            Route::post('/inbox/drafts/{id}/approve', [CrmInboxController::class, 'approveDraft'])
+                ->middleware('throttle:30,1');
+            Route::post('/inbox/drafts/{id}/reject', [CrmInboxController::class, 'rejectDraft'])
+                ->middleware('throttle:30,1');
+            Route::patch('/inbox/drafts/{id}', [CrmInboxController::class, 'editDraft'])
+                ->middleware('throttle:30,1');
+            Route::post('/inbox/threads/{id}/regenerate-draft', [CrmInboxController::class, 'regenerateDraft'])
+                ->middleware('throttle:10,1');
+
+            // Mail Autopilot — Sequences (Sprint-8)
+            Route::get('/sequences', [CrmSequenceController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/sequences', [CrmSequenceController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/sequences/{id}', [CrmSequenceController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::put('/sequences/{id}', [CrmSequenceController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/sequences/{id}/enroll', [CrmSequenceController::class, 'enroll'])
+                ->middleware('throttle:30,1');
+            Route::post('/enrollments/{id}/cancel', [CrmSequenceController::class, 'cancelEnrollment'])
+                ->middleware('throttle:30,1');
+
+            // Mail Autopilot — Outbound Queue (Sprint-8)
+            Route::get('/outbound-queue', [CrmOutboundQueueController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/outbound-queue/{id}/approve', [CrmOutboundQueueController::class, 'approve'])
+                ->middleware('throttle:30,1');
+            Route::post('/outbound-queue/bulk-approve', [CrmOutboundQueueController::class, 'bulkApprove'])
+                ->middleware('throttle:30,1');
+            Route::post('/outbound-queue/{id}/reject', [CrmOutboundQueueController::class, 'reject'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // ADMIN MARITIME JOBS
+        // ===========================================
+        Route::prefix('admin/maritime-jobs')->group(function () {
+            Route::get('/', [MaritimeJobAdminController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/', [MaritimeJobAdminController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/{id}', [MaritimeJobAdminController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::put('/{id}', [MaritimeJobAdminController::class, 'update'])
+                ->middleware('throttle:30,1');
+        });
+
+        // ===========================================
+        // ADMIN JOB LISTINGS
+        // ===========================================
+        Route::prefix('admin/jobs')->group(function () {
+            Route::get('/', [JobListingController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::post('/', [JobListingController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::get('/{jobListing}', [JobListingController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::patch('/{jobListing}', [JobListingController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::post('/{jobListing}/publish', [JobListingController::class, 'publish'])
+                ->middleware('throttle:30,1');
+            Route::post('/{jobListing}/unpublish', [JobListingController::class, 'unpublish'])
+                ->middleware('throttle:30,1');
+            Route::get('/{jobListing}/applicants', [JobApplicantsController::class, 'index'])
+                ->middleware('throttle:60,1');
+        });
+
+        // ===========================================
+        // SYSTEM HEALTH & OBSERVABILITY
+        // ===========================================
+        Route::prefix('admin/system')->group(function () {
+            Route::get('/health', [SystemHealthController::class, 'health'])
+                ->middleware('throttle:60,1');
+            Route::get('/events', [SystemHealthController::class, 'events'])
+                ->middleware('throttle:60,1');
         });
 
         // ===========================================
@@ -996,6 +1275,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('admin/demo')->group(function () {
             Route::post('/create-candidate', [DemoController::class, 'createCandidate'])
                 ->middleware('throttle:10,1');
+            Route::get('/candidates', [DemoController::class, 'candidates'])
+                ->middleware('throttle:60,1');
             Route::delete('/cleanup', [DemoController::class, 'cleanup'])
                 ->middleware('throttle:5,1');
         });
@@ -1006,3 +1287,28 @@ Route::prefix('v1')->group(function () {
     }); // End of auth:sanctum middleware group
 
 }); // End of v1 prefix group
+
+// ===========================================
+// OCTOPUS ADMIN ROUTES (separate auth scope)
+// ===========================================
+Route::prefix('v1/octopus/admin')->group(function () {
+    // Public login (rate limited)
+    Route::post('/login', [\App\Http\Controllers\Api\OctopusAdmin\AuthController::class, 'login'])
+        ->middleware('throttle:5,1');
+
+    // Protected routes (scoped octopus admin token)
+    Route::middleware(['auth:sanctum', 'platform.octopus_admin'])->group(function () {
+        Route::post('/logout', [\App\Http\Controllers\Api\OctopusAdmin\AuthController::class, 'logout']);
+        Route::get('/me', [\App\Http\Controllers\Api\OctopusAdmin\AuthController::class, 'me']);
+        Route::get('/dashboard', \App\Http\Controllers\Api\OctopusAdmin\DashboardController::class);
+        Route::post('/onboard', \App\Http\Controllers\Api\OctopusAdmin\OnboardController::class);
+    });
+});
+
+// ===========================================
+// PUBLIC WEBHOOKS (no auth required)
+// ===========================================
+Route::prefix('v1')->group(function () {
+    Route::post('/webhooks/inbound-email', CrmInboundWebhookController::class)
+        ->middleware('throttle:60,1');
+});

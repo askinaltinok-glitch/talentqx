@@ -13,10 +13,11 @@ class CrmEmailMessage extends Model
     protected $table = 'crm_email_messages';
 
     protected $fillable = [
-        'lead_id', 'direction', 'provider',
+        'lead_id', 'email_thread_id', 'direction', 'provider',
         'message_id', 'thread_id', 'in_reply_to',
-        'from_email', 'to_email', 'subject',
+        'from_email', 'from_name', 'to_email', 'mailbox', 'subject',
         'body_text', 'body_html', 'attachments', 'raw_headers',
+        'lang_detected', 'intent',
         'status', 'sent_at', 'received_at',
     ];
 
@@ -44,6 +45,11 @@ class CrmEmailMessage extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(CrmLead::class, 'lead_id');
+    }
+
+    public function thread(): BelongsTo
+    {
+        return $this->belongsTo(CrmEmailThread::class, 'email_thread_id');
     }
 
     public function scopeOutbound($query)

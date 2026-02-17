@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\IsDemoScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,19 +10,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CrmLead extends Model
 {
-    use HasUuids;
+    use HasUuids, IsDemoScoped;
 
     protected $table = 'crm_leads';
 
     protected $fillable = [
         'industry_code', 'source_channel', 'source_meta',
         'company_id', 'contact_id', 'lead_name',
-        'stage', 'priority', 'notes', 'last_activity_at',
+        'stage', 'priority', 'notes', 'is_demo', 'preferred_language',
+        'last_activity_at', 'last_contacted_at', 'next_follow_up_at',
     ];
 
     protected $casts = [
         'source_meta' => 'array',
         'last_activity_at' => 'datetime',
+        'last_contacted_at' => 'datetime',
+        'next_follow_up_at' => 'datetime',
+        'is_demo' => 'boolean',
     ];
 
     public const STAGE_NEW = 'new';
@@ -87,6 +92,21 @@ class CrmLead extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(CrmTask::class, 'lead_id');
+    }
+
+    public function threads(): HasMany
+    {
+        return $this->hasMany(CrmEmailThread::class, 'lead_id');
+    }
+
+    public function sequenceEnrollments(): HasMany
+    {
+        return $this->hasMany(CrmSequenceEnrollment::class, 'lead_id');
+    }
+
+    public function deals(): HasMany
+    {
+        return $this->hasMany(CrmDeal::class, 'lead_id')->orderByDesc('created_at');
     }
 
     // Scopes

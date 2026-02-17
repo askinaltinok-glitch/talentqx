@@ -2,6 +2,7 @@
 
 namespace App\Services\Interview;
 
+use App\Models\AiSetting;
 use App\Models\Interview;
 use App\Models\InterviewAnalysis;
 use App\Models\InterviewResponse;
@@ -74,10 +75,13 @@ class AnalysisEngine
                 $competencies
             );
 
+            // Get the AI model info from provider
+            $aiModelInfo = $this->llmProvider->getModelInfo();
+
             return InterviewAnalysis::create([
                 'interview_id' => $interview->id,
-                'ai_model' => config('services.openai.model'),
-                'ai_model_version' => 'v1',
+                'ai_model' => $aiModelInfo['model'] ?? config('services.openai.model'),
+                'ai_model_version' => $aiModelInfo['provider'] ?? 'openai',
                 'analyzed_at' => now(),
                 'competency_scores' => $result['competency_scores'] ?? [],
                 'overall_score' => $overallScore,

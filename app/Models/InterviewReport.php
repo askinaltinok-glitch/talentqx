@@ -46,35 +46,15 @@ class InterviewReport extends Model
 
     /**
      * Get branding from metadata
-     *
-     * BRANDING POLICY v1.0:
-     * - TalentQX branding is always visible (not configurable in v1.x)
-     * - Customer branding is optional (customer_logo_url, customer_company_name)
-     *
-     * WHITE-LABEL POLICY v2.0 (Enterprise only):
-     * - white_label=true removes TalentQX from cover/header/footer
-     * - "Powered by TalentQX" disclaimer remains in legal page
      */
     public function getBranding(): array
     {
-        $branding = $this->metadata['branding'] ?? [];
-
-        return array_merge([
-            // TalentQX defaults
-            'primary_color' => '#1E3A5F',
-            'secondary_color' => '#2E5A8F',
-
-            // Customer branding (optional)
-            'customer_logo_url' => null,
-            'customer_company_name' => null,
-
-            // White-label mode (Enterprise only)
-            'white_label' => false,
-
-            // Legacy fields for backwards compatibility
+        return $this->metadata['branding'] ?? [
             'logo_url' => null,
+            'primary_color' => '#3B82F6',
+            'secondary_color' => '#1E40AF',
             'company_name' => null,
-        ], $branding);
+        ];
     }
 
     /**

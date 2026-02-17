@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\InterviewSession;
 use App\Models\InterviewSessionAnalysis;
+use App\Services\Copilot\GuardrailResult;
 use App\Services\Interview\ContextScoringService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,6 +41,41 @@ class AnalyzeInterviewSessionJob implements ShouldQueue
                 'answer_text' => $a->raw_text ?? $a->processed_text ?? '',
             ])->toArray();
 
+            // P0: Check for minimum valid answers before AI analysis
+            $validAnswerCount = $this->countValidAnswers($answersData);
+
+            if ($validAnswerCount < GuardrailResult::MIN_ANSWERED_QUESTIONS) {
+                Log::warning("Insufficient evidence for session {$this->sessionId}", [
+                    'valid_answers' => $validAnswerCount,
+                    'required' => GuardrailResult::MIN_ANSWERED_QUESTIONS,
+                ]);
+
+                // Save analysis with insufficient_evidence status (no AI call)
+                InterviewSessionAnalysis::updateOrCreate(
+                    ['session_id' => $session->id],
+                    [
+                        'overall_score' => null,
+                        'dimension_scores' => [],
+                        'question_analyses' => [],
+                        'behavior_analysis' => [],
+                        'risk_flags' => [],
+                        'summary' => null,
+                        'recommendations' => [],
+                        'raw_response' => [
+                            'status' => 'insufficient_evidence',
+                            'blocked_reason_code' => GuardrailResult::STATUS_INSUFFICIENT_EVIDENCE,
+                            'valid_answer_count' => $validAnswerCount,
+                            'required_answer_count' => GuardrailResult::MIN_ANSWERED_QUESTIONS,
+                        ],
+                        'model_version' => null,
+                        'analyzed_at' => now(),
+                    ]
+                );
+
+                Log::info("Session {$this->sessionId} marked as insufficient_evidence");
+                return;
+            }
+
             // Call OpenAI for analysis
             $analysisResult = $this->callOpenAI($session, $answersData);
 
@@ -50,20 +86,22 @@ class AnalyzeInterviewSessionJob implements ShouldQueue
                 // We'll calculate this after saving the analysis
             }
 
-            // Save analysis
-            $analysis = InterviewSessionAnalysis::create([
-                'session_id' => $session->id,
-                'overall_score' => $analysisResult['overall_score'] ?? 50,
-                'dimension_scores' => $analysisResult['dimension_scores'] ?? [],
-                'question_analyses' => $analysisResult['question_analyses'] ?? [],
-                'behavior_analysis' => $analysisResult['behavior_analysis'] ?? [],
-                'risk_flags' => $analysisResult['risk_flags'] ?? [],
-                'summary' => $analysisResult['summary'] ?? null,
-                'recommendations' => $analysisResult['recommendations'] ?? [],
-                'raw_response' => $analysisResult,
-                'model_version' => 'gpt-4o',
-                'analyzed_at' => now(),
-            ]);
+            // Save analysis (updateOrCreate for idempotency)
+            $analysis = InterviewSessionAnalysis::updateOrCreate(
+                ['session_id' => $session->id],
+                [
+                    'overall_score' => $analysisResult['overall_score'] ?? 50,
+                    'dimension_scores' => $analysisResult['dimension_scores'] ?? [],
+                    'question_analyses' => $analysisResult['question_analyses'] ?? [],
+                    'behavior_analysis' => $analysisResult['behavior_analysis'] ?? [],
+                    'risk_flags' => $analysisResult['risk_flags'] ?? [],
+                    'summary' => $analysisResult['summary'] ?? null,
+                    'recommendations' => $analysisResult['recommendations'] ?? [],
+                    'raw_response' => $analysisResult,
+                    'model_version' => 'gpt-4o',
+                    'analyzed_at' => now(),
+                ]
+            );
 
             Log::info("Analysis completed for session {$this->sessionId}", [
                 'overall_score' => $analysis->overall_score,
@@ -155,5 +193,25 @@ PROMPT;
         }
 
         return $prompt;
+    }
+
+    /**
+     * Count answers that meet minimum length requirement.
+     *
+     * @param array $answers
+     * @return int
+     */
+    private function countValidAnswers(array $answers): int
+    {
+        $validCount = 0;
+
+        foreach ($answers as $answer) {
+            $text = trim($answer['answer_text'] ?? '');
+            if (mb_strlen($text) >= GuardrailResult::MIN_ANSWER_CHARS) {
+                $validCount++;
+            }
+        }
+
+        return $validCount;
     }
 }

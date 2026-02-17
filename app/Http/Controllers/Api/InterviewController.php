@@ -4,41 +4,134 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\AnalyzeInterviewJob;
-use App\Jobs\ProcessOutboxMessagesJob;
 use App\Models\Candidate;
 use App\Models\ConsentLog;
 use App\Models\Interview;
 use App\Models\InterviewResponse;
-use App\Models\MessageOutbox;
 use App\Models\ResponseSimilarity;
 use App\Services\AntiCheat\AntiCheatService;
-use App\Services\Calendar\IcsService;
-use App\Services\Email\EmailTemplateService;
+use App\Services\Billing\CreditService;
 use App\Services\Interview\AnalysisEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class InterviewController extends Controller
 {
     public function __construct(
         private AnalysisEngine $analysisEngine,
-        private AntiCheatService $antiCheatService
+        private AntiCheatService $antiCheatService,
+        private CreditService $creditService
     ) {}
+
+    /**
+     * List interviews with filtering.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $query = Interview::with([
+            'candidate:id,first_name,last_name,email,phone,job_id',
+            'candidate.job:id,title,company_id',
+            'candidate.job.company:id,name',
+            'analysis:id,interview_id,overall_score,decision_snapshot'
+        ]);
+
+        // Platform admin sees all, regular users see only their company
+        if (!$user->is_platform_admin) {
+            $query->whereHas('candidate.job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('candidate.job', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+            });
+        }
+
+        if ($request->has('job_id')) {
+            $query->where('job_id', $request->job_id);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('candidate_id')) {
+            $query->where('candidate_id', $request->candidate_id);
+        }
+
+        $query->orderByDesc('created_at');
+
+        $interviews = $query->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $interviews->map(fn($interview) => [
+                'id' => $interview->id,
+                'status' => $interview->status,
+                'created_at' => $interview->created_at,
+                'started_at' => $interview->started_at,
+                'completed_at' => $interview->completed_at,
+                'duration_minutes' => $interview->duration_minutes,
+                'candidate' => $interview->candidate ? [
+                    'id' => $interview->candidate->id,
+                    'first_name' => $interview->candidate->first_name,
+                    'last_name' => $interview->candidate->last_name,
+                    'email' => $interview->candidate->email,
+                    'job' => $interview->candidate->job ? [
+                        'id' => $interview->candidate->job->id,
+                        'title' => $interview->candidate->job->title,
+                        'company' => $interview->candidate->job->company ? [
+                            'id' => $interview->candidate->job->company->id,
+                            'name' => $interview->candidate->job->company->name,
+                        ] : null,
+                    ] : null,
+                ] : null,
+                'analysis' => $interview->analysis ? [
+                    'overall_score' => $interview->analysis->overall_score,
+                    'recommendation' => $interview->analysis->decision_snapshot['recommendation'] ?? null,
+                ] : null,
+            ]),
+            'meta' => [
+                'current_page' => $interviews->currentPage(),
+                'per_page' => $interviews->perPage(),
+                'total' => $interviews->total(),
+                'last_page' => $interviews->lastPage(),
+            ],
+        ]);
+    }
 
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'candidate_id' => 'required|uuid|exists:candidates,id',
             'expires_in_hours' => 'nullable|integer|min:1|max:168',
-            'send_email' => 'nullable|boolean',
         ]);
 
-        $candidate = Candidate::with(['job', 'job.company', 'job.branch'])
-            ->whereHas('job', function ($q) use ($request) {
-                $q->where('company_id', $request->user()->company_id);
-            })->findOrFail($validated['candidate_id']);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $candidate = $query->findOrFail($validated['candidate_id']);
+
+        // Credit check: verify company has available credits
+        $company = $candidate->job->company;
+        if (!$this->creditService->canUseCredit($company)) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INSUFFICIENT_CREDITS',
+                    'message' => 'Kontür limitinize ulaştınız. Yeni mülakat oluşturmak için kontür satın alın.',
+                    'contact' => 'sales@talentqx.com',
+                ],
+            ], 422);
+        }
 
         $expiresInHours = $validated['expires_in_hours'] ?? config('interview.token_expiry_hours', 72);
 
@@ -50,14 +143,6 @@ class InterviewController extends Controller
 
         $candidate->updateStatus(Candidate::STATUS_INTERVIEW_PENDING);
 
-        // Send interview invitation email if requested (default: true)
-        $emailSent = false;
-        $sendEmail = $validated['send_email'] ?? true;
-
-        if ($sendEmail && $candidate->email) {
-            $emailSent = $this->sendInterviewInvitationEmail($interview, $candidate);
-        }
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -67,104 +152,8 @@ class InterviewController extends Controller
                 'interview_url' => $interview->getInterviewUrl(),
                 'expires_at' => $interview->token_expires_at,
                 'status' => $interview->status,
-                'email_sent' => $emailSent,
             ],
         ], 201);
-    }
-
-    /**
-     * Send interview invitation email to candidate with ICS attachment.
-     */
-    private function sendInterviewInvitationEmail(Interview $interview, Candidate $candidate): bool
-    {
-        try {
-            $interview->load(['job', 'job.company', 'job.branch']);
-
-            $company = $interview->job->company;
-            $job = $interview->job;
-            $branch = $interview->job->branch;
-            $locale = 'tr';
-            $interviewUrl = $interview->getInterviewUrl();
-            $durationMinutes = $job->interview_settings['max_duration_minutes'] ?? 30;
-
-            $emailService = new EmailTemplateService();
-            $rendered = $emailService->renderInterviewInvitation([
-                'company' => $company,
-                'branch' => $branch,
-                'job' => $job,
-                'candidate' => [
-                    'id' => $candidate->id,
-                    'name' => trim($candidate->first_name . ' ' . $candidate->last_name),
-                    'first_name' => $candidate->first_name,
-                    'last_name' => $candidate->last_name,
-                ],
-                'interview_url' => $interviewUrl,
-                'expires_at' => $interview->token_expires_at,
-                'duration_minutes' => $durationMinutes,
-                'locale' => $locale,
-            ]);
-
-            // Generate ICS calendar attachment
-            $icsService = new IcsService();
-            $icsContent = $icsService->generateInterviewIcs([
-                'interview_id' => $interview->id,
-                'company_name' => $company->name,
-                'job_title' => $job->title ?? 'Position',
-                'interview_url' => $interviewUrl,
-                'start_time' => $interview->scheduled_at ?? now()->addHours(24),
-                'duration_minutes' => $durationMinutes,
-                'timezone' => $company->timezone ?? 'Europe/Istanbul',
-                'locale' => $locale,
-            ]);
-            $icsFilename = $icsService->getFilename($company->name, $locale);
-
-            $outbox = MessageOutbox::create([
-                'company_id' => $company->id,
-                'channel' => MessageOutbox::CHANNEL_EMAIL,
-                'recipient' => $candidate->email,
-                'recipient_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
-                'subject' => $rendered['subject'],
-                'body' => $rendered['body'],
-                'template_id' => 'interview_invitation',
-                'related_type' => 'interview',
-                'related_id' => $interview->id,
-                'status' => MessageOutbox::STATUS_PENDING,
-                'priority' => 10, // High priority
-                'metadata' => [
-                    'candidate_id' => $candidate->id,
-                    'job_id' => $job->id,
-                    'interview_url' => $interviewUrl,
-                    'attachments' => [
-                        [
-                            'filename' => $icsFilename,
-                            'content' => base64_encode($icsContent),
-                            'mime_type' => 'text/calendar',
-                        ],
-                    ],
-                ],
-            ]);
-
-            // Mark invitation sent
-            $interview->update(['invitation_sent_at' => now()]);
-
-            // Process immediately (async via queue in production)
-            ProcessOutboxMessagesJob::dispatch($outbox->id);
-
-            Log::info('Interview invitation email queued', [
-                'interview_id' => $interview->id,
-                'outbox_id' => $outbox->id,
-                'candidate_email' => $candidate->email,
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Failed to send interview invitation email', [
-                'interview_id' => $interview->id,
-                'candidate_id' => $candidate->id,
-                'error' => $e->getMessage(),
-            ]);
-            return false;
-        }
     }
 
     public function showPublic(string $token): JsonResponse
@@ -199,6 +188,10 @@ class InterviewController extends Controller
                 'settings' => $interview->job->interview_settings,
                 'consent_required' => !$interview->candidate->consent_given,
                 'consent_text' => $this->getConsentText(),
+                // Interview mode based on feature flags (v1.0: text-only, v2: voice/video)
+                'interview_mode' => $this->getInterviewMode(),
+                'voice_enabled' => config('interview.voice_enabled', false),
+                'video_enabled' => config('interview.video_enabled', false),
             ],
         ]);
     }
@@ -243,7 +236,20 @@ class InterviewController extends Controller
             );
         }
 
+        // Track join time and lateness (for scheduled interviews)
+        if ($interview->scheduled_at && !$interview->joined_at) {
+            $now = now();
+            $lateMinutes = max(0, (int) $interview->scheduled_at->diffInMinutes($now, false));
+            $interview->forceFill([
+                'joined_at' => $now,
+                'late_minutes' => $lateMinutes,
+            ])->save();
+        }
+
         $interview->start($validated['device_info'] ?? [], $request->ip());
+
+        // Get already answered question IDs for resume support
+        $answeredQuestionIds = $interview->responses()->pluck('question_id')->toArray();
 
         return response()->json([
             'success' => true,
@@ -255,6 +261,7 @@ class InterviewController extends Controller
                     'text' => $q->question_text,
                     'time_limit_seconds' => $q->time_limit_seconds,
                 ]),
+                'answered_question_ids' => $answeredQuestionIds,
                 'started_at' => $interview->started_at,
             ],
         ]);
@@ -262,10 +269,24 @@ class InterviewController extends Controller
 
     public function submitResponse(Request $request, string $token): JsonResponse
     {
+        // Check feature flags: reject audio/video if disabled
+        if ($request->hasFile('video') || $request->hasFile('audio')) {
+            if (!$this->isVoiceVideoEnabled()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'FEATURE_DISABLED',
+                        'message' => 'Sesli/görüntülü mülakat şu an devre dışı. Lütfen yazılı yanıt verin.',
+                        'message_en' => 'Voice/video interviews are currently disabled. Please provide text response.',
+                    ],
+                ], 422);
+            }
+            // TODO v2: Handle audio/video uploads when enabled
+        }
+
         $validated = $request->validate([
             'question_id' => 'required|uuid|exists:job_questions,id',
-            'video' => 'nullable|file|mimes:webm,mp4|max:102400',
-            'audio' => 'nullable|file|mimes:webm,mp3,wav|max:51200',
+            'text_response' => 'required|string|min:10|max:5000',
             'started_at' => 'required|date',
             'ended_at' => 'required|date|after:started_at',
         ]);
@@ -288,25 +309,6 @@ class InterviewController extends Controller
             ], 422);
         }
 
-        $videoUrl = null;
-        $audioUrl = null;
-
-        if ($request->hasFile('video')) {
-            $videoPath = $request->file('video')->store(
-                "interviews/{$interview->id}/responses",
-                's3'
-            );
-            $videoUrl = Storage::disk('s3')->url($videoPath);
-        }
-
-        if ($request->hasFile('audio')) {
-            $audioPath = $request->file('audio')->store(
-                "interviews/{$interview->id}/responses",
-                's3'
-            );
-            $audioUrl = Storage::disk('s3')->url($audioPath);
-        }
-
         $responseOrder = InterviewResponse::where('interview_id', $interview->id)->count() + 1;
 
         $startedAt = new \DateTime($validated['started_at']);
@@ -317,8 +319,10 @@ class InterviewController extends Controller
             'interview_id' => $interview->id,
             'question_id' => $validated['question_id'],
             'response_order' => $responseOrder,
-            'video_segment_url' => $videoUrl,
-            'audio_segment_url' => $audioUrl,
+            'video_segment_url' => null,
+            'audio_segment_url' => null,
+            'transcript' => $validated['text_response'],
+            'transcript_confidence' => 1.0000, // Direct text input = 100% confidence
             'duration_seconds' => $duration,
             'started_at' => $validated['started_at'],
             'ended_at' => $validated['ended_at'],
@@ -335,16 +339,18 @@ class InterviewController extends Controller
 
     public function completePublic(string $token): JsonResponse
     {
-        $interview = Interview::where('access_token', $token)
+        $interview = Interview::with('job.company')
+            ->where('access_token', $token)
             ->where('status', Interview::STATUS_IN_PROGRESS)
             ->firstOrFail();
 
         $interview->complete();
 
-        AnalyzeInterviewJob::dispatch($interview);
+        // Deduct credit when interview is completed
+        $company = $interview->job->company;
+        $this->creditService->deductCredit($company, $interview);
 
-        // Send completion email to candidate
-        $this->sendInterviewCompletionEmail($interview);
+        AnalyzeInterviewJob::dispatch($interview);
 
         return response()->json([
             'success' => true,
@@ -357,91 +363,24 @@ class InterviewController extends Controller
         ]);
     }
 
-    /**
-     * Send interview completion email to candidate.
-     * Triggered when interview is completed.
-     */
-    private function sendInterviewCompletionEmail(Interview $interview): bool
-    {
-        try {
-            $interview->load(['candidate', 'job', 'job.company']);
-
-            $candidate = $interview->candidate;
-            $company = $interview->job->company;
-            $job = $interview->job;
-
-            if (!$candidate || !$candidate->email) {
-                Log::warning('Cannot send completion email: no candidate email', [
-                    'interview_id' => $interview->id,
-                ]);
-                return false;
-            }
-
-            // Don't send if already sent
-            if ($interview->completion_email_sent_at) {
-                Log::info('Completion email already sent', ['interview_id' => $interview->id]);
-                return true;
-            }
-
-            $locale = 'tr';
-            $emailService = new EmailTemplateService();
-            $rendered = $emailService->renderInterviewCompleted([
-                'company' => $company,
-                'candidate' => $candidate,
-                'job' => $job,
-                'locale' => $locale,
-            ]);
-
-            $outbox = MessageOutbox::create([
-                'company_id' => $company->id,
-                'channel' => MessageOutbox::CHANNEL_EMAIL,
-                'recipient' => $candidate->email,
-                'recipient_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
-                'subject' => $rendered['subject'],
-                'body' => $rendered['body'],
-                'template_id' => 'interview_completed',
-                'related_type' => 'interview',
-                'related_id' => $interview->id,
-                'status' => MessageOutbox::STATUS_PENDING,
-                'priority' => 5, // Normal priority
-                'metadata' => [
-                    'candidate_id' => $candidate->id,
-                    'job_id' => $job->id,
-                ],
-            ]);
-
-            // Mark completion email sent
-            $interview->update(['completion_email_sent_at' => now()]);
-
-            // Process immediately
-            ProcessOutboxMessagesJob::dispatch($outbox->id);
-
-            Log::info('Interview completion email queued', [
-                'interview_id' => $interview->id,
-                'outbox_id' => $outbox->id,
-                'candidate_email' => $candidate->email,
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Failed to send interview completion email', [
-                'interview_id' => $interview->id,
-                'error' => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
-
     public function show(Request $request, string $id): JsonResponse
     {
-        $interview = Interview::with([
+        $user = $request->user();
+
+        $query = Interview::with([
             'candidate',
-            'job',
+            'job.company',
             'responses.question',
             'analysis',
-        ])->whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($id);
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $interview = $query->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -482,15 +421,27 @@ class InterviewController extends Controller
                 ] : null,
                 'started_at' => $interview->started_at,
                 'completed_at' => $interview->completed_at,
+                // Timing / punctuality
+                'scheduled_at' => $interview->scheduled_at,
+                'joined_at' => $interview->joined_at,
+                'late_minutes' => $interview->late_minutes,
+                'no_show_marked_at' => $interview->no_show_marked_at,
             ],
         ]);
     }
 
     public function analyze(Request $request, string $id): JsonResponse
     {
-        $interview = Interview::whereHas('job', function ($q) use ($request) {
-            $q->where('company_id', $request->user()->company_id);
-        })->findOrFail($id);
+        $user = $request->user();
+        $query = Interview::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $interview = $query->findOrFail($id);
 
         if ($interview->status !== Interview::STATUS_COMPLETED) {
             return response()->json([
@@ -503,14 +454,17 @@ class InterviewController extends Controller
         }
 
         $forceReanalyze = $request->boolean('force_reanalyze', false);
+        $provider = $request->input('provider'); // 'openai' or 'kimi'
 
-        AnalyzeInterviewJob::dispatch($interview, $forceReanalyze);
+        AnalyzeInterviewJob::dispatch($interview, $forceReanalyze, $provider);
 
+        $providerName = $provider === 'kimi' ? 'Moonshot AI' : 'OpenAI';
         return response()->json([
             'success' => true,
-            'message' => 'Analiz kuyruga eklendi.',
+            'message' => "{$providerName} ile analiz kuyruga eklendi.",
             'data' => [
                 'estimated_seconds' => 45,
+                'provider' => $provider,
             ],
         ], 202);
     }
@@ -520,7 +474,35 @@ class InterviewController extends Controller
         return "6698 sayili Kisisel Verilerin Korunmasi Kanunu (KVKK) kapsaminda, mulakat surecinde " .
             "kayit altina alinan video ve ses verilerinizin, is basvurunuzun degerlendirilmesi " .
             "amaciyla islenmesine ve saklanmasina onay veriyorum. Bu verilerin sadece yetkilendirilmis " .
-            "IK personeli tarafindan erisileceğini ve yasal saklama suresi sonunda silinecegini anliyorum.";
+            "IK personeli tarafindan erisileceğini ve yasal saklama suresi sonunda silinecegini anliyorum.\n\n" .
+            "Ayrica, yazili mulakat yanitlarimin yapay zeka tarafindan analiz edilecegini ve " .
+            "yapay zeka degerlendirmesinin yalnizca verdigim yanitlarla sinirli oldugunu; " .
+            "nihai ise alim kararinin insan degerlendirmesi ile verilecegini kabul ediyorum.";
+    }
+
+    /**
+     * Determine interview mode based on feature flags.
+     */
+    private function getInterviewMode(): string
+    {
+        $voiceEnabled = config('interview.voice_enabled', false);
+        $videoEnabled = config('interview.video_enabled', false);
+
+        if ($videoEnabled) {
+            return 'video';
+        }
+        if ($voiceEnabled) {
+            return 'voice';
+        }
+        return 'text_only';
+    }
+
+    /**
+     * Check if voice/video features are enabled.
+     */
+    private function isVoiceVideoEnabled(): bool
+    {
+        return config('interview.voice_enabled', false) || config('interview.video_enabled', false);
     }
 
     // ===========================================
@@ -533,9 +515,14 @@ class InterviewController extends Controller
      */
     public function analyzeCheating(Request $request, string $id): JsonResponse
     {
-        $interview = Interview::with(['responses', 'analysis'])
-            ->whereHas('job', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Interview::with(['responses', 'analysis']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $interview = $query->findOrFail($id);
 
         if ($interview->status !== Interview::STATUS_COMPLETED) {
             return response()->json([
@@ -562,9 +549,14 @@ class InterviewController extends Controller
      */
     public function cheatingReport(Request $request, string $id): JsonResponse
     {
-        $interview = Interview::with(['analysis', 'candidate', 'job'])
-            ->whereHas('job', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Interview::with(['analysis', 'candidate', 'job']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $interview = $query->findOrFail($id);
 
         if (!$interview->analysis) {
             return response()->json([
@@ -613,6 +605,16 @@ class InterviewController extends Controller
             'question_order' => 'nullable|integer|min:1',
         ]);
 
+        // Verify user has access to this job
+        $user = $request->user();
+        $jobQuery = \App\Models\Job::query();
+
+        if (!$user->is_platform_admin) {
+            $jobQuery->where('company_id', $user->company_id);
+        }
+
+        $jobQuery->where('id', $validated['job_id'])->firstOrFail();
+
         $query = ResponseSimilarity::with([
             'responseA.interview.candidate',
             'responseB.interview.candidate',
@@ -650,6 +652,92 @@ class InterviewController extends Controller
                 'total' => $similarities->count(),
                 'job_id' => $validated['job_id'],
             ],
+        ]);
+    }
+
+    /**
+     * Get report data for interview
+     * GET /interviews/{id}/report
+     */
+    public function report(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $query = Interview::with([
+            'candidate',
+            'job',
+            'analysis',
+            'responses.question',
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('candidate', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $interview = $query->find($id);
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Interview not found or access denied',
+            ], 404);
+        }
+
+        if (!$interview->analysis) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Interview analysis not completed yet',
+            ], 400);
+        }
+
+        $analysis = $interview->analysis;
+        $candidate = $interview->candidate;
+        $job = $interview->job;
+
+        // Build report data
+        $reportData = [
+            'generated_at' => now()->toIso8601String(),
+            'interview' => [
+                'id' => $interview->id,
+                'status' => $interview->status,
+                'started_at' => $interview->started_at?->toIso8601String(),
+                'completed_at' => $interview->completed_at?->toIso8601String(),
+                'duration_minutes' => $interview->getDurationInMinutes(),
+            ],
+            'candidate' => [
+                'id' => $candidate->id,
+                'name' => $candidate->full_name,
+                'email' => $candidate->email,
+                'phone' => $candidate->phone,
+            ],
+            'position' => [
+                'title' => $job->title,
+                'location' => $job->location,
+                'company' => $job->company->name ?? null,
+            ],
+            'assessment' => [
+                'overall_score' => $analysis->overall_score,
+                'recommendation' => $analysis->getRecommendation(),
+                'confidence' => $analysis->getConfidencePercent(),
+                'competency_scores' => $analysis->competency_scores ?? [],
+                'behavior_analysis' => $analysis->behavior_analysis ?? [],
+                'culture_fit' => $analysis->culture_fit ?? [],
+                'reasons' => $analysis->getReasons(),
+                'suggested_questions' => $analysis->getSuggestedQuestions(),
+                'red_flags' => $analysis->red_flag_analysis ?? [],
+            ],
+            'responses' => $interview->responses->map(fn($r) => [
+                'order' => $r->response_order,
+                'question' => $r->question?->question_text,
+                'transcript' => $r->transcript,
+                'duration_seconds' => $r->duration_seconds,
+            ])->toArray(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $reportData,
         ]);
     }
 }

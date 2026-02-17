@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateFormInterviewRequest;
 use App\Models\FormInterview;
+use App\Services\Consent\ConsentService;
 use App\Services\Interview\FormInterviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,27 +13,58 @@ use Illuminate\Http\Request;
 class FormInterviewController extends Controller
 {
     public function __construct(
-        private readonly FormInterviewService $service
+        private readonly FormInterviewService $service,
+        private readonly ConsentService $consentService
     ) {}
 
     /**
      * Create a new form interview session
      * POST /v1/form-interviews
+     *
+     * Required:
+     * - version, language, country_code, consents (array)
+     *
+     * Consents validated per regulation:
+     * - KVKK (TR): data_processing + data_retention
+     * - GDPR (EU): data_processing + data_retention
+     * - GENERIC: data_processing
      */
-    public function create(Request $request): JsonResponse
+    public function create(CreateFormInterviewRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'version' => ['required', 'string', 'max:32'],
-            'language' => ['required', 'string', 'max:8'],
-            'position_code' => ['nullable', 'string', 'max:128'],
-            'meta' => ['nullable', 'array'],
-        ]);
+        $data = $request->validated();
 
-        $interview = $this->service->create(
-            $data['version'],
-            $data['language'],
-            $data['position_code'] ?? '__generic__',
-            $data['meta'] ?? []
+        // Get regulation from FormRequest
+        $regulation = $request->getRegulation();
+
+        // Create the interview
+        try {
+            $interview = $this->service->create(
+                $data['version'],
+                $data['language'],
+                $data['position_code'] ?? '__generic__',
+                $data['meta'] ?? [],
+                $data['industry_code'] ?? 'general',
+                $data['role_code'] ?? null,
+                $data['department'] ?? null,
+                $data['operation_type'] ?? null
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'message' => match ($e->getMessage()) {
+                    'department_required' => 'role_code and department are required for maritime interviews.',
+                    'no_template_for_role_department' => 'No interview template found for this role/department combination.',
+                    default => $e->getMessage(),
+                },
+            ], 422);
+        }
+
+        // Record consents (array of consent type strings)
+        $this->consentService->recordConsents(
+            $interview,
+            $data['consents'],
+            $regulation,
+            $request
         );
 
         return response()->json([
@@ -41,7 +74,10 @@ class FormInterviewController extends Controller
             'language' => $interview->language,
             'position_code' => $interview->position_code,
             'template_position_code' => $interview->template_position_code,
+            'industry_code' => $interview->industry_code,
             'template_json_sha256' => $interview->template_json_sha256,
+            'consents_recorded' => true,
+            'regulation' => $regulation,
             'created_at' => $interview->created_at,
         ], 201);
     }

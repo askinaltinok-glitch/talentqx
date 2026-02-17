@@ -10,6 +10,15 @@ return [
 
     'token_expiry_hours' => env('INTERVIEW_TOKEN_EXPIRY_HOURS', 72),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Feature Flags (v1.0: text-only, v2: voice/video)
+    |--------------------------------------------------------------------------
+    */
+
+    'voice_enabled' => env('VOICE_INTERVIEW_ENABLED', false),
+    'video_enabled' => env('VIDEO_INTERVIEW_ENABLED', false),
+
     'max_duration_minutes' => env('INTERVIEW_MAX_DURATION_MINUTES', 45),
 
     'default_question_time' => env('INTERVIEW_DEFAULT_QUESTION_TIME', 180),

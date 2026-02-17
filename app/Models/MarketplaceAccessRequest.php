@@ -17,64 +17,37 @@ class MarketplaceAccessRequest extends Model
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_EXPIRED = 'expired';
 
-    /**
-     * Token expiry duration in days.
-     */
-    public const TOKEN_EXPIRY_DAYS = 7;
-
     protected $fillable = [
         'requesting_company_id',
         'requesting_user_id',
         'candidate_id',
+        'owning_company_id',
         'status',
         'request_message',
         'response_message',
-        'responded_at',
-        'approval_token',
+        'access_token',
         'token_expires_at',
+        'responded_at',
     ];
 
-    protected $casts = [
-        'responded_at' => 'datetime',
-        'token_expires_at' => 'datetime',
-    ];
-
-    protected static function boot()
+    protected function casts(): array
     {
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (empty($model->approval_token)) {
-                $model->approval_token = Str::random(64);
-            }
-            if (empty($model->token_expires_at)) {
-                $model->token_expires_at = now()->addDays(self::TOKEN_EXPIRY_DAYS);
-            }
-        });
+        return [
+            'token_expires_at' => 'datetime',
+            'responded_at' => 'datetime',
+        ];
     }
 
     /**
-     * Get the company that made the request.
+     * Generate a unique access token.
      */
-    public function requestingCompany(): BelongsTo
+    public static function generateToken(): string
     {
-        return $this->belongsTo(Company::class, 'requesting_company_id');
-    }
+        do {
+            $token = Str::random(64);
+        } while (self::where('access_token', $token)->exists());
 
-    /**
-     * Get the user that made the request.
-     */
-    public function requestingUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'requesting_user_id');
-    }
-
-    /**
-     * Get the candidate being requested.
-     */
-    public function candidate(): BelongsTo
-    {
-        return $this->belongsTo(Candidate::class);
+        return $token;
     }
 
     /**
@@ -94,31 +67,15 @@ class MarketplaceAccessRequest extends Model
     }
 
     /**
-     * Check if the request is rejected.
+     * Check if access token is expired.
      */
-    public function isRejected(): bool
+    public function isTokenExpired(): bool
     {
-        return $this->status === self::STATUS_REJECTED;
+        return $this->token_expires_at->isPast();
     }
 
     /**
-     * Check if the request is expired.
-     */
-    public function isExpired(): bool
-    {
-        return $this->status === self::STATUS_EXPIRED;
-    }
-
-    /**
-     * Check if the token is still valid.
-     */
-    public function isTokenValid(): bool
-    {
-        return $this->token_expires_at && $this->token_expires_at->isFuture();
-    }
-
-    /**
-     * Approve the access request.
+     * Approve the request.
      */
     public function approve(?string $message = null): void
     {
@@ -130,7 +87,7 @@ class MarketplaceAccessRequest extends Model
     }
 
     /**
-     * Reject the access request.
+     * Reject the request.
      */
     public function reject(?string $message = null): void
     {
@@ -141,45 +98,58 @@ class MarketplaceAccessRequest extends Model
         ]);
     }
 
-    /**
-     * Mark the request as expired.
-     */
-    public function markExpired(): void
+    // ========================
+    // RELATIONSHIPS
+    // ========================
+
+    public function requestingCompany(): BelongsTo
     {
-        $this->update([
-            'status' => self::STATUS_EXPIRED,
-        ]);
+        return $this->belongsTo(Company::class, 'requesting_company_id');
+    }
+
+    public function requestingUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requesting_user_id');
+    }
+
+    public function candidate(): BelongsTo
+    {
+        return $this->belongsTo(Candidate::class);
+    }
+
+    public function owningCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'owning_company_id');
+    }
+
+    // ========================
+    // TENANT SCOPES
+    // ========================
+
+    /**
+     * Scope for requests made BY a specific company.
+     */
+    public function scopeForRequestingCompany($query, string $companyId)
+    {
+        return $query->where('requesting_company_id', $companyId);
     }
 
     /**
-     * Scope to filter by approval token.
+     * Scope for requests made TO a specific company (as candidate owner).
      */
-    public function scopeByToken($query, string $token)
+    public function scopeForOwningCompany($query, string $companyId)
     {
-        return $query->where('approval_token', $token);
+        return $query->where('owning_company_id', $companyId);
     }
 
     /**
-     * Scope to filter pending requests.
+     * Scope for requests involving a company (either as requester or owner).
      */
-    public function scopePending($query)
+    public function scopeForCompany($query, string $companyId)
     {
-        return $query->where('status', self::STATUS_PENDING);
-    }
-
-    /**
-     * Scope to filter approved requests.
-     */
-    public function scopeApproved($query)
-    {
-        return $query->where('status', self::STATUS_APPROVED);
-    }
-
-    /**
-     * Find a request by token.
-     */
-    public static function findByToken(string $token): ?self
-    {
-        return static::byToken($token)->first();
+        return $query->where(function ($q) use ($companyId) {
+            $q->where('requesting_company_id', $companyId)
+              ->orWhere('owning_company_id', $companyId);
+        });
     }
 }

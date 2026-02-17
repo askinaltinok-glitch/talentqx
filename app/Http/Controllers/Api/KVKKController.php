@@ -27,8 +27,14 @@ class KVKKController extends Controller
      */
     public function eraseCandidate(Request $request, string $id): JsonResponse
     {
-        $candidate = Candidate::whereHas('job', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $candidate = $query->findOrFail($id);
 
         if ($candidate->is_erased) {
             return response()->json([
@@ -83,8 +89,14 @@ class KVKKController extends Controller
      */
     public function exportCandidate(Request $request, string $id): JsonResponse
     {
-        $candidate = Candidate::whereHas('job', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = Candidate::query();
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $candidate = $query->findOrFail($id);
 
         if ($candidate->is_erased) {
             return response()->json([
@@ -152,9 +164,14 @@ class KVKKController extends Controller
         $created = 0;
         $skipped = 0;
 
+        $user = $request->user();
+
         foreach ($validated['candidate_ids'] as $candidateId) {
-            $candidate = Candidate::whereHas('job', fn($q) => $q->where('company_id', $request->user()->company_id))
-                ->find($candidateId);
+            $candidateQuery = Candidate::query();
+            if (!$user->is_platform_admin) {
+                $candidateQuery->whereHas('job', fn($q) => $q->where('company_id', $user->company_id));
+            }
+            $candidate = $candidateQuery->find($candidateId);
 
             if (!$candidate || $candidate->is_erased) {
                 $skipped++;
@@ -196,8 +213,14 @@ class KVKKController extends Controller
      */
     public function listErasureRequests(Request $request): JsonResponse
     {
-        $query = DataErasureRequest::with(['candidate', 'requestedBy'])
-            ->whereHas('candidate.job', fn($q) => $q->where('company_id', $request->user()->company_id));
+        $user = $request->user();
+        $query = DataErasureRequest::with(['candidate', 'requestedBy']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('candidate.job', fn($q) => $q->where('company_id', $user->company_id));
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('candidate.job', fn($q) => $q->where('company_id', $request->company_id));
+        }
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -238,7 +261,14 @@ class KVKKController extends Controller
      */
     public function auditLogs(Request $request): JsonResponse
     {
-        $query = AuditLog::where('company_id', $request->user()->company_id);
+        $user = $request->user();
+        $query = AuditLog::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        } elseif ($request->has('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
 
         if ($request->has('entity_type')) {
             $query->where('entity_type', $request->entity_type);
@@ -277,8 +307,14 @@ class KVKKController extends Controller
      */
     public function updateRetention(Request $request, string $id): JsonResponse
     {
-        $job = \App\Models\Job::where('company_id', $request->user()->company_id)
-            ->findOrFail($id);
+        $user = $request->user();
+        $jobQuery = \App\Models\Job::query();
+
+        if (!$user->is_platform_admin) {
+            $jobQuery->where('company_id', $user->company_id);
+        }
+
+        $job = $jobQuery->findOrFail($id);
 
         $validated = $request->validate([
             'retention_days' => 'required|integer|min:30|max:730', // 30 days to 2 years

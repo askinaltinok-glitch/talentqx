@@ -12,21 +12,24 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Send interview reminder emails 24 hours before token expiry.
+ * Send interview reminder emails.
+ *
+ * T-24: 24 hours before (reminder_sent_at IS NULL)
+ * T-1:  1 hour before (last_hour_reminder_sent_at IS NULL)
  *
  * Conditions:
  * - interview.status = pending
- * - interview.token_expires_at within 24 hours
- * - interview.reminder_sent_at IS NULL
+ * - interview.token_expires_at/scheduled_at within window
  *
  * Runs hourly via scheduler.
  */
 class SendInterviewReminders extends Command
 {
     protected $signature = 'interviews:send-reminders
-                            {--dry-run : Show what would be sent without actually sending}';
+                            {--dry-run : Show what would be sent without actually sending}
+                            {--type=all : Type of reminder: all, T-24, T-1}';
 
-    protected $description = 'Send reminder emails for interviews expiring within 24 hours';
+    protected $description = 'Send T-24 and T-1 reminder emails for pending interviews';
 
     private EmailTemplateService $emailService;
     private IcsService $icsService;
@@ -41,31 +44,84 @@ class SendInterviewReminders extends Command
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
-
-        $this->info('Checking for interviews requiring reminders...');
-
-        // Find interviews that:
-        // 1. Status is pending (not started, not completed)
-        // 2. Token expires within 24 hours
-        // 3. Reminder not yet sent
-        // 4. Token hasn't expired yet
+        $type = $this->option('type');
         $now = Carbon::now();
-        $cutoff = $now->copy()->addHours(24);
 
-        $interviews = Interview::query()
-            ->where('status', Interview::STATUS_PENDING)
-            ->whereNull('reminder_sent_at')
-            ->where('token_expires_at', '>', $now)
-            ->where('token_expires_at', '<=', $cutoff)
-            ->with(['candidate', 'job.company'])
-            ->get();
+        $this->info("🕐 Şu an: {$now->format('Y-m-d H:i')}");
+        $this->newLine();
 
-        if ($interviews->isEmpty()) {
-            $this->info('No interviews require reminders at this time.');
-            return Command::SUCCESS;
+        $totalSent = 0;
+        $totalSkipped = 0;
+        $totalFailed = 0;
+
+        // T-24 reminders (23-25 hours window)
+        if ($type === 'all' || $type === 'T-24') {
+            $this->info('📬 T-24 Hatırlatmaları (24 saat önce)');
+            $result = $this->processReminders(
+                $now->copy()->addHours(23),
+                $now->copy()->addHours(25),
+                'reminder_sent_at',
+                'T-24',
+                $dryRun
+            );
+            $totalSent += $result['sent'];
+            $totalSkipped += $result['skipped'];
+            $totalFailed += $result['failed'];
         }
 
-        $this->info("Found {$interviews->count()} interviews to remind.");
+        // T-1 reminders (55-65 minutes window)
+        if ($type === 'all' || $type === 'T-1') {
+            $this->newLine();
+            $this->info('⏰ T-1 Hatırlatmaları (1 saat önce)');
+            $result = $this->processReminders(
+                $now->copy()->addMinutes(55),
+                $now->copy()->addMinutes(65),
+                'last_hour_reminder_sent_at',
+                'T-1',
+                $dryRun
+            );
+            $totalSent += $result['sent'];
+            $totalSkipped += $result['skipped'];
+            $totalFailed += $result['failed'];
+        }
+
+        $this->newLine();
+        $this->info("📧 Toplam: Sent={$totalSent}, Skipped={$totalSkipped}, Failed={$totalFailed}");
+
+        if ($dryRun) {
+            $this->warn('⚠️  DRY-RUN: Mail gönderilmedi.');
+        }
+
+        return Command::SUCCESS;
+    }
+
+    private function processReminders(Carbon $start, Carbon $end, string $sentAtField, string $reminderType, bool $dryRun): array
+    {
+        $now = Carbon::now();
+
+        // Find interviews that need reminders
+        $query = Interview::query()
+            ->where('status', Interview::STATUS_PENDING)
+            ->with(['candidate', 'job.company']);
+
+        // Check scheduled_at first, fallback to token_expires_at
+        $query->where(function ($q) use ($start, $end) {
+            $q->whereBetween('scheduled_at', [$start, $end])
+              ->orWhere(function ($q2) use ($start, $end) {
+                  $q2->whereNull('scheduled_at')
+                     ->whereBetween('token_expires_at', [$start, $end]);
+              });
+        });
+
+        // Filter: only send if not already sent (prevents duplicate emails)
+        $query->whereNull($sentAtField);
+
+        $interviews = $query->get();
+
+        if ($interviews->isEmpty()) {
+            $this->line('  (yok)');
+            return ['sent' => 0, 'skipped' => 0, 'failed' => 0];
+        }
 
         $sent = 0;
         $skipped = 0;
@@ -75,80 +131,99 @@ class SendInterviewReminders extends Command
             $candidate = $interview->candidate;
             $job = $interview->job;
             $company = $job?->company;
+            $targetTime = $interview->scheduled_at ?? $interview->token_expires_at;
 
             if (!$candidate || !$candidate->email) {
-                $this->warn("Skipping interview {$interview->id}: No candidate email");
+                $this->warn("  ⊘ {$interview->id}: Email yok");
                 $skipped++;
                 continue;
             }
 
             if (!$company) {
-                $this->warn("Skipping interview {$interview->id}: No company");
+                $this->warn("  ⊘ {$interview->id}: Company yok");
                 $skipped++;
                 continue;
             }
 
-            $this->line("Processing: {$candidate->email} (Interview: {$interview->id})");
+            $this->line("  • {$candidate->first_name} {$candidate->last_name} <{$candidate->email}> → {$targetTime->format('d.m H:i')}");
 
             if ($dryRun) {
-                $this->info("  [DRY RUN] Would send reminder to {$candidate->email}");
                 $sent++;
                 continue;
             }
 
             try {
-                $this->sendReminder($interview, $candidate, $job, $company);
+                $this->sendReminder($interview, $candidate, $job, $company, $reminderType);
                 $sent++;
-                $this->info("  ✓ Reminder queued for {$candidate->email}");
+                $this->info("    ✓ Queued");
             } catch (\Exception $e) {
                 $failed++;
-                $this->error("  ✗ Failed: {$e->getMessage()}");
+                $this->error("    ✗ {$e->getMessage()}");
                 Log::error('Interview reminder failed', [
                     'interview_id' => $interview->id,
+                    'type' => $reminderType,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        $this->newLine();
-        $this->info("Summary: Sent={$sent}, Skipped={$skipped}, Failed={$failed}");
-
-        return Command::SUCCESS;
+        return ['sent' => $sent, 'skipped' => $skipped, 'failed' => $failed];
     }
 
-    private function sendReminder($interview, $candidate, $job, $company): void
+    private function sendReminder($interview, $candidate, $job, $company, string $reminderType = 'T-24'): void
     {
         $locale = 'tr'; // Default locale
         $interviewUrl = $interview->getInterviewUrl();
+        $targetTime = $interview->scheduled_at ?? $interview->token_expires_at;
 
-        // Render reminder email
-        $email = $this->emailService->renderInterviewReminder([
-            'company' => $company,
-            'candidate' => $candidate,
-            'interview_url' => $interviewUrl,
-            'expires_at' => $interview->token_expires_at,
-            'locale' => $locale,
-        ]);
+        // Render reminder email based on type
+        if ($reminderType === 'T-1') {
+            $email = $this->emailService->renderLastHourReminder([
+                'company' => $company,
+                'candidate' => $candidate,
+                'job' => $job,
+                'interview_url' => $interviewUrl,
+                'scheduled_at' => $targetTime,
+                'locale' => $locale,
+            ]);
+            $messageType = 'interview_reminder_t1';
+        } else {
+            $email = $this->emailService->renderInterviewReminder([
+                'company' => $company,
+                'candidate' => $candidate,
+                'interview_url' => $interviewUrl,
+                'expires_at' => $interview->token_expires_at,
+                'locale' => $locale,
+            ]);
+            $messageType = 'interview_reminder';
+        }
 
-        // Generate ICS attachment
-        $icsContent = $this->icsService->generateInterviewIcs([
-            'interview_id' => $interview->id,
-            'company_name' => $company->name,
-            'job_title' => $job->title ?? 'Position',
-            'interview_url' => $interviewUrl,
-            'start_time' => $interview->scheduled_at ?? $interview->token_expires_at->copy()->subHours(24),
-            'duration_minutes' => config('interview.default_duration', 30),
-            'timezone' => $company->timezone ?? 'Europe/Istanbul',
-            'locale' => $locale,
-        ]);
+        // Generate ICS attachment (only for T-24)
+        $attachments = [];
+        if ($reminderType === 'T-24') {
+            $icsContent = $this->icsService->generateInterviewIcs([
+                'interview_id' => $interview->id,
+                'company_name' => $company->name,
+                'job_title' => $job->title ?? 'Position',
+                'interview_url' => $interviewUrl,
+                'start_time' => $interview->scheduled_at ?? $interview->token_expires_at->copy()->subHours(24),
+                'duration_minutes' => config('interview.default_duration', 30),
+                'timezone' => $company->timezone ?? 'Europe/Istanbul',
+                'locale' => $locale,
+            ]);
+            $icsFilename = $this->icsService->getFilename($company->name, $locale);
+            $attachments[] = [
+                'filename' => $icsFilename,
+                'content' => base64_encode($icsContent),
+                'mime_type' => 'text/calendar',
+            ];
+        }
 
-        $icsFilename = $this->icsService->getFilename($company->name, $locale);
-
-        // Create outbox message with ICS attachment
+        // Create outbox message
         $outbox = MessageOutbox::create([
             'company_id' => $company->id,
             'channel' => 'email',
-            'message_type' => 'interview_reminder',
+            'message_type' => $messageType,
             'recipient' => $candidate->email,
             'recipient_name' => trim($candidate->first_name . ' ' . $candidate->last_name),
             'subject' => $email['subject'],
@@ -156,21 +231,20 @@ class SendInterviewReminders extends Command
             'metadata' => [
                 'interview_id' => $interview->id,
                 'candidate_id' => $candidate->id,
+                'reminder_type' => $reminderType,
                 'locale' => $locale,
-                'attachments' => [
-                    [
-                        'filename' => $icsFilename,
-                        'content' => base64_encode($icsContent),
-                        'mime_type' => 'text/calendar',
-                    ],
-                ],
+                'attachments' => $attachments,
             ],
             'status' => 'pending',
-            'priority' => 'high',
+            'priority' => $reminderType === 'T-1' ? 'urgent' : 'high',
         ]);
 
-        // Mark reminder as sent
-        $interview->update(['reminder_sent_at' => now()]);
+        // Mark reminder as sent (prevents duplicate emails)
+        if ($reminderType === 'T-24') {
+            $interview->update(['reminder_sent_at' => now()]);
+        } else {
+            $interview->update(['last_hour_reminder_sent_at' => now()]);
+        }
 
         // Dispatch job
         ProcessOutboxMessagesJob::dispatch($outbox->id);
@@ -179,6 +253,7 @@ class SendInterviewReminders extends Command
             'interview_id' => $interview->id,
             'outbox_id' => $outbox->id,
             'candidate_email' => $candidate->email,
+            'type' => $reminderType,
         ]);
     }
 }

@@ -9,4 +9,8 @@ interface LLMProviderInterface
     public function analyzeInterview(array $responses, array $competencies, array $redFlags): array;
 
     public function transcribeAudio(string $audioPath, string $language = 'tr'): array;
+
+    public function improveJobDescription(string $title, string $description, string $positionType = ''): array;
+
+    public function getModelInfo(): array;
 }

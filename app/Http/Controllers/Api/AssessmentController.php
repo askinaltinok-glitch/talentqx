@@ -46,8 +46,14 @@ class AssessmentController extends Controller
             'template_id' => 'required|uuid|exists:assessment_templates,id',
         ]);
 
-        $employee = Employee::where('company_id', $request->user()->company_id)
-            ->findOrFail($validated['employee_id']);
+        $user = $request->user();
+        $employeeQuery = Employee::query();
+
+        if (!$user->is_platform_admin) {
+            $employeeQuery->where('company_id', $user->company_id);
+        }
+
+        $employee = $employeeQuery->findOrFail($validated['employee_id']);
 
         $template = AssessmentTemplate::findOrFail($validated['template_id']);
 
@@ -88,14 +94,19 @@ class AssessmentController extends Controller
         ]);
 
         $template = AssessmentTemplate::findOrFail($validated['template_id']);
-        $companyId = $request->user()->company_id;
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $companyId = $user->company_id;
+        $userId = $user->id;
 
         $created = 0;
         $skipped = 0;
 
         foreach ($validated['employee_ids'] as $employeeId) {
-            $employee = Employee::where('company_id', $companyId)->find($employeeId);
+            $employeeQuery = Employee::query();
+            if (!$user->is_platform_admin) {
+                $employeeQuery->where('company_id', $companyId);
+            }
+            $employee = $employeeQuery->find($employeeId);
             if (!$employee) {
                 $skipped++;
                 continue;
@@ -133,8 +144,14 @@ class AssessmentController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
-        $query = AssessmentSession::with(['employee', 'template', 'result'])
-            ->whereHas('employee', fn($q) => $q->where('company_id', $request->user()->company_id));
+        $user = $request->user();
+        $query = AssessmentSession::with(['employee', 'template', 'result']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -165,9 +182,14 @@ class AssessmentController extends Controller
 
     public function sessionShow(Request $request, string $id): JsonResponse
     {
-        $session = AssessmentSession::with(['employee', 'template', 'result', 'initiator'])
-            ->whereHas('employee', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        $user = $request->user();
+        $query = AssessmentSession::with(['employee', 'template', 'result', 'initiator']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $session = $query->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -384,11 +406,17 @@ class AssessmentController extends Controller
     // Results & Reports
     public function results(Request $request): JsonResponse
     {
+        $user = $request->user();
         $query = AssessmentResult::with([
             'session.employee',
             'session.template',
-        ])
-            ->whereHas('session.employee', fn($q) => $q->where('company_id', $request->user()->company_id));
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $user->company_id));
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
 
         if ($request->has('risk_level')) {
             $query->where('risk_level', $request->risk_level);
@@ -427,12 +455,17 @@ class AssessmentController extends Controller
 
     public function resultShow(Request $request, string $id): JsonResponse
     {
-        $result = AssessmentResult::with([
+        $user = $request->user();
+        $query = AssessmentResult::with([
             'session.employee',
             'session.template',
-        ])
-            ->whereHas('session.employee', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->findOrFail($id);
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $result = $query->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -447,10 +480,15 @@ class AssessmentController extends Controller
             'result_ids.*' => 'uuid|exists:assessment_results,id',
         ]);
 
-        $results = AssessmentResult::with(['session.employee', 'session.template'])
-            ->whereHas('session.employee', fn($q) => $q->where('company_id', $request->user()->company_id))
-            ->whereIn('id', $validated['result_ids'])
-            ->get();
+        $user = $request->user();
+        $query = AssessmentResult::with(['session.employee', 'session.template'])
+            ->whereIn('id', $validated['result_ids']);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $user->company_id));
+        }
+
+        $results = $query->get();
 
         $comparison = $results->map(function ($result) {
             return [
@@ -484,13 +522,21 @@ class AssessmentController extends Controller
 
     public function roleStats(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
 
-        $stats = DB::table('assessment_results')
+        $query = DB::table('assessment_results')
             ->join('assessment_sessions', 'assessment_results.session_id', '=', 'assessment_sessions.id')
             ->join('employees', 'assessment_sessions.employee_id', '=', 'employees.id')
-            ->join('assessment_templates', 'assessment_sessions.template_id', '=', 'assessment_templates.id')
-            ->where('employees.company_id', $companyId)
+            ->join('assessment_templates', 'assessment_sessions.template_id', '=', 'assessment_templates.id');
+
+        if (!$user->is_platform_admin) {
+            $query->where('employees.company_id', $companyId);
+        } elseif ($request->has('company_id')) {
+            $query->where('employees.company_id', $request->company_id);
+        }
+
+        $stats = $query
             ->select([
                 'assessment_templates.role_category',
                 DB::raw('count(*) as total_assessed'),
@@ -509,42 +555,91 @@ class AssessmentController extends Controller
 
     public function dashboardStats(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
 
-        $totalSessions = AssessmentSession::whereHas('employee', fn($q) => $q->where('company_id', $companyId))->count();
-        $completedSessions = AssessmentSession::whereHas('employee', fn($q) => $q->where('company_id', $companyId))
-            ->where('status', 'completed')->count();
-        $pendingSessions = AssessmentSession::whereHas('employee', fn($q) => $q->where('company_id', $companyId))
-            ->whereIn('status', ['pending', 'in_progress'])->count();
+        // Build a filter closure based on user type
+        $employeeFilter = function($q) use ($user, $companyId, $request) {
+            if (!$user->is_platform_admin) {
+                $q->where('company_id', $companyId);
+            } elseif ($request->has('company_id')) {
+                $q->where('company_id', $request->company_id);
+            }
+        };
 
-        $avgScore = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->avg('overall_score');
+        $sessionFilter = function($q) use ($user, $companyId, $request) {
+            if (!$user->is_platform_admin) {
+                $q->where('company_id', $companyId);
+            } elseif ($request->has('company_id')) {
+                $q->where('company_id', $request->company_id);
+            }
+        };
 
-        $riskDistribution = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $totalSessionsQuery = AssessmentSession::query();
+        $completedSessionsQuery = AssessmentSession::query()->where('status', 'completed');
+        $pendingSessionsQuery = AssessmentSession::query()->whereIn('status', ['pending', 'in_progress']);
+
+        if (!$user->is_platform_admin) {
+            $totalSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $companyId));
+            $completedSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $companyId));
+            $pendingSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $companyId));
+        } elseif ($request->has('company_id')) {
+            $filterCompanyId = $request->company_id;
+            $totalSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $completedSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $pendingSessionsQuery->whereHas('employee', fn($q) => $q->where('company_id', $filterCompanyId));
+        }
+
+        $totalSessions = $totalSessionsQuery->count();
+        $completedSessions = $completedSessionsQuery->count();
+        $pendingSessions = $pendingSessionsQuery->count();
+
+        $avgScoreQuery = AssessmentResult::query();
+        $riskDistributionQuery = AssessmentResult::query();
+        $levelDistributionQuery = AssessmentResult::query();
+        $cheatingDistributionQuery = AssessmentResult::query()->whereNotNull('cheating_level');
+        $highCheatingRiskQuery = AssessmentResult::query()->where('cheating_level', 'high');
+        $analysisFailedQuery = AssessmentResult::query()->where('status', 'analysis_failed');
+
+        if (!$user->is_platform_admin) {
+            $avgScoreQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            $riskDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            $levelDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            $cheatingDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            $highCheatingRiskQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            $analysisFailedQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+        } elseif ($request->has('company_id')) {
+            $filterCompanyId = $request->company_id;
+            $avgScoreQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $riskDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $levelDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $cheatingDistributionQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $highCheatingRiskQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+            $analysisFailedQuery->whereHas('session.employee', fn($q) => $q->where('company_id', $filterCompanyId));
+        }
+
+        $avgScore = $avgScoreQuery->avg('overall_score');
+
+        $riskDistribution = $riskDistributionQuery
             ->selectRaw('risk_level, count(*) as count')
             ->groupBy('risk_level')
             ->pluck('count', 'risk_level');
 
-        $levelDistribution = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $levelDistribution = $levelDistributionQuery
             ->selectRaw('level_label, count(*) as count')
             ->groupBy('level_label')
             ->pluck('count', 'level_label');
 
         // Cheating stats
-        $cheatingDistribution = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->whereNotNull('cheating_level')
+        $cheatingDistribution = $cheatingDistributionQuery
             ->selectRaw('cheating_level, count(*) as count')
             ->groupBy('cheating_level')
             ->pluck('count', 'cheating_level');
 
-        $highCheatingRisk = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->where('cheating_level', 'high')
-            ->count();
+        $highCheatingRisk = $highCheatingRiskQuery->count();
 
         // Analysis failures
-        $analysisFailed = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->where('status', 'analysis_failed')
-            ->count();
+        $analysisFailed = $analysisFailedQuery->count();
 
         return response()->json([
             'success' => true,
@@ -568,37 +663,47 @@ class AssessmentController extends Controller
      */
     public function costStats(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
+
+        // Build base queries with platform admin support
+        $baseQuery = function() use ($user, $companyId, $request) {
+            $query = AssessmentResult::query();
+            if (!$user->is_platform_admin) {
+                $query->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+            } elseif ($request->has('company_id')) {
+                $query->whereHas('session.employee', fn($q) => $q->where('company_id', $request->company_id));
+            }
+            return $query;
+        };
 
         // Total cost
-        $totalCost = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->sum('cost_usd');
+        $totalCost = $baseQuery()->sum('cost_usd');
 
         // Cost by model
-        $costByModel = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $costByModel = $baseQuery()
             ->selectRaw('ai_model, count(*) as count, sum(cost_usd) as total_cost, avg(cost_usd) as avg_cost')
             ->groupBy('ai_model')
             ->get();
 
         // Cost limited sessions
-        $costLimitedCount = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $costLimitedCount = $baseQuery()
             ->where('cost_limited', true)
             ->count();
 
         // Token usage
-        $tokenUsage = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $tokenUsage = $baseQuery()
             ->selectRaw('sum(input_tokens) as total_input, sum(output_tokens) as total_output')
             ->first();
 
         // Monthly cost (current month)
-        $monthlyCost = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $monthlyCost = $baseQuery()
             ->whereMonth('analyzed_at', now()->month)
             ->whereYear('analyzed_at', now()->year)
             ->sum('cost_usd');
 
         // Average cost per session
-        $avgCostPerSession = AssessmentResult::whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
-            ->avg('cost_usd');
+        $avgCostPerSession = $baseQuery()->avg('cost_usd');
 
         return response()->json([
             'success' => true,
@@ -622,15 +727,23 @@ class AssessmentController extends Controller
      */
     public function cheatingRiskResults(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
         $minScore = $request->get('min_score', 50);
 
-        $results = AssessmentResult::with(['session.employee', 'session.template'])
-            ->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId))
+        $query = AssessmentResult::with(['session.employee', 'session.template'])
             ->where(function ($q) use ($minScore) {
                 $q->where('cheating_risk_score', '>=', $minScore)
                     ->orWhere('cheating_level', 'high');
-            })
+            });
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $companyId));
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('session.employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+
+        $results = $query
             ->orderByDesc('cheating_risk_score')
             ->paginate($request->get('per_page', 20));
 
@@ -651,15 +764,23 @@ class AssessmentController extends Controller
      */
     public function similarResponses(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
         $minSimilarity = $request->get('min_similarity', 85);
 
-        $similarities = \App\Models\AssessmentResponseSimilarity::with([
+        $query = \App\Models\AssessmentResponseSimilarity::with([
             'sessionA.employee',
             'sessionB.employee',
         ])
-            ->whereHas('sessionA.employee', fn($q) => $q->where('company_id', $companyId))
-            ->where('similarity_score', '>=', $minSimilarity)
+            ->where('similarity_score', '>=', $minSimilarity);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('sessionA.employee', fn($q) => $q->where('company_id', $companyId));
+        } elseif ($request->has('company_id')) {
+            $query->whereHas('sessionA.employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+
+        $similarities = $query
             ->orderByDesc('similarity_score')
             ->paginate($request->get('per_page', 20));
 

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Company extends Model
 {
     use HasFactory, HasUuids;
-
-    /**
-     * Grace period duration in days after subscription expires.
-     */
-    public const GRACE_PERIOD_DAYS = 60;
 
     protected $fillable = [
         'name',
@@ -31,14 +25,46 @@ class Company extends Model
         'is_premium',
         'grace_period_ends_at',
         'settings',
+        'monthly_credits',
+        'credits_used',
+        'credits_period_start',
+        'bonus_credits',
+        // Billing fields
+        'legal_name',
+        'tax_number',
+        'tax_office',
+        'billing_type',
+        'billing_address',
+        'billing_city',
+        'billing_postal_code',
+        'billing_email',
     ];
 
     protected $casts = [
         'settings' => 'array',
         'subscription_ends_at' => 'datetime',
-        'is_premium' => 'boolean',
         'grace_period_ends_at' => 'datetime',
+        'is_premium' => 'boolean',
+        'monthly_credits' => 'integer',
+        'credits_used' => 'integer',
+        'credits_period_start' => 'date',
+        'bonus_credits' => 'integer',
     ];
+
+    /**
+     * Valid subscription plans.
+     */
+    public const PLANS = ['free', 'starter', 'pro', 'enterprise'];
+
+    /**
+     * Valid billing types.
+     */
+    public const BILLING_TYPES = ['individual', 'corporate'];
+
+    /**
+     * Default grace period in days after subscription expires.
+     */
+    public const DEFAULT_GRACE_PERIOD_DAYS = 60;
 
     public function users(): HasMany
     {
@@ -60,6 +86,16 @@ class Company extends Model
         return $this->hasMany(Candidate::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function isSubscriptionActive(): bool
     {
         return $this->subscription_ends_at === null ||
@@ -67,46 +103,47 @@ class Company extends Model
     }
 
     /**
-     * Check if the company is in grace period (subscription expired but within 60 days).
+     * Check if company is in grace period.
+     * Grace period starts when subscription expires and ends at grace_period_ends_at.
      */
     public function isInGracePeriod(): bool
     {
-        // If subscription is active, not in grace period
+        // Not in grace if subscription is active
         if ($this->isSubscriptionActive()) {
             return false;
         }
 
-        // If grace_period_ends_at is set, check against it
-        if ($this->grace_period_ends_at) {
-            return $this->grace_period_ends_at->isFuture();
+        // If no grace period set, calculate default (60 days after subscription end)
+        $graceEnd = $this->grace_period_ends_at
+            ?? $this->subscription_ends_at?->copy()->addDays(self::DEFAULT_GRACE_PERIOD_DAYS);
+
+        if (!$graceEnd) {
+            return false;
         }
 
-        // Otherwise, calculate based on subscription_ends_at + 60 days
-        if ($this->subscription_ends_at) {
-            return $this->subscription_ends_at->addDays(self::GRACE_PERIOD_DAYS)->isFuture();
-        }
-
-        return false;
+        return $graceEnd->isFuture();
     }
 
     /**
-     * Get the grace period end date.
+     * Get computed subscription status.
+     * Returns: active, grace_period, or expired
      */
-    public function getGracePeriodEndDate(): ?Carbon
+    public function getSubscriptionStatus(): string
     {
-        if ($this->grace_period_ends_at) {
-            return $this->grace_period_ends_at;
+        if ($this->isSubscriptionActive()) {
+            return 'active';
         }
 
-        if ($this->subscription_ends_at) {
-            return $this->subscription_ends_at->copy()->addDays(self::GRACE_PERIOD_DAYS);
+        if ($this->isInGracePeriod()) {
+            return 'grace_period';
         }
 
-        return null;
+        return 'expired';
     }
 
     /**
-     * Check if the company has marketplace access (requires premium subscription).
+     * Check if company has marketplace access.
+     * Requires: premium + active subscription (not grace period)
      */
     public function hasMarketplaceAccess(): bool
     {
@@ -114,29 +151,14 @@ class Company extends Model
     }
 
     /**
-     * Get the comprehensive subscription status.
+     * Get computed status snapshot for API responses.
      */
-    public function getSubscriptionStatus(): array
+    public function getComputedStatus(): array
     {
-        $isActive = $this->isSubscriptionActive();
-        $isInGrace = $this->isInGracePeriod();
-
-        if ($isActive) {
-            $status = 'active';
-        } elseif ($isInGrace) {
-            $status = 'grace_period';
-        } else {
-            $status = 'expired';
-        }
-
         return [
-            'status' => $status,
-            'is_active' => $isActive,
-            'is_in_grace_period' => $isInGrace,
-            'is_premium' => $this->is_premium,
-            'subscription_plan' => $this->subscription_plan,
-            'subscription_ends_at' => $this->subscription_ends_at?->toIso8601String(),
-            'grace_period_ends_at' => $this->getGracePeriodEndDate()?->toIso8601String(),
+            'status' => $this->getSubscriptionStatus(),
+            'is_active' => $this->isSubscriptionActive(),
+            'is_in_grace_period' => $this->isInGracePeriod(),
             'has_marketplace_access' => $this->hasMarketplaceAccess(),
         ];
     }
@@ -174,6 +196,38 @@ class Company extends Model
     }
 
     /**
+     * Get remaining credits (monthly + bonus - used).
+     */
+    public function getRemainingCredits(): int
+    {
+        return max(0, $this->getTotalCredits() - $this->credits_used);
+    }
+
+    /**
+     * Check if company has available credits.
+     */
+    public function hasCredits(): bool
+    {
+        return $this->getRemainingCredits() > 0;
+    }
+
+    /**
+     * Get total credits (monthly + bonus).
+     */
+    public function getTotalCredits(): int
+    {
+        return ($this->monthly_credits ?? 0) + ($this->bonus_credits ?? 0);
+    }
+
+    /**
+     * Get credit usage logs relationship.
+     */
+    public function creditUsageLogs(): HasMany
+    {
+        return $this->hasMany(CreditUsageLog::class);
+    }
+
+    /**
      * Get company initials (2 letters) for logo placeholder.
      * Example: "Ekler İstanbul" => "Eİ", "Acme Corp" => "AC"
      */
@@ -188,5 +242,42 @@ class Company extends Model
 
         // Single word: take first two letters
         return mb_strtoupper(mb_substr($this->name, 0, 2));
+    }
+
+    /**
+     * Check if company has corporate billing.
+     */
+    public function isCorporate(): bool
+    {
+        return $this->billing_type === 'corporate';
+    }
+
+    /**
+     * Get billing info snapshot for invoices.
+     */
+    public function getBillingSnapshot(): array
+    {
+        return [
+            'name' => $this->isCorporate() ? ($this->legal_name ?: $this->name) : $this->name,
+            'legal_name' => $this->legal_name,
+            'billing_type' => $this->billing_type,
+            'tax_number' => $this->tax_number,
+            'tax_office' => $this->tax_office,
+            'address' => $this->billing_address,
+            'city' => $this->billing_city,
+            'postal_code' => $this->billing_postal_code,
+            'email' => $this->billing_email ?: $this->users()->first()?->email,
+        ];
+    }
+
+    /**
+     * Check if company has complete billing info for invoicing.
+     */
+    public function hasBillingInfo(): bool
+    {
+        if ($this->billing_type === 'corporate') {
+            return !empty($this->tax_number) && !empty($this->tax_office);
+        }
+        return true; // Individual billing always has enough info
     }
 }

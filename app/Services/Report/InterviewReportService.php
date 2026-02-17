@@ -364,37 +364,13 @@ class InterviewReportService
 
     /**
      * Get default branding
-     *
-     * BRANDING POLICY v1.0:
-     * - Default PDF output is TalentQX-branded
-     * - Customer logo is optional and only enabled if explicitly provided
-     * - When customer logo is enabled:
-     *   - Logo is placed in the header, small and unobtrusive
-     *   - TalentQX logo remains visible in footer
-     *   - Text: "Prepared for {{Company Name}}" is shown
-     *
-     * WHITE-LABEL POLICY v2.0 (Enterprise only):
-     * - TalentQX logo removed from cover and footer
-     * - Subtle "Powered by TalentQX" disclaimer remains in legal page
-     * - Customer assumes responsibility for internal distribution
-     * - Requires explicit contract clause acceptance
      */
     private function getDefaultBranding(): array
     {
         return [
-            // TalentQX branding (visible unless white_label is true)
-            'primary_color' => '#1E3A5F',      // Navy blue - corporate standard
-            'secondary_color' => '#2E5A8F',
-
-            // Customer branding (optional - only if explicitly provided)
-            'customer_logo_url' => null,       // Customer logo for header
-            'customer_company_name' => null,   // Customer company name
-
-            // White-label mode (Enterprise only)
-            'white_label' => false,            // Remove TalentQX branding (except legal disclaimer)
-
-            // Legacy fields for backwards compatibility
             'logo_url' => null,
+            'primary_color' => '#3B82F6',
+            'secondary_color' => '#1E40AF',
             'company_name' => null,
         ];
     }

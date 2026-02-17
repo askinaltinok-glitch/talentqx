@@ -6,63 +6,57 @@ use App\Http\Controllers\Controller;
 use App\Models\MarketplaceAccessRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Marketplace Access Controller (Public)
+ *
+ * Handles public token-based access request approval/rejection.
+ * No authentication required - uses access tokens.
+ */
 class MarketplaceAccessController extends Controller
 {
     /**
-     * Show access request details by token.
-     * GET /v1/marketplace-access/{token}
-     *
-     * Public endpoint - no auth required.
+     * GET /marketplace-access/{token}
+     * Get access request details by token (public).
      */
     public function show(string $token): JsonResponse
     {
-        $accessRequest = MarketplaceAccessRequest::findByToken($token);
+        $accessRequest = MarketplaceAccessRequest::with([
+            'requestingCompany:id,name',
+            'requestingUser:id,first_name,last_name,email',
+            'candidate' => function ($q) {
+                $q->select('id', 'first_name', 'last_name', 'status', 'cv_match_score');
+            },
+            'candidate.job:id,title',
+            'candidate.interview.analysis:id,interview_id,overall_score',
+        ])
+            ->where('access_token', $token)
+            ->first();
 
         if (!$accessRequest) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_invalid',
-                    'message' => 'Geçersiz erişim token\'ı.',
+                    'code' => 'REQUEST_NOT_FOUND',
+                    'message' => 'Erişim talebi bulunamadı veya geçersiz token.',
                 ],
             ], 404);
         }
 
         // Check if token is expired
-        if (!$accessRequest->isTokenValid()) {
-            // Mark as expired if still pending
-            if ($accessRequest->isPending()) {
-                $accessRequest->markExpired();
-            }
-
+        if ($accessRequest->isTokenExpired()) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_expired',
-                    'message' => 'Bu erişim talebi süresi dolmuş.',
-                    'expired_at' => $accessRequest->token_expires_at->toIso8601String(),
+                    'code' => 'TOKEN_EXPIRED',
+                    'message' => 'Bu erişim talebi için yanıt süresi dolmuş.',
                 ],
             ], 410);
         }
 
-        // Check if already processed
-        if (!$accessRequest->isPending()) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'already_processed',
-                    'message' => 'Bu erişim talebi zaten işlenmiş.',
-                    'status' => $accessRequest->status,
-                    'processed_at' => $accessRequest->responded_at?->toIso8601String(),
-                ],
-            ], 400);
-        }
-
-        $accessRequest->load(['requestingCompany:id,name', 'requestingUser:id,first_name,last_name,email', 'candidate']);
-
-        // Get anonymous profile of the candidate
-        $candidateProfile = $accessRequest->candidate?->getAnonymousProfile();
+        $candidate = $accessRequest->candidate;
+        $analysis = $candidate?->interview?->analysis;
 
         return response()->json([
             'success' => true,
@@ -73,73 +67,76 @@ class MarketplaceAccessController extends Controller
                     'name' => $accessRequest->requestingCompany->name,
                 ],
                 'requesting_user' => [
-                    'name' => $accessRequest->requestingUser->full_name,
+                    'name' => trim($accessRequest->requestingUser->first_name . ' ' . $accessRequest->requestingUser->last_name),
                     'email' => $accessRequest->requestingUser->email,
                 ],
                 'request_message' => $accessRequest->request_message,
                 'created_at' => $accessRequest->created_at->toIso8601String(),
                 'token_expires_at' => $accessRequest->token_expires_at->toIso8601String(),
-                'candidate' => $candidateProfile,
+                'candidate' => $candidate ? [
+                    'id' => $candidate->id,
+                    'name' => trim($candidate->first_name . ' ' . $candidate->last_name),
+                    'status' => $candidate->status,
+                    'job_title' => $candidate->job?->title,
+                    'overall_score' => $analysis?->overall_score,
+                ] : null,
             ],
         ]);
     }
 
     /**
-     * Approve access request by token.
-     * POST /v1/marketplace-access/{token}/approve
-     *
-     * Public endpoint - no auth required.
+     * POST /marketplace-access/{token}/approve
+     * Approve access request by token (public).
      */
     public function approve(Request $request, string $token): JsonResponse
     {
-        $accessRequest = MarketplaceAccessRequest::findByToken($token);
+        $validated = $request->validate([
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $accessRequest = MarketplaceAccessRequest::where('access_token', $token)->first();
 
         if (!$accessRequest) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_invalid',
-                    'message' => 'Geçersiz erişim token\'ı.',
+                    'code' => 'REQUEST_NOT_FOUND',
+                    'message' => 'Erişim talebi bulunamadı veya geçersiz token.',
                 ],
             ], 404);
         }
 
         // Check if token is expired
-        if (!$accessRequest->isTokenValid()) {
-            if ($accessRequest->isPending()) {
-                $accessRequest->markExpired();
-            }
-
+        if ($accessRequest->isTokenExpired()) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_expired',
-                    'message' => 'Bu erişim talebi süresi dolmuş.',
-                    'expired_at' => $accessRequest->token_expires_at->toIso8601String(),
+                    'code' => 'TOKEN_EXPIRED',
+                    'message' => 'Bu erişim talebi için yanıt süresi dolmuş.',
                 ],
             ], 410);
         }
 
-        // Check if already processed
+        // Check if already responded
         if (!$accessRequest->isPending()) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'already_processed',
-                    'message' => 'Bu erişim talebi zaten işlenmiş.',
-                    'status' => $accessRequest->status,
-                    'processed_at' => $accessRequest->responded_at?->toIso8601String(),
+                    'code' => 'ALREADY_RESPONDED',
+                    'message' => 'Bu erişim talebine zaten yanıt verilmiş.',
                 ],
             ], 400);
         }
 
-        $validated = $request->validate([
-            'message' => 'nullable|string|max:500',
-        ]);
-
         $accessRequest->approve($validated['message'] ?? null);
 
-        // TODO: Send notification to the requesting company
+        Log::info('Marketplace access request approved', [
+            'request_id' => $accessRequest->id,
+            'requesting_company_id' => $accessRequest->requesting_company_id,
+            'candidate_id' => $accessRequest->candidate_id,
+        ]);
+
+        // TODO: Send notification email to requesting company
 
         return response()->json([
             'success' => true,
@@ -147,66 +144,62 @@ class MarketplaceAccessController extends Controller
                 'status' => $accessRequest->status,
                 'responded_at' => $accessRequest->responded_at->toIso8601String(),
             ],
-            'message' => 'Erişim talebi onaylandı.',
         ]);
     }
 
     /**
-     * Reject access request by token.
-     * POST /v1/marketplace-access/{token}/reject
-     *
-     * Public endpoint - no auth required.
+     * POST /marketplace-access/{token}/reject
+     * Reject access request by token (public).
      */
     public function reject(Request $request, string $token): JsonResponse
     {
-        $accessRequest = MarketplaceAccessRequest::findByToken($token);
+        $validated = $request->validate([
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $accessRequest = MarketplaceAccessRequest::where('access_token', $token)->first();
 
         if (!$accessRequest) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_invalid',
-                    'message' => 'Geçersiz erişim token\'ı.',
+                    'code' => 'REQUEST_NOT_FOUND',
+                    'message' => 'Erişim talebi bulunamadı veya geçersiz token.',
                 ],
             ], 404);
         }
 
         // Check if token is expired
-        if (!$accessRequest->isTokenValid()) {
-            if ($accessRequest->isPending()) {
-                $accessRequest->markExpired();
-            }
-
+        if ($accessRequest->isTokenExpired()) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'token_expired',
-                    'message' => 'Bu erişim talebi süresi dolmuş.',
-                    'expired_at' => $accessRequest->token_expires_at->toIso8601String(),
+                    'code' => 'TOKEN_EXPIRED',
+                    'message' => 'Bu erişim talebi için yanıt süresi dolmuş.',
                 ],
             ], 410);
         }
 
-        // Check if already processed
+        // Check if already responded
         if (!$accessRequest->isPending()) {
             return response()->json([
                 'success' => false,
                 'error' => [
-                    'code' => 'already_processed',
-                    'message' => 'Bu erişim talebi zaten işlenmiş.',
-                    'status' => $accessRequest->status,
-                    'processed_at' => $accessRequest->responded_at?->toIso8601String(),
+                    'code' => 'ALREADY_RESPONDED',
+                    'message' => 'Bu erişim talebine zaten yanıt verilmiş.',
                 ],
             ], 400);
         }
 
-        $validated = $request->validate([
-            'message' => 'nullable|string|max:500',
-        ]);
-
         $accessRequest->reject($validated['message'] ?? null);
 
-        // TODO: Send notification to the requesting company
+        Log::info('Marketplace access request rejected', [
+            'request_id' => $accessRequest->id,
+            'requesting_company_id' => $accessRequest->requesting_company_id,
+            'candidate_id' => $accessRequest->candidate_id,
+        ]);
+
+        // TODO: Send notification email to requesting company
 
         return response()->json([
             'success' => true,
@@ -214,7 +207,6 @@ class MarketplaceAccessController extends Controller
                 'status' => $accessRequest->status,
                 'responded_at' => $accessRequest->responded_at->toIso8601String(),
             ],
-            'message' => 'Erişim talebi reddedildi.',
         ]);
     }
 }

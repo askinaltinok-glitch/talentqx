@@ -95,6 +95,22 @@ class FormInterviewDecisionEngineAdapter
         ],
     ];
 
+    // STRUCTURAL FLAGS (not keyword-based)
+    private const STRUCTURAL_FLAGS = [
+        'RF_INCOMPLETE' => [
+            'severity' => 'high',
+            'name' => 'Eksik Cevap',
+            'penalty' => 10,
+            'min_answers' => 4, // Minimum required answered competencies
+        ],
+        'RF_SPARSE' => [
+            'severity' => 'medium',
+            'name' => 'Yetersiz Detay',
+            'penalty' => 5,
+            'min_avg_length' => 50, // Minimum average answer length
+        ],
+    ];
+
     // RISK THRESHOLDS
     private const RISK_WARNING_THRESHOLD = 35;
     private const RISK_CRITICAL_THRESHOLD = 55;
@@ -159,6 +175,11 @@ class FormInterviewDecisionEngineAdapter
         // Step 4: Detect red flags from answer text
         $allText = $this->combineAnswerTexts($answers);
         $redFlagResult = $this->detectRedFlags($allText);
+
+        // Step 4b: Detect structural flags (incomplete/sparse answers)
+        $structuralResult = $this->detectStructuralFlags($answers, $competencyScores);
+        $redFlagResult['flags'] = array_merge($redFlagResult['flags'], $structuralResult['flags']);
+        $redFlagResult['penalty'] += $structuralResult['penalty'];
 
         // Step 5: Calculate final score
         $finalScore = max(0, min(100, (int) round(
@@ -356,6 +377,53 @@ class FormInterviewDecisionEngineAdapter
             'flags' => $flags,
             'penalty' => $penalty,
             'auto_reject' => $autoReject,
+        ];
+    }
+
+    /**
+     * Detect structural flags (incomplete/sparse answers)
+     */
+    private function detectStructuralFlags($answers, array $competencyScores): array
+    {
+        $flags = [];
+        $penalty = 0;
+
+        // Count answered competencies (non-zero scores mean they had text)
+        $answeredCount = count(array_filter($competencyScores, fn($s) => $s > 0));
+        $totalCompetencies = count(self::WEIGHTS);
+
+        // RF_INCOMPLETE: Too few competencies answered
+        $incompleteConfig = self::STRUCTURAL_FLAGS['RF_INCOMPLETE'];
+        if ($answeredCount < $incompleteConfig['min_answers']) {
+            $flags[] = [
+                'code' => 'RF_INCOMPLETE',
+                'name' => $incompleteConfig['name'],
+                'severity' => $incompleteConfig['severity'],
+                'penalty' => $incompleteConfig['penalty'],
+                'evidence' => ["{$answeredCount}/{$totalCompetencies} competencies answered"],
+            ];
+            $penalty += $incompleteConfig['penalty'];
+        }
+
+        // RF_SPARSE: Answers too short on average
+        $sparseConfig = self::STRUCTURAL_FLAGS['RF_SPARSE'];
+        $answerLengths = $answers->map(fn($a) => mb_strlen(trim($a->answer_text ?? ''), 'UTF-8'))->filter(fn($l) => $l > 0);
+        $avgLength = $answerLengths->count() > 0 ? $answerLengths->avg() : 0;
+
+        if ($answeredCount >= 2 && $avgLength < $sparseConfig['min_avg_length']) {
+            $flags[] = [
+                'code' => 'RF_SPARSE',
+                'name' => $sparseConfig['name'],
+                'severity' => $sparseConfig['severity'],
+                'penalty' => $sparseConfig['penalty'],
+                'evidence' => ["avg answer length: " . round($avgLength) . " chars"],
+            ];
+            $penalty += $sparseConfig['penalty'];
+        }
+
+        return [
+            'flags' => $flags,
+            'penalty' => $penalty,
         ];
     }
 

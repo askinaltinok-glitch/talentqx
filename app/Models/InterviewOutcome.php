@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\IsDemoScoped;
 use App\Services\ML\LearningService;
 use App\Services\ML\MlLearningService;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class InterviewOutcome extends Model
 {
-    use HasUuids;
+    use HasUuids, IsDemoScoped;
 
     protected $fillable = [
         'outcome_score',
@@ -27,6 +28,7 @@ class InterviewOutcome extends Model
         'recorded_by',
         'recorded_at',
         'notes',
+        'is_demo',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class InterviewOutcome extends Model
         'incident_flag' => 'boolean',
         'recorded_at' => 'datetime',
         'outcome_score' => 'integer',
+        'is_demo' => 'boolean',
     ];
 
     /**
@@ -47,6 +50,11 @@ class InterviewOutcome extends Model
     {
         // Trigger ML learning when outcome is saved
         static::saved(function (InterviewOutcome $outcome) {
+            // Skip ML learning for demo records
+            if ($outcome->is_demo) {
+                Log::channel('single')->info('InterviewOutcome::saved: Skipping ML learning for demo', ['id' => $outcome->id]);
+                return;
+            }
             // Calculate and store outcome_score if not set
             if ($outcome->outcome_score === null) {
                 $outcome->updateQuietly(['outcome_score' => $outcome->getOutcomeScore()]);

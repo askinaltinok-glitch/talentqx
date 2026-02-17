@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Api\Maritime;
 
+use App\Config\MaritimeRole;
 use App\Http\Controllers\Controller;
 use App\Models\FormInterview;
 use App\Models\PoolCandidate;
+use App\Services\ML\ModelFeatureService;
 use App\Services\PoolCandidateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -37,39 +40,8 @@ class MaritimeCandidateController extends Controller
         'seafarer_union',
     ];
 
-    // Seafarer ranks for validation
-    private const SEAFARER_RANKS = [
-        // Deck Department
-        'master',
-        'chief_officer',
-        'second_officer',
-        'third_officer',
-        'deck_cadet',
-        'bosun',
-        'ab_seaman',
-        'ordinary_seaman',
-        // Engine Department
-        'chief_engineer',
-        'second_engineer',
-        'third_engineer',
-        'fourth_engineer',
-        'engine_cadet',
-        'motorman',
-        'oiler',
-        'wiper',
-        // Hotel/Catering
-        'chief_cook',
-        'cook',
-        'messman',
-        'steward',
-        // Other
-        'electrician',
-        'fitter',
-        'pumpman',
-        'radio_officer',
-        'trainee',
-        'other',
-    ];
+    // Seafarer ranks: canonical + aliases accepted at intake
+    private const SEAFARER_RANKS = MaritimeRole::ROLES;
 
     // Valid certificate types
     private const CERTIFICATE_TYPES = [
@@ -107,13 +79,13 @@ class MaritimeCandidateController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:32'],
             'country_code' => ['required', 'string', 'size:2'],
-            'preferred_language' => ['nullable', 'string', 'in:tr,en,ru,fil,id,uk'],
+            'preferred_language' => ['nullable', 'string', 'in:tr,en,ru,az,fil,id,uk'],
 
             // English self-assessment
             'english_level_self' => ['required', 'string', 'in:' . implode(',', PoolCandidate::ENGLISH_LEVELS)],
 
             // Maritime-specific
-            'rank' => ['required', 'string', 'in:' . implode(',', self::SEAFARER_RANKS)],
+            'rank' => ['required', 'string', 'in:' . implode(',', MaritimeRole::allAcceptedCodes())],
             'experience_years' => ['nullable', 'integer', 'min:0', 'max:50'],
             'vessel_types' => ['nullable', 'array'],
             'vessel_types.*' => ['string', 'max:64'],
@@ -136,8 +108,12 @@ class MaritimeCandidateController extends Controller
             'consents.data_processing' => ['required', 'accepted'],
             'consents.marketing' => ['nullable', 'boolean'],
 
+            // WhatsApp opt-in
+            'whatsapp_opt_in' => ['nullable', 'boolean'],
+
             // Options
             'auto_start_interview' => ['nullable', 'boolean'],
+            'locale' => ['nullable', 'string', 'in:en,tr,ru,az'],
         ], [
             'first_name.required' => 'First name is required.',
             'last_name.required' => 'Last name is required.',
@@ -164,6 +140,9 @@ class MaritimeCandidateController extends Controller
         }
 
         $data = $validator->validated();
+
+        // Normalize rank alias → canonical code
+        $data['rank'] = MaritimeRole::normalize($data['rank']) ?? $data['rank'];
 
         // Check for existing candidate
         $existing = $this->candidateService->findByEmail($data['email']);
@@ -207,6 +186,8 @@ class MaritimeCandidateController extends Controller
                         'experience_years' => $data['experience_years'] ?? null,
                         'vessel_types' => $data['vessel_types'] ?? [],
                         'certificates' => $data['certificates'] ?? [],
+                        'locale' => $data['locale'] ?? $data['preferred_language'] ?? 'en',
+                        'whatsapp_opt_in' => $data['whatsapp_opt_in'] ?? false,
                         'registration_ip' => request()->ip(),
                         'registration_ua' => request()->userAgent(),
                         'registered_at' => now()->toIso8601String(),
@@ -394,9 +375,10 @@ class MaritimeCandidateController extends Controller
      */
     public function ranks(): JsonResponse
     {
-        $ranks = collect(self::SEAFARER_RANKS)->map(fn($rank) => [
+        $ranks = collect(MaritimeRole::ROLES)->map(fn($rank) => [
             'code' => $rank,
-            'label' => $this->formatRankLabel($rank),
+            'label' => MaritimeRole::ROLE_LABELS[$rank] ?? $this->formatRankLabel($rank),
+            'department' => MaritimeRole::departmentFor($rank),
         ]);
 
         return response()->json([
@@ -428,14 +410,21 @@ class MaritimeCandidateController extends Controller
      */
     private function startMaritimeInterview(PoolCandidate $candidate, array $data): FormInterview
     {
-        // Determine position code based on rank
+        // Resolve rank to canonical role code via MaritimeRole
         $rank = $candidate->source_meta['rank'] ?? 'other';
-        $positionCode = $data['position_code'] ?? $this->mapRankToPosition($rank);
+        $roleCode = MaritimeRole::normalize($rank) ?? $rank;
+        $department = MaritimeRole::departmentFor($roleCode);
 
-        return $this->candidateService->startInterview(
+        // If role is unknown, try legacy mapping then fall back to deck
+        if (!$department) {
+            $roleCode = $this->legacyRankToRole($rank);
+            $department = MaritimeRole::departmentFor($roleCode) ?? 'deck';
+        }
+
+        return $this->candidateService->startMaritimeInterview(
             candidate: $candidate,
-            positionCode: $positionCode,
-            industryCode: PoolCandidate::INDUSTRY_MARITIME,
+            roleCode: $roleCode,
+            department: $department,
             consents: $data['consents'],
             countryCode: $candidate->country_code,
             regulation: $this->getRegulation($candidate->country_code)
@@ -443,18 +432,16 @@ class MaritimeCandidateController extends Controller
     }
 
     /**
-     * Map seafarer rank to position code.
+     * Legacy fallback: map non-standard ranks to closest canonical role.
      */
-    private function mapRankToPosition(string $rank): string
+    private function legacyRankToRole(string $rank): string
     {
-        return match (true) {
-            in_array($rank, ['master', 'chief_officer', 'second_officer', 'third_officer']) => 'deck_officer',
-            in_array($rank, ['chief_engineer', 'second_engineer', 'third_engineer', 'fourth_engineer']) => 'engineer_officer',
-            in_array($rank, ['deck_cadet', 'engine_cadet']) => 'cadet',
-            in_array($rank, ['bosun', 'ab_seaman', 'ordinary_seaman']) => 'deck_rating',
-            in_array($rank, ['motorman', 'oiler', 'wiper', 'fitter']) => 'engine_rating',
-            in_array($rank, ['chief_cook', 'cook', 'messman', 'steward']) => 'catering',
-            default => '__maritime_generic__',
+        return match (strtolower($rank)) {
+            'fourth_engineer' => 'third_engineer',
+            'wiper' => 'oiler',
+            'fitter' => 'motorman',
+            'chief_cook', 'head_cook' => 'cook',
+            default => 'able_seaman', // safe default for unknown ranks
         };
     }
 
@@ -535,6 +522,161 @@ class MaritimeCandidateController extends Controller
         }
 
         return $steps;
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/english/attach
+     *
+     * Candidate submits English assessment score (self-service).
+     */
+    public function attachEnglish(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+        }
+
+        if ($candidate->primary_industry !== PoolCandidate::INDUSTRY_MARITIME) {
+            return response()->json(['success' => false, 'error' => 'Maritime candidates only.'], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'score' => ['required', 'integer', 'min:0', 'max:100'],
+            'provider' => ['nullable', 'string', 'max:64'],
+            'level' => ['nullable', 'string', 'in:A1,A2,B1,B2,C1,C2'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'messages' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        $interview = $candidate->formInterviews()
+            ->where('status', FormInterview::STATUS_COMPLETED)
+            ->latest()
+            ->first();
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No completed interview found. Complete the interview first.',
+            ], 422);
+        }
+
+        // Update interview record
+        $interview->update([
+            'english_assessment_status' => 'completed',
+            'english_assessment_score' => $data['score'],
+        ]);
+
+        // Update ModelFeature and trigger re-prediction
+        $featureResult = null;
+        try {
+            $featureService = app(ModelFeatureService::class);
+            $featureResult = $featureService->updateEnglishAssessment(
+                $interview->id,
+                $data['score'],
+                $data['provider'] ?? 'candidate_self',
+                $data['level'] ? "Self-reported level: {$data['level']}" : null
+            );
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('English assessment feature update failed (candidate)', [
+                'candidate_id' => $candidateId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'English assessment submitted successfully.',
+            'data' => [
+                'candidate_id' => $candidate->id,
+                'interview_id' => $interview->id,
+                'english_assessment_status' => 'completed',
+                'english_assessment_score' => $data['score'],
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/video/attach
+     *
+     * Candidate submits video introduction URL (self-service).
+     */
+    public function attachVideo(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+        }
+
+        if ($candidate->primary_industry !== PoolCandidate::INDUSTRY_MARITIME) {
+            return response()->json(['success' => false, 'error' => 'Maritime candidates only.'], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'url' => ['required', 'url', 'max:2000'],
+            'provider' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'messages' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        $interview = $candidate->formInterviews()
+            ->where('status', FormInterview::STATUS_COMPLETED)
+            ->latest()
+            ->first();
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No completed interview found. Complete the interview first.',
+            ], 422);
+        }
+
+        // Update interview record
+        $interview->update([
+            'video_assessment_status' => 'pending',
+            'video_assessment_url' => $data['url'],
+        ]);
+
+        // Update ModelFeature and trigger re-prediction
+        try {
+            $featureService = app(ModelFeatureService::class);
+            $featureService->attachVideoAssessment(
+                $interview->id,
+                $data['url'],
+                $data['provider'] ?? 'candidate_self'
+            );
+        } catch (\Throwable $e) {
+            Log::channel('single')->warning('Video attachment feature update failed (candidate)', [
+                'candidate_id' => $candidateId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Video submitted successfully.',
+            'data' => [
+                'candidate_id' => $candidate->id,
+                'interview_id' => $interview->id,
+                'video_assessment_status' => 'pending',
+                'video_assessment_url' => $data['url'],
+            ],
+        ]);
     }
 
     /**

@@ -3,9 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CrmEmailMessage;
-use App\Models\CrmLead;
-use App\Models\CrmActivity;
-use App\Models\CrmAuditLog;
+use App\Services\Mail\InboundEmailService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -121,6 +119,7 @@ class CrmMailboxPollCommand extends Command
         $structure = imap_fetchstructure($imap, $emailId);
 
         $fromEmail = $header->from[0]->mailbox . '@' . $header->from[0]->host;
+        $fromName = isset($header->from[0]->personal) ? $this->decodeHeader($header->from[0]->personal) : null;
         $toEmail = $header->to[0]->mailbox . '@' . $header->to[0]->host;
         $subject = $this->decodeHeader($header->subject ?? '');
         $messageId = trim($header->message_id ?? '', '<>');
@@ -128,88 +127,29 @@ class CrmMailboxPollCommand extends Command
         $references = $header->references ?? '';
         $date = date('Y-m-d H:i:s', strtotime($header->date ?? 'now'));
 
+        // Check for duplicate
+        if ($messageId && CrmEmailMessage::where('message_id', "<{$messageId}>")->exists()) {
+            imap_setflag_full($imap, (string) $emailId, '\\Seen');
+            return false;
+        }
+
         // Extract body
         $bodyText = $this->getBody($imap, $emailId, $structure);
 
-        // Try to match by In-Reply-To or References
-        $matchedLead = null;
-
-        if ($inReplyTo) {
-            $outbound = CrmEmailMessage::where('message_id', '<' . $inReplyTo . '@talentqx.com>')
-                ->orWhere('message_id', $inReplyTo)
-                ->orWhere('message_id', '<' . $inReplyTo . '>')
-                ->first();
-
-            if ($outbound) {
-                $matchedLead = $outbound->lead;
-            }
-        }
-
-        // Fallback: match by from_email in existing lead contacts
-        if (!$matchedLead) {
-            $existingMsg = CrmEmailMessage::where('to_email', $fromEmail)
-                ->whereNotNull('lead_id')
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($existingMsg) {
-                $matchedLead = $existingMsg->lead;
-            }
-        }
-
-        if (!$matchedLead) {
-            return false; // No matching lead found
-        }
-
-        // Store inbound message
-        $emailRecord = CrmEmailMessage::create([
-            'lead_id' => $matchedLead->id,
-            'direction' => CrmEmailMessage::DIRECTION_INBOUND,
-            'provider' => 'imap',
-            'message_id' => $messageId ? "<{$messageId}>" : null,
-            'thread_id' => $inReplyTo ? "<{$inReplyTo}>" : null,
-            'in_reply_to' => $inReplyTo ? "<{$inReplyTo}>" : null,
+        // Delegate to InboundEmailService for threading, lead matching, classification
+        $service = app(InboundEmailService::class);
+        $service->process([
             'from_email' => $fromEmail,
+            'from_name' => $fromName,
             'to_email' => $toEmail,
             'subject' => $subject,
             'body_text' => $bodyText,
-            'raw_headers' => [
-                'message_id' => $messageId,
-                'in_reply_to' => $inReplyTo,
-                'references' => $references,
-                'date' => $date,
-                'mailbox' => $mailboxName,
-            ],
-            'status' => CrmEmailMessage::STATUS_DELIVERED,
-            'received_at' => $date,
-        ]);
-
-        // Log activity
-        $matchedLead->addActivity(CrmActivity::TYPE_EMAIL_REPLY, [
-            'subject' => $subject,
-            'from' => $fromEmail,
-            'snippet' => mb_substr($bodyText, 0, 200),
             'message_id' => $messageId,
-            'email_record_id' => $emailRecord->id,
-        ]);
-
-        // Mark previous outbound as replied
-        if ($inReplyTo) {
-            CrmEmailMessage::where('message_id', 'like', "%{$inReplyTo}%")
-                ->where('direction', CrmEmailMessage::DIRECTION_OUTBOUND)
-                ->update(['status' => CrmEmailMessage::STATUS_REPLIED]);
-        }
-
-        CrmAuditLog::log('email.inbound_matched', 'email', $emailRecord->id, null, [
-            'lead_id' => $matchedLead->id,
-            'from' => $fromEmail,
-            'subject' => $subject,
-        ]);
-
-        Log::info("CRM: inbound email matched", [
-            'lead_id' => $matchedLead->id,
-            'from' => $fromEmail,
+            'in_reply_to' => $inReplyTo,
+            'references' => $references,
+            'date' => $date,
             'mailbox' => $mailboxName,
+            'provider' => 'imap',
         ]);
 
         // Mark email as seen
@@ -258,4 +198,5 @@ class CrmMailboxPollCommand extends Command
 
         return '';
     }
+
 }

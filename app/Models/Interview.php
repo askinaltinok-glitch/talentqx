@@ -31,8 +31,13 @@ class Interview extends Model
         // Email tracking
         'invitation_sent_at',
         'reminder_sent_at',
+        'last_hour_reminder_sent_at',
         'completion_email_sent_at',
         'scheduled_at',
+        // Timing / punctuality
+        'joined_at',
+        'late_minutes',
+        'no_show_marked_at',
     ];
 
     protected $casts = [
@@ -44,8 +49,13 @@ class Interview extends Model
         // Email tracking
         'invitation_sent_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
+        'last_hour_reminder_sent_at' => 'datetime',
         'completion_email_sent_at' => 'datetime',
         'scheduled_at' => 'datetime',
+        // Timing / punctuality
+        'joined_at' => 'datetime',
+        'late_minutes' => 'integer',
+        'no_show_marked_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -68,7 +78,7 @@ class Interview extends Model
             }
             if (empty($interview->token_expires_at)) {
                 $interview->token_expires_at = now()->addHours(
-                    config('interview.token_expiry_hours', 72)
+                    (int) config('interview.token_expiry_hours', 72)
                 );
             }
         });
@@ -133,7 +143,7 @@ class Interview extends Model
 
     public function getInterviewUrl(): string
     {
-        return config('app.interview_url') . '/i/' . $this->access_token;
+        return config('app.url') . '/i/' . $this->access_token;
     }
 
     public static function findByToken(string $token): ?self

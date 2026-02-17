@@ -16,13 +16,20 @@ class CrmCompany extends Model
         'industry_code', 'name', 'country_code', 'city',
         'website', 'domain', 'linkedin_url',
         'company_type', 'size_band', 'tags', 'data_sources',
+        'operations', 'onboarding_data', 'is_demo',
         'status', 'owner_user_id',
     ];
 
     protected $casts = [
         'tags' => 'array',
         'data_sources' => 'array',
+        'operations' => 'array',
+        'onboarding_data' => 'array',
+        'is_demo' => 'boolean',
     ];
+
+    public const OPERATION_SEA = 'sea';
+    public const OPERATION_RIVER = 'river';
 
     public const STATUS_NEW = 'new';
     public const STATUS_QUALIFIED = 'qualified';
