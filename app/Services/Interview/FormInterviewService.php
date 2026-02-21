@@ -3,6 +3,8 @@
 namespace App\Services\Interview;
 
 use App\Config\MaritimeRole;
+use App\Jobs\SendCandidateEmailJob;
+use App\Models\CandidateTimelineEvent;
 use App\Models\FormInterview;
 use App\Models\FormInterviewAnswer;
 use App\Services\Analytics\PositionBaselineService;
@@ -12,6 +14,8 @@ use App\Services\ML\ModelFeatureService;
 use App\Services\ML\MlScoringService;
 use App\Services\Policy\FormInterviewPolicyEngine;
 use App\Services\PoolCandidateService;
+use App\Services\Behavioral\BehavioralScoringService;
+use App\Services\Brand\BrandResolver;
 use App\Services\System\SystemEventService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +31,7 @@ class FormInterviewService
         private readonly ModelFeatureService $modelFeatureService,
         private readonly MlScoringService $mlScoringService,
         private readonly MaritimeDecisionEngine $maritimeDecisionEngine,
+        private readonly BehavioralScoringService $behavioralScoringService,
     ) {}
 
     /**
@@ -67,17 +72,29 @@ class FormInterviewService
         // Get raw template JSON (exact string snapshot, no re-encoding)
         $templateJson = $template->getRawOriginal('template_json') ?? $template->template_json;
 
-        return FormInterview::create([
+        // Resolve brand from industry
+        $brandCode = BrandResolver::codeFromIndustry($industryCode)
+            ?? config('brands.default', 'octopus');
+        $brand = BrandResolver::resolve($brandCode);
+
+        $interview = FormInterview::create([
             'version' => $version,
             'language' => $language,
             'position_code' => $positionCode,
             'template_position_code' => $resolvedPosition,
             'industry_code' => $industryCode,
+            'platform_code' => $brandCode,
+            'brand_domain' => $brand['domain'] ?? null,
             'status' => FormInterview::STATUS_IN_PROGRESS,
             'template_json' => $templateJson,
             'template_json_sha256' => $templateJson ? hash('sha256', $templateJson) : null,
             'meta' => $meta ?: null,
         ]);
+
+        // Timeline: interview started
+        $this->emitInterviewStartedEvent($interview);
+
+        return $interview;
     }
 
     /**
@@ -116,12 +133,19 @@ class FormInterviewService
 
         $templateJson = $template->getRawOriginal('template_json') ?? $template->template_json;
 
-        return FormInterview::create([
+        // Resolve brand from industry
+        $brandCode = BrandResolver::codeFromIndustry($industryCode)
+            ?? config('brands.default', 'octopus');
+        $brand = BrandResolver::resolve($brandCode);
+
+        $interview = FormInterview::create([
             'version' => $version,
             'language' => $language,
             'position_code' => $namespacedCode,
             'template_position_code' => $template->position_code,
             'industry_code' => $industryCode,
+            'platform_code' => $brandCode,
+            'brand_domain' => $brand['domain'] ?? null,
             'status' => FormInterview::STATUS_IN_PROGRESS,
             'template_json' => $templateJson,
             'template_json_sha256' => $templateJson ? hash('sha256', $templateJson) : null,
@@ -131,6 +155,11 @@ class FormInterviewService
                 'operation_type' => $operationType,
             ])),
         ]);
+
+        // Timeline: interview started
+        $this->emitInterviewStartedEvent($interview);
+
+        return $interview;
     }
 
     /**
@@ -188,6 +217,28 @@ class FormInterviewService
                 );
             }
         });
+
+        // Step: Behavioral Engine v1 — incremental update per answer
+        if ($interview->industry_code === 'maritime'
+            && config('maritime.behavioral_v1')
+            && config('maritime.behavioral_incremental')
+        ) {
+            try {
+                foreach ($answers as $answerData) {
+                    $answerModel = FormInterviewAnswer::where('form_interview_id', $interview->id)
+                        ->where('slot', (int) $answerData['slot'])
+                        ->first();
+                    if ($answerModel) {
+                        $this->behavioralScoringService->updateIncremental($interview, $answerModel);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('BehavioralEngine incremental failed', [
+                    'interview_id' => $interview->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -275,12 +326,21 @@ class FormInterviewService
             'industry_code' => $interview->industry_code, // nullable
         ];
 
-        $baseline = $this->baselineService->baseline($dims, minN: 30, maxN: 200, lastDays: 90);
+        $minN = 30;
+        $baseline = $this->baselineService->baseline($dims, minN: $minN, maxN: 200, lastDays: 90);
 
         $mean = $baseline['mean'];
         $std  = $baseline['std'];
-        $z    = $this->baselineService->zScore($rawFinal, $mean, $std);
-        $cal  = $this->baselineService->calibratedScoreFromZ($z);
+
+        // Skip z-score calibration when baseline pool is too small (n < minN).
+        // Small pools produce unreliable statistics and can cause false rejections.
+        if (($baseline['n'] ?? 0) >= $minN) {
+            $z   = $this->baselineService->zScore($rawFinal, $mean, $std);
+            $cal = $this->baselineService->calibratedScoreFromZ($z);
+        } else {
+            $z   = null;
+            $cal = null; // will fallback to rawFinal downstream
+        }
 
         // Log calibration details
         Log::channel('single')->info('FormInterview::completeAndScore CALIBRATION', [
@@ -383,6 +443,99 @@ class FormInterviewService
             }
         }
 
+        // Step 8: Behavioral Engine v1 — finalize profile
+        if ($interview->industry_code === 'maritime' && config('maritime.behavioral_v1')) {
+            try {
+                $this->behavioralScoringService->finalize($interview);
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('BehavioralEngine finalize failed', [
+                    'interview_id' => $interview->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Step 9: Send "Mülakat Tamamlandı" email to candidate
+        if ($interview->pool_candidate_id) {
+            $positionLabel = $interview->position_code
+                ? ucwords(str_replace('_', ' ', $interview->position_code))
+                : null;
+
+            SendCandidateEmailJob::dispatchSafe(
+                $interview->pool_candidate_id,
+                'interview_completed',
+                $interview->id,
+                $positionLabel,
+            );
+        }
+
+        // Step 10: Timeline — interview completed
+        if ($interview->pool_candidate_id) {
+            try {
+                CandidateTimelineEvent::record(
+                    $interview->pool_candidate_id,
+                    CandidateTimelineEvent::TYPE_INTERVIEW_COMPLETED,
+                    CandidateTimelineEvent::SOURCE_SYSTEM,
+                    [
+                        'interview_id' => $interview->id,
+                        'position_code' => $interview->position_code,
+                        'decision' => $interview->decision,
+                        'final_score' => $interview->calibrated_score ?? $interview->final_score,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Timeline event failed (interview_completed)', ['error' => $e->getMessage()]);
+            }
+
+            // Step 11: CRI recompute (async, fail-open)
+            try {
+                \App\Jobs\RecomputeCriJob::dispatch($interview->pool_candidate_id, 'interview_completed');
+            } catch (\Throwable) {}
+
+            // Step 12: Competency assessment (async, fail-open)
+            if (config('maritime.competency_v1') && config('maritime.competency_auto_compute')) {
+                try {
+                    \App\Jobs\ComputeCompetencyAssessmentJob::dispatch($interview->pool_candidate_id)
+                        ->delay(now()->addSeconds(30));
+                } catch (\Throwable) {}
+            }
+
+            // Step 13: Candidate scoring vector (async, fail-open)
+            if (config('maritime.vector_v1')) {
+                try {
+                    \App\Jobs\ComputeCandidateVectorJob::dispatch(
+                        $interview->pool_candidate_id,
+                        'interview_completed'
+                    )->delay(now()->addSeconds(60));
+                } catch (\Throwable) {}
+            }
+        }
+
         return $interview;
+    }
+
+    /**
+     * Emit interview_started timeline event (fail-open).
+     */
+    private function emitInterviewStartedEvent(FormInterview $interview): void
+    {
+        if (!$interview->pool_candidate_id) {
+            return;
+        }
+
+        try {
+            CandidateTimelineEvent::record(
+                $interview->pool_candidate_id,
+                CandidateTimelineEvent::TYPE_INTERVIEW_STARTED,
+                CandidateTimelineEvent::SOURCE_SYSTEM,
+                [
+                    'interview_id' => $interview->id,
+                    'position_code' => $interview->position_code,
+                    'industry_code' => $interview->industry_code,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Timeline event failed (interview_started)', ['error' => $e->getMessage()]);
+        }
     }
 }

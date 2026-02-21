@@ -94,6 +94,7 @@ class PositionBaselineService
             ->where('language', $dims['language'])
             ->where('position_code', $dims['position_code'])
             ->where('status', FormInterview::STATUS_COMPLETED)
+            ->where('is_demo', false)
             ->whereNotNull('raw_final_score')
             ->whereNotNull('completed_at')
             ->where('completed_at', '>=', $since);
