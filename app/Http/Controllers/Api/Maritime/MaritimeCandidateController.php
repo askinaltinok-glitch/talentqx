@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Maritime;
 
 use App\Config\MaritimeRole;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendCandidateEmailJob;
+use App\Models\CandidateTimelineEvent;
 use App\Models\FormInterview;
 use App\Models\PoolCandidate;
 use App\Services\ML\ModelFeatureService;
@@ -27,6 +29,8 @@ use Illuminate\Support\Facades\Validator;
  */
 class MaritimeCandidateController extends Controller
 {
+    private const SUPPORTED_LOCALES = ['en', 'tr', 'ru', 'az', 'fil', 'id', 'uk'];
+
     // Maritime-specific source channels (whitelist)
     private const MARITIME_SOURCE_CHANNELS = [
         'maritime_event',
@@ -65,6 +69,23 @@ class MaritimeCandidateController extends Controller
     ) {}
 
     /**
+     * Resolve locale from request (query param or Accept-Language header).
+     */
+    private function resolveLocale(Request $request): void
+    {
+        $locale = $request->query('locale')
+            ?? $request->input('locale')
+            ?? $request->getPreferredLanguage(self::SUPPORTED_LOCALES)
+            ?? 'en';
+
+        if (!in_array($locale, self::SUPPORTED_LOCALES, true)) {
+            $locale = 'en';
+        }
+
+        app()->setLocale($locale);
+    }
+
+    /**
      * POST /api/maritime/apply
      *
      * Public endpoint for maritime candidate self-registration.
@@ -72,6 +93,8 @@ class MaritimeCandidateController extends Controller
      */
     public function apply(Request $request): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $validator = Validator::make($request->all(), [
             // Basic info
             'first_name' => ['required', 'string', 'max:128'],
@@ -113,28 +136,28 @@ class MaritimeCandidateController extends Controller
 
             // Options
             'auto_start_interview' => ['nullable', 'boolean'],
-            'locale' => ['nullable', 'string', 'in:en,tr,ru,az'],
+            'locale' => ['nullable', 'string', 'in:en,tr,ru,az,fil,id,uk'],
         ], [
-            'first_name.required' => 'First name is required.',
-            'last_name.required' => 'Last name is required.',
-            'email.required' => 'Email is required.',
-            'email.email' => 'Please provide a valid email address.',
-            'phone.required' => 'Phone number is required for maritime candidates.',
-            'country_code.required' => 'Country code is required.',
-            'english_level_self.required' => 'Please select your English level.',
-            'english_level_self.in' => 'Invalid English level. Options: A1, A2, B1, B2, C1, C2.',
-            'rank.required' => 'Please select your seafarer rank.',
-            'rank.in' => 'Invalid rank selected.',
-            'source_channel.required' => 'Source channel is required.',
-            'source_channel.in' => 'Invalid source channel.',
-            'consents.privacy_policy.accepted' => 'You must accept the privacy policy.',
-            'consents.data_processing.accepted' => 'You must consent to data processing.',
+            'first_name.required' => __('maritime.validation.first_name_required'),
+            'last_name.required' => __('maritime.validation.last_name_required'),
+            'email.required' => __('maritime.validation.email_required'),
+            'email.email' => __('maritime.validation.email_invalid'),
+            'phone.required' => __('maritime.validation.phone_required'),
+            'country_code.required' => __('maritime.validation.country_required'),
+            'english_level_self.required' => __('maritime.validation.english_level_required'),
+            'english_level_self.in' => __('maritime.validation.english_level_invalid'),
+            'rank.required' => __('maritime.validation.rank_required'),
+            'rank.in' => __('maritime.validation.rank_invalid'),
+            'source_channel.required' => __('maritime.validation.source_required'),
+            'source_channel.in' => __('maritime.validation.source_invalid'),
+            'consents.privacy_policy.accepted' => __('maritime.validation.privacy_required'),
+            'consents.data_processing.accepted' => __('maritime.validation.data_processing_required'),
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Validation failed',
+                'error' => __('maritime.validation.failed'),
                 'messages' => $validator->errors(),
             ], 422);
         }
@@ -151,21 +174,55 @@ class MaritimeCandidateController extends Controller
             if ($existing->status === PoolCandidate::STATUS_HIRED) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'This candidate has already been hired.',
+                    'error' => __('maritime.response.already_hired'),
                 ], 409);
             }
 
-            // Return existing candidate info
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => 'Welcome back! Candidate profile found.',
+                'message' => __('maritime.response.welcome_back'),
                 'data' => [
                     'candidate_id' => $existing->id,
                     'status' => $existing->status,
                     'is_existing' => true,
                     'can_continue_interview' => $this->canContinueInterview($existing),
                 ],
-            ]);
+            ];
+
+            // If auto_start_interview requested, check for existing in-progress interview or start new one
+            if ($data['auto_start_interview'] ?? false) {
+                $activeInterview = $existing->formInterviews()
+                    ->whereIn('status', [FormInterview::STATUS_IN_PROGRESS, FormInterview::STATUS_DRAFT])
+                    ->latest()
+                    ->first();
+
+                if ($activeInterview) {
+                    $response['data']['interview'] = [
+                        'interview_id' => $activeInterview->id,
+                        'status' => $activeInterview->status,
+                        'position_code' => $activeInterview->position_code,
+                    ];
+                } else {
+                    // No active interview — start a new one
+                    try {
+                        $interview = $this->startMaritimeInterview($existing, $data);
+                        if ($interview) {
+                            $response['data']['interview'] = [
+                                'interview_id' => $interview->id,
+                                'status' => $interview->status,
+                                'position_code' => $interview->position_code,
+                            ];
+                        }
+                    } catch (\Throwable $e) {
+                        Log::error('Interview auto-start failed for existing candidate', [
+                            'candidate_id' => $existing->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json($response);
         }
 
         // Create maritime candidate with all flags
@@ -179,6 +236,7 @@ class MaritimeCandidateController extends Controller
                 'preferred_language' => $data['preferred_language'] ?? 'en',
                 'english_level_self' => $data['english_level_self'],
                 'source_channel' => $data['source_channel'],
+                'candidate_source' => PoolCandidate::CANDIDATE_SOURCE_PUBLIC,
                 'source_meta' => array_merge(
                     $data['source_meta'] ?? [],
                     [
@@ -200,12 +258,16 @@ class MaritimeCandidateController extends Controller
                 'video_assessment_required' => true,
             ]);
 
+            // Ensure candidate profile (seeker) and primary email contact point
+            $candidate->ensureProfile('seeker', $data['preferred_language'] ?? 'en');
+            $candidate->ensurePrimaryEmail();
+
             return $candidate;
         });
 
         $response = [
             'success' => true,
-            'message' => 'Registration successful. Welcome aboard!',
+            'message' => __('maritime.response.registration_success'),
             'data' => [
                 'candidate_id' => $candidate->id,
                 'status' => $candidate->status,
@@ -217,14 +279,41 @@ class MaritimeCandidateController extends Controller
 
         // Auto-start interview if requested
         if ($data['auto_start_interview'] ?? false) {
-            $interview = $this->startMaritimeInterview($candidate, $data);
-            if ($interview) {
-                $response['data']['interview'] = [
-                    'interview_id' => $interview->id,
-                    'status' => $interview->status,
-                    'position_code' => $interview->position_code,
-                ];
+            try {
+                $interview = $this->startMaritimeInterview($candidate, $data);
+                if ($interview) {
+                    $response['data']['interview'] = [
+                        'interview_id' => $interview->id,
+                        'status' => $interview->status,
+                        'position_code' => $interview->position_code,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::error('Interview auto-start failed for new candidate', [
+                    'candidate_id' => $candidate->id,
+                    'rank' => $data['rank'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+                // Registration still succeeds — interview can be started later
             }
+        }
+
+        // Send "Başvuru Alındı" email
+        SendCandidateEmailJob::dispatchSafe($candidate->id, 'application_received');
+
+        // Timeline: applied event
+        try {
+            CandidateTimelineEvent::record(
+                $candidate->id,
+                CandidateTimelineEvent::TYPE_APPLIED,
+                CandidateTimelineEvent::SOURCE_PUBLIC,
+                [
+                    'position' => $data['rank'] ?? null,
+                    'source_channel' => $data['source_channel'] ?? null,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Timeline event failed (applied)', ['error' => $e->getMessage()]);
         }
 
         return response()->json($response, 201);
@@ -237,11 +326,13 @@ class MaritimeCandidateController extends Controller
      */
     public function startInterview(Request $request, string $candidateId): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $candidate = PoolCandidate::find($candidateId);
         if (!$candidate) {
             return response()->json([
                 'success' => false,
-                'error' => 'Candidate not found.',
+                'error' => __('maritime.response.candidate_not_found'),
             ], 404);
         }
 
@@ -249,7 +340,7 @@ class MaritimeCandidateController extends Controller
         if ($candidate->primary_industry !== PoolCandidate::INDUSTRY_MARITIME) {
             return response()->json([
                 'success' => false,
-                'error' => 'This endpoint is only for maritime candidates.',
+                'error' => __('maritime.response.maritime_only'),
             ], 422);
         }
 
@@ -261,7 +352,7 @@ class MaritimeCandidateController extends Controller
         if ($activeInterview) {
             return response()->json([
                 'success' => true,
-                'message' => 'Candidate has an active interview.',
+                'message' => __('maritime.response.interview_active'),
                 'data' => [
                     'interview_id' => $activeInterview->id,
                     'status' => $activeInterview->status,
@@ -274,7 +365,7 @@ class MaritimeCandidateController extends Controller
         if (in_array($candidate->status, [PoolCandidate::STATUS_HIRED, PoolCandidate::STATUS_ARCHIVED])) {
             return response()->json([
                 'success' => false,
-                'error' => 'Cannot start interview for candidate with status: ' . $candidate->status,
+                'error' => __('maritime.response.cannot_start_interview', ['status' => $candidate->status]),
             ], 422);
         }
 
@@ -288,7 +379,7 @@ class MaritimeCandidateController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Validation failed',
+                'error' => __('maritime.validation.failed'),
                 'messages' => $validator->errors(),
             ], 422);
         }
@@ -298,7 +389,7 @@ class MaritimeCandidateController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Interview started successfully.',
+            'message' => __('maritime.response.interview_started'),
             'data' => [
                 'interview_id' => $interview->id,
                 'candidate_id' => $candidate->id,
@@ -314,13 +405,15 @@ class MaritimeCandidateController extends Controller
      *
      * Get candidate application status (public - for candidate self-service).
      */
-    public function status(string $candidateId): JsonResponse
+    public function status(Request $request, string $candidateId): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $candidate = PoolCandidate::find($candidateId);
         if (!$candidate) {
             return response()->json([
                 'success' => false,
-                'error' => 'Candidate not found.',
+                'error' => __('maritime.response.candidate_not_found'),
             ], 404);
         }
 
@@ -373,11 +466,15 @@ class MaritimeCandidateController extends Controller
      *
      * Get available seafarer ranks (for form dropdown).
      */
-    public function ranks(): JsonResponse
+    public function ranks(Request $request): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $ranks = collect(MaritimeRole::ROLES)->map(fn($rank) => [
             'code' => $rank,
-            'label' => MaritimeRole::ROLE_LABELS[$rank] ?? $this->formatRankLabel($rank),
+            'label' => __("maritime.rank.{$rank}") !== "maritime.rank.{$rank}"
+                ? __("maritime.rank.{$rank}")
+                : (MaritimeRole::ROLE_LABELS[$rank] ?? $this->formatRankLabel($rank)),
             'department' => MaritimeRole::departmentFor($rank),
         ]);
 
@@ -392,11 +489,15 @@ class MaritimeCandidateController extends Controller
      *
      * Get available certificate types (for form checkbox).
      */
-    public function certificates(): JsonResponse
+    public function certificates(Request $request): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $certificates = collect(self::CERTIFICATE_TYPES)->map(fn($cert) => [
             'code' => $cert,
-            'label' => $this->formatCertLabel($cert),
+            'label' => __("maritime.cert.{$cert}") !== "maritime.cert.{$cert}"
+                ? __("maritime.cert.{$cert}")
+                : $this->formatCertLabel($cert),
         ]);
 
         return response()->json([
@@ -482,15 +583,17 @@ class MaritimeCandidateController extends Controller
      */
     private function getStatusLabel(string $status): string
     {
-        return match ($status) {
-            PoolCandidate::STATUS_NEW => 'Registered',
-            PoolCandidate::STATUS_ASSESSED => 'Assessment Complete',
-            PoolCandidate::STATUS_IN_POOL => 'In Talent Pool',
-            PoolCandidate::STATUS_PRESENTED => 'Presented to Companies',
-            PoolCandidate::STATUS_HIRED => 'Hired',
-            PoolCandidate::STATUS_ARCHIVED => 'Archived',
-            default => 'Unknown',
+        $key = match ($status) {
+            PoolCandidate::STATUS_NEW => 'new',
+            PoolCandidate::STATUS_ASSESSED => 'assessed',
+            PoolCandidate::STATUS_IN_POOL => 'in_pool',
+            PoolCandidate::STATUS_PRESENTED => 'presented',
+            PoolCandidate::STATUS_HIRED => 'hired',
+            PoolCandidate::STATUS_ARCHIVED => 'archived',
+            default => 'unknown',
         };
+
+        return __("maritime.status.{$key}");
     }
 
     /**
@@ -499,25 +602,25 @@ class MaritimeCandidateController extends Controller
     private function getNextSteps(PoolCandidate $candidate, ?FormInterview $interview): array
     {
         if (!$interview) {
-            return ['Start your assessment interview'];
+            return [__('maritime.next_step.start_interview')];
         }
 
         $steps = [];
 
         if ($interview->status === 'draft') {
-            $steps[] = 'Continue your interview';
+            $steps[] = __('maritime.next_step.continue_interview');
         } elseif ($interview->status === 'in_progress') {
-            $steps[] = 'Complete your interview';
+            $steps[] = __('maritime.next_step.complete_interview');
         } elseif ($interview->status === 'completed') {
             if ($interview->english_assessment_status !== 'completed') {
-                $steps[] = 'Complete English assessment';
+                $steps[] = __('maritime.next_step.complete_english');
             }
             if (!$interview->video_assessment_url) {
-                $steps[] = 'Submit video introduction';
+                $steps[] = __('maritime.next_step.submit_video');
             }
 
             if (empty($steps)) {
-                $steps[] = 'Your profile is complete - we will contact you with opportunities';
+                $steps[] = __('maritime.next_step.profile_complete');
             }
         }
 
@@ -531,13 +634,15 @@ class MaritimeCandidateController extends Controller
      */
     public function attachEnglish(Request $request, string $candidateId): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $candidate = PoolCandidate::find($candidateId);
         if (!$candidate) {
-            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+            return response()->json(['success' => false, 'error' => __('maritime.response.candidate_not_found')], 404);
         }
 
         if ($candidate->primary_industry !== PoolCandidate::INDUSTRY_MARITIME) {
-            return response()->json(['success' => false, 'error' => 'Maritime candidates only.'], 422);
+            return response()->json(['success' => false, 'error' => __('maritime.response.maritime_only')], 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -549,7 +654,7 @@ class MaritimeCandidateController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Validation failed',
+                'error' => __('maritime.validation.failed'),
                 'messages' => $validator->errors(),
             ], 422);
         }
@@ -564,7 +669,7 @@ class MaritimeCandidateController extends Controller
         if (!$interview) {
             return response()->json([
                 'success' => false,
-                'error' => 'No completed interview found. Complete the interview first.',
+                'error' => __('maritime.response.no_completed_interview'),
             ], 422);
         }
 
@@ -593,7 +698,7 @@ class MaritimeCandidateController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'English assessment submitted successfully.',
+            'message' => __('maritime.response.english_submitted'),
             'data' => [
                 'candidate_id' => $candidate->id,
                 'interview_id' => $interview->id,
@@ -610,13 +715,15 @@ class MaritimeCandidateController extends Controller
      */
     public function attachVideo(Request $request, string $candidateId): JsonResponse
     {
+        $this->resolveLocale($request);
+
         $candidate = PoolCandidate::find($candidateId);
         if (!$candidate) {
-            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+            return response()->json(['success' => false, 'error' => __('maritime.response.candidate_not_found')], 404);
         }
 
         if ($candidate->primary_industry !== PoolCandidate::INDUSTRY_MARITIME) {
-            return response()->json(['success' => false, 'error' => 'Maritime candidates only.'], 422);
+            return response()->json(['success' => false, 'error' => __('maritime.response.maritime_only')], 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -627,7 +734,7 @@ class MaritimeCandidateController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Validation failed',
+                'error' => __('maritime.validation.failed'),
                 'messages' => $validator->errors(),
             ], 422);
         }
@@ -642,7 +749,7 @@ class MaritimeCandidateController extends Controller
         if (!$interview) {
             return response()->json([
                 'success' => false,
-                'error' => 'No completed interview found. Complete the interview first.',
+                'error' => __('maritime.response.no_completed_interview'),
             ], 422);
         }
 
@@ -669,7 +776,7 @@ class MaritimeCandidateController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Video submitted successfully.',
+            'message' => __('maritime.response.video_submitted'),
             'data' => [
                 'candidate_id' => $candidate->id,
                 'interview_id' => $interview->id,

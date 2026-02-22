@@ -10,6 +10,7 @@ class InterviewTemplate extends Model
     use HasUuids;
 
     protected $fillable = [
+        'type',
         'version',
         'language',
         'position_code',

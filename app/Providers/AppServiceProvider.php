@@ -6,6 +6,9 @@ use App\Models\Job;
 use App\Observers\JobObserver;
 use App\Services\AI\LLMProviderFactory;
 use App\Services\AI\LLMProviderInterface;
+use App\Services\Ais\AisProviderInterface;
+use App\Services\Ais\HttpAisProvider;
+use App\Services\Ais\MockAisProvider;
 use App\Services\Mail\MailProviderInterface;
 use App\Services\Mail\SmtpMailProvider;
 use App\Services\Outbox\OutboxService;
@@ -39,6 +42,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Mail Autopilot: bind mail provider interface to SMTP implementation
         $this->app->bind(MailProviderInterface::class, SmtpMailProvider::class);
+
+        // AIS Verification: bind provider interface (mock or real HTTP)
+        $this->app->bind(AisProviderInterface::class, function () {
+            return config('maritime.ais_mock')
+                ? new MockAisProvider()
+                : new HttpAisProvider();
+        });
     }
 
     /**

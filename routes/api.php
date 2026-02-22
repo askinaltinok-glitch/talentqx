@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AdminOutcomesController;
 use App\Http\Controllers\Api\AdminPackageController;
 use App\Http\Controllers\Api\ApplyController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\I18nController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordController;
@@ -70,6 +71,7 @@ use App\Http\Controllers\Api\Admin\SystemHealthController;
 use App\Http\Controllers\Api\PublicDemoController;
 use App\Http\Controllers\Api\PublicLeadController;
 use App\Http\Controllers\Api\Maritime\ApplyTrackingController;
+use App\Http\Controllers\Api\Maritime\MaritimeV2Controller;
 use App\Http\Controllers\Api\Admin\GeoAnalyticsController;
 use App\Http\Controllers\Api\Admin\JobListingController;
 use App\Http\Controllers\Api\Admin\JobApplicantsController;
@@ -87,6 +89,11 @@ Route::prefix('v1')->group(function () {
 
     // Health check
     Route::get('/health', fn() => response()->json(['status' => 'ok', 'timestamp' => now()]));
+
+    // Translations (public, cached)
+    Route::get('/i18n', [I18nController::class, 'index'])
+        ->middleware('throttle:120,1')
+        ->name('i18n.index');
 
     // Public routes
     Route::prefix('auth')->group(function () {
@@ -160,6 +167,13 @@ Route::prefix('v1')->group(function () {
         ->middleware('throttle:20,1');
 
     // ===========================================
+    // PASSIVE CANDIDATE REGISTRATION (Public, no auth)
+    // ===========================================
+    Route::post('/candidates/register-passive', [\App\Http\Controllers\Api\CandidateProfileController::class, 'registerPassive'])
+        ->middleware('throttle:10,1')
+        ->name('candidates.register-passive');
+
+    // ===========================================
     // PUBLIC MARITIME CANDIDATE INTAKE (No auth)
     // Self-registration for maritime candidates
     // ===========================================
@@ -227,6 +241,22 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:10,1')
             ->name('maritime.push-token.destroy');
 
+        // Candidate credentials (wallet)
+        Route::get('/candidates/{id}/credentials', [\App\Http\Controllers\Api\CandidateProfileController::class, 'credentials'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.credentials.index');
+        Route::post('/candidates/{id}/credentials', [\App\Http\Controllers\Api\CandidateProfileController::class, 'storeCredential'])
+            ->middleware('throttle:20,1')
+            ->name('maritime.credentials.store');
+        Route::put('/candidates/{candidateId}/credentials/{credentialId}', [\App\Http\Controllers\Api\CandidateProfileController::class, 'updateCredential'])
+            ->middleware('throttle:20,1')
+            ->name('maritime.credentials.update');
+
+        // Candidate timeline (public — safe types only)
+        Route::get('/candidates/{id}/timeline', [\App\Http\Controllers\Api\CandidateProfileController::class, 'timeline'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.timeline');
+
         // Maritime Job Feed
         Route::get('/jobs', [MaritimeJobController::class, 'index'])
             ->middleware('throttle:60,1')
@@ -242,6 +272,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/apply-events', [ApplyTrackingController::class, 'store'])
             ->middleware('throttle:30,1')
             ->name('maritime.apply-events');
+
+        // Behavioral interview (public, candidate-facing)
+        Route::prefix('candidates/{id}/behavioral')->group(function () {
+            Route::get('template', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'template'])
+                ->middleware('throttle:30,1')
+                ->name('maritime.behavioral.template');
+            Route::post('answers', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'answers'])
+                ->middleware('throttle:30,1')
+                ->name('maritime.behavioral.answers');
+            Route::post('complete', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'complete'])
+                ->middleware('throttle:10,1')
+                ->name('maritime.behavioral.complete');
+        });
 
         // Form dropdown data
         Route::get('/ranks', [MaritimeCandidateController::class, 'ranks'])
@@ -259,6 +302,18 @@ Route::prefix('v1')->group(function () {
                 ->get(['code', 'name', 'dial_code', 'flag']);
             return response()->json(['data' => $countries]);
         })->middleware('throttle:120,1')->name('maritime.countries');
+    });
+
+    // ===========================================
+    // MARITIME V2 — Resolver Engine (D+E pipeline)
+    // ===========================================
+    Route::prefix('maritime/v2')->middleware('throttle:30,1')->group(function () {
+        Route::post('/apply', [MaritimeV2Controller::class, 'apply'])->name('maritime.v2.apply');
+        Route::post('/phase1/answers', [MaritimeV2Controller::class, 'phase1Answers'])->name('maritime.v2.phase1.answers');
+        Route::post('/phase1/complete', [MaritimeV2Controller::class, 'phase1Complete'])->name('maritime.v2.phase1.complete');
+        Route::post('/phase2/start', [MaritimeV2Controller::class, 'phase2Start'])->name('maritime.v2.phase2.start');
+        Route::post('/phase2/answers', [MaritimeV2Controller::class, 'phase2Answers'])->name('maritime.v2.phase2.answers');
+        Route::post('/phase2/complete', [MaritimeV2Controller::class, 'phase2Complete'])->name('maritime.v2.phase2.complete');
     });
 
     // ===========================================
@@ -613,6 +668,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/anti-cheat/similar-responses', [InterviewController::class, 'similarResponses']);
 
     // ===========================================
+    // CUSTOMER DECISION PACKET (PDF download)
+    // ===========================================
+    Route::get('/form-interviews/{id}/decision-packet.pdf', [FormInterviewController::class, 'decisionPacketPdf'])
+        ->middleware('throttle:10,1');
+
+    // ===========================================
     // AI COPILOT MODULE
     // ===========================================
 
@@ -637,6 +698,7 @@ Route::prefix('v1')->group(function () {
     // INTERVIEW REPORTS (Protected)
     // ===========================================
     Route::prefix('reports')->group(function () {
+        Route::get('/', [ReportController::class, 'index']);
         Route::post('/generate', [ReportController::class, 'generate']);
         Route::get('/session/{sessionId}', [ReportController::class, 'listForSession']);
         Route::delete('/{reportId}', [ReportController::class, 'delete']);
@@ -905,6 +967,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/decision-packet', [AdminFormInterviewController::class, 'decisionPacket'])
                 ->middleware('throttle:30,1');
             Route::get('/{id}/decision-packet.pdf', [AdminFormInterviewController::class, 'decisionPacketPdf'])
+                ->middleware('throttle:10,1');
+            Route::get('/{id}/candidate-report.pdf', [AdminFormInterviewController::class, 'candidateReportPdf'])
                 ->middleware('throttle:10,1');
             Route::patch('/{id}/notes', [AdminFormInterviewController::class, 'updateNotes'])
                 ->middleware('throttle:30,1');
@@ -1302,6 +1366,93 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/me', [\App\Http\Controllers\Api\OctopusAdmin\AuthController::class, 'me']);
         Route::get('/dashboard', \App\Http\Controllers\Api\OctopusAdmin\DashboardController::class);
         Route::post('/onboard', \App\Http\Controllers\Api\OctopusAdmin\OnboardController::class);
+
+        // Candidates (maritime pool)
+        Route::get('/candidates', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'index']);
+        Route::get('/candidates/stats', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'stats']);
+        Route::get('/candidates/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'show'])->whereUuid('id');
+        Route::get('/candidates/{id}/timeline', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'timeline'])->whereUuid('id');
+        Route::post('/candidates/{id}/present', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'present']);
+        Route::post('/candidates/{id}/hire', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'hire']);
+        Route::get('/candidates/{id}/compliance-pack.pdf', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'compliancePdf'])
+            ->whereUuid('id')
+            ->middleware('throttle:10,1');
+        Route::get('/candidates/{id}/decision-packet.pdf', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'decisionPacketPdf'])
+            ->whereUuid('id')
+            ->middleware('throttle:10,1');
+        Route::post('/candidates/{id}/executive-decision-override', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'executiveDecisionOverride'])
+            ->whereUuid('id');
+
+        // Contracts (Trust Core)
+        Route::get('/candidates/{id}/contracts', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'index'])->whereUuid('id');
+        Route::post('/candidates/{id}/contracts', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'store'])->whereUuid('id');
+        Route::put('/candidates/{id}/contracts/{contractId}', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'update'])->whereUuid('id')->whereUuid('contractId');
+        Route::delete('/candidates/{id}/contracts/{contractId}', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'destroy'])->whereUuid('id')->whereUuid('contractId');
+        Route::get('/candidates/{id}/cri', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'cri'])->whereUuid('id');
+        Route::post('/candidates/{id}/contracts/{contractId}/verify', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'verify'])->whereUuid('id')->whereUuid('contractId');
+
+        // AIS Verification
+        Route::post('/candidates/{id}/contracts/{contractId}/ais/verify', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'aisVerify'])->whereUuid('id')->whereUuid('contractId');
+        Route::put('/candidates/{id}/contracts/{contractId}/vessel-imo', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'setVesselImo'])->whereUuid('id')->whereUuid('contractId');
+        Route::post('/vessels/{imo}/refresh', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'refreshVessel']);
+
+        // Jobs (maritime)
+        Route::get('/jobs', [\App\Http\Controllers\Api\OctopusAdmin\JobController::class, 'index']);
+
+        // Interviews (maritime)
+        Route::get('/interviews', [\App\Http\Controllers\Api\OctopusAdmin\InterviewController::class, 'index']);
+        Route::get('/interviews/{id}', [\App\Http\Controllers\Api\OctopusAdmin\InterviewController::class, 'show'])
+            ->whereUuid('id');
+        Route::get('/interviews/{id}/report.pdf', [\App\Http\Controllers\Api\OctopusAdmin\InterviewController::class, 'reportPdf'])
+            ->middleware('throttle:10,1');
+        Route::post('/interviews/{id}/override-class', [\App\Http\Controllers\Api\OctopusAdmin\InterviewController::class, 'overrideClass'])
+            ->whereUuid('id');
+
+        // Certificates (seafarer)
+        Route::get('/certificates', [\App\Http\Controllers\Api\OctopusAdmin\CertificateController::class, 'index']);
+
+        // Analytics
+        Route::get('/analytics/dashboard', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'dashboard']);
+        Route::get('/analytics/country-map', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'countryMap']);
+        Route::get('/analytics/trends', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'trends']);
+
+        // Company Credits
+        Route::get('/credits', [\App\Http\Controllers\Api\OctopusAdmin\CompanyCreditController::class, 'index']);
+        Route::patch('/credits/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CompanyCreditController::class, 'update']);
+        Route::post('/credits/{id}/bonus', [\App\Http\Controllers\Api\OctopusAdmin\CompanyCreditController::class, 'addBonus']);
+        Route::post('/credits/{id}/reset', [\App\Http\Controllers\Api\OctopusAdmin\CompanyCreditController::class, 'resetUsage']);
+
+        // Command Engine v2 (debug/inspection)
+        Route::get('/command-classes', [\App\Http\Controllers\Api\OctopusAdmin\CommandProfileController::class, 'classes']);
+        Route::get('/command-profiles/{candidateId}', [\App\Http\Controllers\Api\OctopusAdmin\CommandProfileController::class, 'show']);
+
+        // Scenario Bank
+        Route::prefix('scenario-bank')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\OctopusAdmin\ScenarioBankController::class, 'index']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\OctopusAdmin\ScenarioBankController::class, 'show'])->whereUuid('id');
+            Route::put('/{id}', [\App\Http\Controllers\Api\OctopusAdmin\ScenarioBankController::class, 'update'])->whereUuid('id');
+            Route::post('/{id}/activate', [\App\Http\Controllers\Api\OctopusAdmin\ScenarioBankController::class, 'activate'])->whereUuid('id');
+            Route::post('/{id}/deactivate', [\App\Http\Controllers\Api\OctopusAdmin\ScenarioBankController::class, 'deactivate'])->whereUuid('id');
+        });
+
+        // Fleet Risk Map
+        Route::get('/fleet/overview', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'overview']);
+        Route::get('/fleet/vessels/{id}/risk-map', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'vesselRiskMap'])->whereUuid('id');
+
+        // Crew Synergy
+        Route::get('/candidates/{id}/crew-synergy', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'crewSynergy'])->whereUuid('id');
+
+        // Language Assessment
+        Route::get('/candidates/{id}/language-assessment', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'show'])->whereUuid('id');
+        Route::post('/candidates/{id}/language-assessment/start', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'start'])->whereUuid('id');
+        Route::post('/candidates/{id}/language-assessment/submit', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'submit'])->whereUuid('id');
+        Route::post('/candidates/{id}/language-assessment/interview-verify', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'interviewVerify'])->whereUuid('id');
+        Route::post('/candidates/{id}/language-assessment/lock', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'lock'])->whereUuid('id');
+
+        // Decision Panel
+        Route::get('/candidates/{id}/decision-panel', \App\Http\Controllers\Api\OctopusAdmin\CandidateDecisionPanelController::class)->whereUuid('id');
+        Route::post('/candidates/{id}/qualifications/{qualificationKey}', [\App\Http\Controllers\Api\OctopusAdmin\QualificationCheckController::class, 'upsert'])->whereUuid('id');
+        Route::post('/candidates/{id}/phases/{phaseKey}/review', [\App\Http\Controllers\Api\OctopusAdmin\PhaseReviewController::class, 'review'])->whereUuid('id');
     });
 });
 

@@ -1,0 +1,174 @@
+{
+  "version": "v2",
+  "framework": "maritime_command",
+  "type": "maritime_identity_v2",
+  "phase": 1,
+  "language": "en",
+  "sections": [
+    {
+      "code": "A",
+      "title": "Vessel Command Exposure",
+      "questions": [
+        {
+          "slot": 1,
+          "code": "VESSEL_HISTORY",
+          "prompt": "List every vessel type you have served on. For each, state: vessel type, approximate DWT, your rank, and duration of service.",
+          "extraction_target": "vessel_experience",
+          "input_type": "structured_text",
+          "min_length": 50,
+          "required": true
+        },
+        {
+          "slot": 2,
+          "code": "BRIDGE_TECHNOLOGY",
+          "prompt": "Describe the bridge equipment you have operated. Include: ECDIS manufacturer and version, radar/ARPA systems, DP class (if any), AIS integration, and bridge automation level.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 3,
+          "code": "PROPULSION_SYSTEMS",
+          "prompt": "What propulsion types have you worked with? Include: main engine type, power output range, fuel types, and any dual-fuel or electric propulsion experience.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "B",
+      "title": "Trading Environment",
+      "questions": [
+        {
+          "slot": 4,
+          "code": "TRADING_AREAS",
+          "prompt": "List the trading areas and routes you have operated in. Include specific seas, straits, canals, and port regions. Indicate whether you operated in river, coastal, short sea, or deep sea environments.",
+          "extraction_target": "trading_areas",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 5,
+          "code": "PORT_COMPLEXITY",
+          "prompt": "How many different ports have you called at? Describe your experience with congested anchorages, narrow approach channels, or high-traffic port areas. Include any ice navigation or restricted water experience.",
+          "extraction_target": "trading_areas",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "C",
+      "title": "Cargo Reality",
+      "questions": [
+        {
+          "slot": 6,
+          "code": "CARGO_OPERATIONS",
+          "prompt": "What cargo types have you handled? Describe your direct involvement in cargo planning, loading sequences, tank/hold preparation. Include: container, tanker, LNG, bulk, passenger, or hazardous cargo experience.",
+          "extraction_target": "cargo_history",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 7,
+          "code": "CARGO_INCIDENTS",
+          "prompt": "Describe any cargo-related incidents you have experienced: spillage, contamination, shifting, temperature deviation, or dangerous goods issues. State your role and the outcome.",
+          "extraction_target": "incident_history",
+          "input_type": "structured_text",
+          "min_length": 10,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "D",
+      "title": "Crew Command Scale",
+      "questions": [
+        {
+          "slot": 8,
+          "code": "CREW_MANAGEMENT",
+          "prompt": "What is the largest crew you have managed directly? Describe your supervisory role, the department structure, whether the crew was multicultural, unionized, or included offshore/mixed teams.",
+          "extraction_target": "crew_scale_history",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        }
+      ]
+    },
+    {
+      "code": "E",
+      "title": "Risk & Incident History",
+      "questions": [
+        {
+          "slot": 9,
+          "code": "INCIDENT_HISTORY",
+          "prompt": "Describe any maritime incidents, near-misses, or emergency situations you have been involved in: grounding, collision, spill, fire, flooding, man overboard. Include your role, the severity, and the outcome.",
+          "extraction_target": "incident_history",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": true
+        },
+        {
+          "slot": 10,
+          "code": "WEATHER_OPERATIONS",
+          "prompt": "Describe the most severe weather conditions you have navigated through. Include sea state, wind force, and the decisions you made. Describe any crisis leadership involvement.",
+          "extraction_target": "weather_severity",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "F",
+      "title": "Technical Dependence",
+      "questions": [
+        {
+          "slot": 11,
+          "code": "MANUAL_NAVIGATION",
+          "prompt": "What percentage of your navigation time is manual vs. automated? Describe any experience operating with degraded systems, automation overrides, or manual backup procedures.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "G",
+      "title": "Certification & Command",
+      "questions": [
+        {
+          "slot": 12,
+          "code": "CERTIFICATION_STATUS",
+          "prompt": "List your current certificates: STCW, CoC, tanker endorsements, DP certificates, LNG certificates, flag state endorsements. For each state: issuing authority and expiry date. Have you held independent command of a vessel? If yes: vessel type, DWT, duration, trading area.",
+          "extraction_target": "certifications",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "required_fields_for_completion": [
+      "VESSEL_HISTORY",
+      "TRADING_AREAS",
+      "CARGO_OPERATIONS",
+      "CREW_MANAGEMENT",
+      "CERTIFICATION_STATUS"
+    ],
+    "min_answers_for_detection": 5
+  },
+  "metadata": {
+    "total_questions": 12,
+    "required_questions": 7,
+    "time_limit_minutes": 60
+  }
+}

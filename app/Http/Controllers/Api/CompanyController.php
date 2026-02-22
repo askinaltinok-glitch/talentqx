@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Billing\CreditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CompanyController extends Controller
 {
+    public function __construct(private CreditService $creditService) {}
     /**
      * Get the current user's company subscription status.
      * Used by frontend to determine access level (FULL, READ_ONLY_EXPORT, LOCKED).
@@ -48,6 +50,8 @@ class CompanyController extends Controller
             ]);
         }
 
+        $credits = $this->creditService->getCreditStatus($company);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -57,6 +61,7 @@ class CompanyController extends Controller
                 'has_marketplace_access' => $company->hasMarketplaceAccess(),
                 'subscription_ends_at' => $company->subscription_ends_at?->toISOString(),
                 'grace_period_ends_at' => $company->grace_period_ends_at?->toISOString(),
+                'credits' => $credits,
             ],
         ]);
     }

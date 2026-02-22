@@ -415,7 +415,10 @@ class AdminFormInterviewController extends Controller
         $checksum = hash('sha256', json_encode($packetData));
 
         $generatedAt = now()->toIso8601String();
-        $generatedBy = $request->user()?->email ?? 'system';
+        $adminUser = $request->user();
+        $generatedBy = $adminUser
+            ? ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')'
+            : 'Platform Admin';
 
         // Generate PDF
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.decision-packet', [
@@ -435,6 +438,76 @@ class AdminFormInterviewController extends Controller
         $filename = sprintf(
             'decision-packet-%s-%s.pdf',
             $interview->id,
+            now()->format('Ymd-His')
+        );
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Candidate Assessment Report PDF (with radar chart).
+     * GET /v1/admin/form-interviews/{id}/candidate-report.pdf
+     */
+    public function candidateReportPdf(Request $request, string $id)
+    {
+        $interview = FormInterview::with('answers')->find($id);
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        if (!$interview->isCompleted()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Report only available for completed interviews',
+            ], 400);
+        }
+
+        $candidate = $interview->pool_candidate_id
+            ? \App\Models\PoolCandidate::find($interview->pool_candidate_id)
+            : null;
+
+        // Build a fallback candidate object if no pool candidate linked
+        if (!$candidate) {
+            $meta = $interview->meta ?? [];
+            $candidate = (object) [
+                'id' => null,
+                'first_name' => $meta['candidate_name'] ?? 'Unknown',
+                'last_name' => '',
+                'email' => $meta['candidate_email'] ?? '',
+                'phone' => '',
+                'country_code' => '',
+                'english_level_self' => $meta['english_level_self'] ?? '',
+                'source_channel' => '',
+                'status' => $interview->status,
+                'source_meta' => [],
+            ];
+        }
+
+        $generatedAt = now()->format('d.m.Y H:i');
+        $adminUser = $request->user();
+        $generatedBy = $adminUser
+            ? ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')'
+            : 'Platform Admin';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.candidate-report', [
+            'candidate' => $candidate,
+            'interview' => $interview,
+            'answers' => $interview->answers,
+            'generatedAt' => $generatedAt,
+            'generatedBy' => $generatedBy,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOption('isHtml5ParserEnabled', true);
+
+        $name = $candidate->first_name ?? 'candidate';
+        $filename = sprintf(
+            'assessment-report-%s-%s.pdf',
+            \Illuminate\Support\Str::slug($name),
             now()->format('Ymd-His')
         );
 

@@ -18,6 +18,46 @@ class ReportController extends Controller
     ) {}
 
     /**
+     * List reports for the authenticated user's company
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->company_id;
+
+        $query = InterviewReport::query()
+            ->orderBy('created_at', 'desc');
+
+        // Scope to tenant if not platform admin
+        if ($tenantId && !$user->is_platform_admin) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 50);
+        $reports = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $reports->map(fn($r) => [
+                'id' => $r->id,
+                'session_id' => $r->session_id,
+                'status' => $r->status,
+                'locale' => $r->locale,
+                'file_size' => $r->file_size,
+                'generated_at' => $r->generated_at,
+                'expires_at' => $r->expires_at,
+                'created_at' => $r->created_at,
+            ]),
+            'meta' => [
+                'total' => $reports->total(),
+                'per_page' => $reports->perPage(),
+                'current_page' => $reports->currentPage(),
+                'last_page' => $reports->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
      * Generate a new report
      */
     public function generate(Request $request): JsonResponse

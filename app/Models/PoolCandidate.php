@@ -35,6 +35,7 @@ class PoolCandidate extends Model
         'english_level_self',
         'source_channel',
         'source_meta',
+        'candidate_source',
         'status',
         'primary_industry',
         'seafarer',
@@ -95,6 +96,145 @@ class PoolCandidate extends Model
 
     // English levels
     public const ENGLISH_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+    // Candidate source constants
+    public const CANDIDATE_SOURCE_PUBLIC = 'public_portal';
+    public const CANDIDATE_SOURCE_COMPANY = 'company_upload';
+    public const CANDIDATE_SOURCE_ADMIN = 'octo_admin';
+    public const CANDIDATE_SOURCE_IMPORT = 'import';
+
+    /**
+     * Get candidate profile (master profile with consents).
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(CandidateProfile::class, 'pool_candidate_id');
+    }
+
+    /**
+     * Get contact points.
+     */
+    public function contactPoints(): HasMany
+    {
+        return $this->hasMany(CandidateContactPoint::class, 'pool_candidate_id');
+    }
+
+    /**
+     * Get primary email contact point.
+     */
+    public function primaryEmail(): HasOne
+    {
+        return $this->hasOne(CandidateContactPoint::class, 'pool_candidate_id')
+            ->where('type', CandidateContactPoint::TYPE_EMAIL)
+            ->where('is_primary', true);
+    }
+
+    /**
+     * Get primary phone contact point.
+     */
+    public function primaryPhone(): HasOne
+    {
+        return $this->hasOne(CandidateContactPoint::class, 'pool_candidate_id')
+            ->where('type', CandidateContactPoint::TYPE_PHONE)
+            ->where('is_primary', true);
+    }
+
+    /**
+     * Get credentials (credential wallet).
+     */
+    public function credentials(): HasMany
+    {
+        return $this->hasMany(CandidateCredential::class, 'pool_candidate_id');
+    }
+
+    /**
+     * Get timeline events.
+     */
+    public function timelineEvents(): HasMany
+    {
+        return $this->hasMany(CandidateTimelineEvent::class, 'pool_candidate_id')
+            ->orderByDesc('created_at');
+    }
+
+    /**
+     * Get reminder logs.
+     */
+    public function reminderLogs(): HasMany
+    {
+        return $this->hasMany(CandidateReminderLog::class, 'pool_candidate_id');
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(CandidateContract::class, 'pool_candidate_id')->orderBy('start_date');
+    }
+
+    public function trustProfile(): HasOne
+    {
+        return $this->hasOne(CandidateTrustProfile::class, 'pool_candidate_id');
+    }
+
+    public function trustEvents(): HasMany
+    {
+        return $this->hasMany(TrustEvent::class, 'pool_candidate_id');
+    }
+
+    public function seaTimeLogs(): HasMany
+    {
+        return $this->hasMany(SeaTimeLog::class, 'pool_candidate_id');
+    }
+
+    /**
+     * Ensure a CandidateProfile exists for this candidate.
+     */
+    public function ensureProfile(string $status = CandidateProfile::STATUS_SEEKER, ?string $language = null): CandidateProfile
+    {
+        return $this->profile ?? CandidateProfile::create([
+            'pool_candidate_id' => $this->id,
+            'status' => $status,
+            'preferred_language' => $language ?? $this->preferred_language ?? 'en',
+            'data_processing_consent_at' => now(),
+        ]);
+    }
+
+    /**
+     * Ensure primary email contact point exists.
+     */
+    public function ensurePrimaryEmail(): ?CandidateContactPoint
+    {
+        if (!$this->email) {
+            return null;
+        }
+
+        return CandidateContactPoint::firstOrCreate(
+            ['type' => CandidateContactPoint::TYPE_EMAIL, 'value' => $this->email],
+            [
+                'pool_candidate_id' => $this->id,
+                'is_primary' => true,
+                'is_verified' => false,
+            ]
+        );
+    }
+
+    /**
+     * Check if candidate's primary email is verified.
+     */
+    public function hasPrimaryEmailVerified(): bool
+    {
+        $primary = $this->primaryEmail;
+        return $primary !== null && $primary->is_verified;
+    }
+
+    /**
+     * Scope: visible to companies (seeker + consented, not blocked).
+     */
+    public function scopeVisibleToCompany($query)
+    {
+        return $query->whereHas('profile', function ($q) {
+            $q->where('status', CandidateProfile::STATUS_SEEKER)
+              ->whereNotNull('data_processing_consent_at');
+        });
+    }
 
     /**
      * Get all form interviews for this candidate.

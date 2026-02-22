@@ -17,6 +17,7 @@ class FormInterview extends Model
     protected $fillable = [
         // Candidate Supply Engine link
         'pool_candidate_id',
+        'company_id',
         'acquisition_source_snapshot',
         'acquisition_campaign_snapshot',
         // Core fields
@@ -25,6 +26,8 @@ class FormInterview extends Model
         'position_code',
         'template_position_code',
         'industry_code',
+        'platform_code',
+        'brand_domain',
         'status',
         'template_json',
         'template_json_sha256',
@@ -58,6 +61,24 @@ class FormInterview extends Model
         'is_demo',
         // Maritime Decision Engine output
         'decision_summary_json',
+        // Command Engine v2
+        'type',
+        'command_class_detected',
+        'command_profile_id',
+        'interview_phase',
+        'phase1_completed_at',
+        'capability_profile_json',
+        'deployment_packet_json',
+        // Resolver Engine v2
+        'phase',
+        'needs_review',
+        'resolver_status',
+        'linked_phase_interview_id',
+        'scenario_set_json',
+        'override_class',
+        'override_by_user_id',
+        // Behavioral Engine v1
+        'behavioral_profile_id',
     ];
 
     protected $casts = [
@@ -73,6 +94,14 @@ class FormInterview extends Model
         'position_std_dev_score' => 'float',
         'z_score' => 'float',
         'decision_summary_json' => 'array',
+        'phase1_completed_at' => 'datetime',
+        'interview_phase' => 'integer',
+        'capability_profile_json' => 'array',
+        'deployment_packet_json' => 'array',
+        // Resolver Engine v2 casts
+        'phase' => 'integer',
+        'needs_review' => 'boolean',
+        'scenario_set_json' => 'array',
     ];
 
     public const STATUS_DRAFT = 'draft';
@@ -170,6 +199,36 @@ class FormInterview extends Model
     public function modelPredictions(): HasMany
     {
         return $this->hasMany(ModelPrediction::class);
+    }
+
+    public function capabilityScore(): HasOne
+    {
+        return $this->hasOne(CapabilityScore::class);
+    }
+
+    public function resolverAuditLogs(): HasMany
+    {
+        return $this->hasMany(ResolverAuditLog::class);
+    }
+
+    public function scenarioResponses(): HasMany
+    {
+        return $this->hasMany(MaritimeScenarioResponse::class)->orderBy('slot');
+    }
+
+    public function linkedPhaseInterview(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'linked_phase_interview_id');
+    }
+
+    public function phase2Interview(): HasOne
+    {
+        return $this->hasOne(self::class, 'linked_phase_interview_id');
+    }
+
+    public function behavioralProfile(): BelongsTo
+    {
+        return $this->belongsTo(BehavioralProfile::class, 'behavioral_profile_id');
     }
 
     public function isCompleted(): bool

@@ -29,6 +29,8 @@ class RequireCustomerScope
         'v1/interviews',
         'v1/dashboard',
         'v1/assessment-results/dashboard-stats',
+        'v1/employees',
+        'v1/form-interviews',
 
         // Reports (protected endpoints for generating/viewing)
         'v1/reports',
@@ -60,6 +62,33 @@ class RequireCustomerScope
         // Platform admins bypass all restrictions
         if ($user->is_platform_admin) {
             return $next($request);
+        }
+
+        // ── Viewer hard-guard: read-only users cannot perform write actions ──
+        // Company settings.portal_viewers contains emails that can only GET/HEAD/OPTIONS
+        if ($user->company_id) {
+            $company = $user->company;
+            $settings = (array) ($company?->settings ?? []);
+            $viewers = $settings['portal_viewers'] ?? [];
+
+            $isViewer = is_array($viewers)
+                && in_array(strtolower($user->email), array_map('strtolower', $viewers), true);
+
+            if ($isViewer && !in_array(strtoupper($request->method()), ['GET', 'HEAD', 'OPTIONS'], true)) {
+                Log::info('Viewer write-guard: blocked write request', [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'company_id' => $user->company_id,
+                    'method' => $request->method(),
+                    'path' => $request->path(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'read_only_account',
+                    'message' => 'This account can view results and reports only.',
+                ], 403);
+            }
         }
 
         // Company user: check if path is in allowlist

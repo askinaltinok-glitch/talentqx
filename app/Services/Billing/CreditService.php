@@ -15,10 +15,15 @@ class CreditService
      */
     private const PLAN_CREDITS = [
         'free' => 5,
+        'pilot' => 10,
+        'mini' => 25,
+        'midi' => 100,
         'starter' => 50,
         'pro' => 200,
         'enterprise' => 1000,
     ];
+
+    private const DEFAULT_GRACE_TOTAL = 5;
 
     /**
      * Get monthly credit allocation for a plan.
@@ -29,7 +34,7 @@ class CreditService
     }
 
     /**
-     * Get remaining credits for a company.
+     * Get remaining credits for a company (monthly + bonus - used).
      */
     public function getRemainingCredits(Company $company): int
     {
@@ -38,30 +43,73 @@ class CreditService
     }
 
     /**
-     * Check if company can use a credit.
+     * Get grace credit settings from company settings JSON.
+     */
+    public function getGraceInfo(Company $company): array
+    {
+        $settings = $company->settings ?? [];
+        return [
+            'total' => $settings['grace_credits_total'] ?? self::DEFAULT_GRACE_TOTAL,
+            'used' => $settings['grace_credits_used'] ?? 0,
+        ];
+    }
+
+    /**
+     * Check if company can use a credit (including grace).
+     *
+     * Logic:
+     * - remaining > 0 → OK
+     * - remaining <= 0 AND grace_used < grace_total → OK (grace mode)
+     * - else → BLOCK
      */
     public function canUseCredit(Company $company): bool
     {
-        return $this->getRemainingCredits($company) > 0;
+        if ($this->getRemainingCredits($company) > 0) {
+            return true;
+        }
+
+        // Check grace credits
+        $grace = $this->getGraceInfo($company);
+        return $grace['used'] < $grace['total'];
     }
 
     /**
      * Deduct a credit when interview is completed.
+     *
+     * - remaining > 0: normal credits_used++
+     * - remaining <= 0: grace_credits_used++ (and log)
      */
     public function deductCredit(Company $company, Interview $interview, ?string $userId = null): bool
     {
         return DB::transaction(function () use ($company, $interview, $userId) {
-            // Lock company row for update
             $company = Company::lockForUpdate()->find($company->id);
 
-            $balanceBefore = $this->getRemainingCredits($company);
+            $remaining = $this->getRemainingCredits($company);
+            $balanceBefore = $remaining;
+            $isGrace = false;
 
-            // Even if no credits, we still increment usage (for tracking)
-            $company->increment('credits_used');
+            if ($remaining > 0) {
+                // Normal deduction
+                $company->increment('credits_used');
+            } else {
+                // Grace deduction
+                $grace = $this->getGraceInfo($company);
+                if ($grace['used'] >= $grace['total']) {
+                    Log::warning('Credit deduct attempted but exhausted', [
+                        'company_id' => $company->id,
+                        'interview_id' => $interview->id,
+                    ]);
+                    return false;
+                }
+
+                $settings = $company->settings ?? [];
+                $settings['grace_credits_used'] = ($settings['grace_credits_used'] ?? 0) + 1;
+                $company->update(['settings' => $settings]);
+                $isGrace = true;
+            }
 
             $balanceAfter = $this->getRemainingCredits($company);
 
-            // Log the usage
             CreditUsageLog::create([
                 'company_id' => $company->id,
                 'interview_id' => $interview->id,
@@ -69,7 +117,9 @@ class CreditService
                 'amount' => 1,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceAfter,
-                'reason' => "Mülakat tamamlandı: {$interview->id}",
+                'reason' => $isGrace
+                    ? "Grace credit kullanıldı: {$interview->id}"
+                    : "Mülakat tamamlandı: {$interview->id}",
                 'created_by' => $userId,
                 'created_at' => now(),
             ]);
@@ -79,6 +129,7 @@ class CreditService
                 'interview_id' => $interview->id,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceAfter,
+                'is_grace' => $isGrace,
             ]);
 
             return true;
@@ -131,10 +182,14 @@ class CreditService
             $balanceBefore = $this->getRemainingCredits($company);
             $previousUsed = $company->credits_used;
 
-            // Reset usage to zero
+            // Reset usage and grace
+            $settings = $company->settings ?? [];
+            $settings['grace_credits_used'] = 0;
+
             $company->update([
                 'credits_used' => 0,
                 'credits_period_start' => now()->startOfMonth(),
+                'settings' => $settings,
             ]);
 
             $balanceAfter = $this->getRemainingCredits($company);
@@ -143,7 +198,7 @@ class CreditService
                 'company_id' => $company->id,
                 'interview_id' => null,
                 'action' => CreditUsageLog::ACTION_RESET,
-                'amount' => $previousUsed, // How much was reset
+                'amount' => $previousUsed,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceAfter,
                 'reason' => 'Aylık dönem sıfırlaması',
@@ -155,6 +210,69 @@ class CreditService
                 'company_id' => $company->id,
                 'previous_used' => $previousUsed,
                 'new_balance' => $balanceAfter,
+            ]);
+        });
+    }
+
+    /**
+     * Full credit update (admin edit drawer).
+     */
+    public function updateCompanyCredits(
+        Company $company,
+        array $data,
+        ?string $userId = null
+    ): void {
+        DB::transaction(function () use ($company, $data, $userId) {
+            $company = Company::lockForUpdate()->find($company->id);
+
+            $balanceBefore = $this->getRemainingCredits($company);
+            $updates = [];
+
+            if (isset($data['subscription_plan'])) {
+                $updates['subscription_plan'] = $data['subscription_plan'];
+            }
+            if (isset($data['monthly_credits'])) {
+                $updates['monthly_credits'] = $data['monthly_credits'];
+            }
+            if (isset($data['bonus_credits'])) {
+                $updates['bonus_credits'] = $data['bonus_credits'];
+            }
+            if (isset($data['subscription_ends_at'])) {
+                $updates['subscription_ends_at'] = $data['subscription_ends_at'];
+            }
+
+            // Grace credits total
+            if (isset($data['grace_credits_total'])) {
+                $settings = $company->settings ?? [];
+                $settings['grace_credits_total'] = $data['grace_credits_total'];
+                $updates['settings'] = $settings;
+            }
+
+            // Reset usage
+            if (!empty($data['reset_usage'])) {
+                $updates['credits_used'] = 0;
+                $updates['credits_period_start'] = now()->startOfMonth();
+                $settings = $updates['settings'] ?? ($company->settings ?? []);
+                $settings['grace_credits_used'] = 0;
+                $updates['settings'] = $settings;
+            }
+
+            if (!empty($updates)) {
+                $company->update($updates);
+            }
+
+            $balanceAfter = $this->getRemainingCredits($company);
+
+            CreditUsageLog::create([
+                'company_id' => $company->id,
+                'interview_id' => null,
+                'action' => CreditUsageLog::ACTION_ADD,
+                'amount' => abs($balanceAfter - $balanceBefore),
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+                'reason' => 'Admin kredi düzenlemesi',
+                'created_by' => $userId,
+                'created_at' => now(),
             ]);
         });
     }
@@ -195,22 +313,36 @@ class CreditService
     }
 
     /**
-     * Get detailed credit status for a company.
+     * Get detailed credit status for a company (includes grace).
      */
     public function getCreditStatus(Company $company): array
     {
         $remaining = $this->getRemainingCredits($company);
         $totalCredits = $company->monthly_credits + $company->bonus_credits;
+        $grace = $this->getGraceInfo($company);
 
-        // Calculate reset date (first day of next month)
         $resetDate = now()->startOfMonth()->addMonth();
 
+        // Compute status
+        if ($remaining > 0) {
+            $status = 'active';
+        } elseif ($grace['used'] < $grace['total']) {
+            $status = 'grace';
+        } else {
+            $status = 'exhausted';
+        }
+
         return [
+            'plan' => $company->subscription_plan,
             'plan_limit' => $company->monthly_credits,
             'used' => $company->credits_used,
             'bonus' => $company->bonus_credits,
             'remaining' => $remaining,
             'total' => $totalCredits,
+            'grace_total' => $grace['total'],
+            'grace_used' => $grace['used'],
+            'status' => $status,
+            'can_use' => $this->canUseCredit($company),
             'reset_date' => $resetDate->toDateString(),
             'period_start' => $company->credits_period_start?->toDateString(),
             'usage_percent' => $totalCredits > 0 ? round(($company->credits_used / $totalCredits) * 100, 1) : 0,

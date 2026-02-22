@@ -123,8 +123,9 @@ class PublicApplyController extends Controller
         if (!$this->creditService->canUseCredit($job->company)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bu pozisyon için şu anda başvuru alınamıyor. Lütfen daha sonra tekrar deneyin.',
-            ], 422);
+                'code' => 'credits_exhausted',
+                'message' => 'Interview quota exhausted. Please contact support.',
+            ], 402);
         }
 
         // Normalize phone

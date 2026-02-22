@@ -1,0 +1,360 @@
+{
+  "version": "v1.3",
+  "language": "en",
+  "domain": "maritime",
+  "total_questions": 62,
+  "select_per_test": 12,
+  "time_limit_minutes": 12,
+  "sections": [
+    {
+      "code": "READING",
+      "title": "Reading / Comprehension",
+      "select": 3,
+      "questions": [
+        {
+          "id": "r1",
+          "prompt": "You receive the message: \"Pilot boarding time changed to 0430 LT. Reduce speed to 8 knots and proceed to pilot station.\" What should you do first?",
+          "options": { "A": "Increase speed to arrive earlier", "B": "Reduce speed and adjust ETA to 0430 LT", "C": "Ignore and wait at anchorage", "D": "Request bunkers" },
+          "correct": "B"
+        },
+        {
+          "id": "r2",
+          "prompt": "\"Keep a sharp lookout and report any target CPA less than 1.0 NM.\" CPA means:",
+          "options": { "A": "Course Position Alarm", "B": "Closest Point of Approach", "C": "Cargo Plan Approval", "D": "Control Pilot Area" },
+          "correct": "B"
+        },
+        {
+          "id": "r3",
+          "prompt": "\"Prepare the mooring lines fore and aft, standby heaving lines.\" This instruction is about:",
+          "options": { "A": "Cargo pumping", "B": "Berthing operations", "C": "Fire drill", "D": "Ballast exchange" },
+          "correct": "B"
+        },
+        {
+          "id": "r4",
+          "prompt": "\"Use appropriate PPE when handling chemicals.\" PPE stands for:",
+          "options": { "A": "Personal Protective Equipment", "B": "Port Pilot Escort", "C": "Pressure Pump Efficiency", "D": "Personnel Plan Entry" },
+          "correct": "A"
+        },
+        {
+          "id": "r5",
+          "prompt": "\"All crew must report to their muster stations with lifejackets.\" When is this order given?",
+          "options": { "A": "During cargo loading", "B": "During an emergency drill or real emergency", "C": "During bunkering", "D": "When entering port" },
+          "correct": "B"
+        },
+        {
+          "id": "r6",
+          "prompt": "\"ETA revised to 1800 UTC. Maintain present course and speed.\" What action is required?",
+          "options": { "A": "Change course immediately", "B": "Continue as you are — no action needed", "C": "Increase speed to arrive at 1800", "D": "Reduce to minimum speed" },
+          "correct": "B"
+        },
+        {
+          "id": "r7",
+          "prompt": "A notice reads: \"Entry to enclosed spaces only after atmosphere tested and permit issued.\" Before entering you must:",
+          "options": { "A": "Inform the cook", "B": "Ensure atmosphere testing is done and you have a valid permit", "C": "Take your tools inside first", "D": "Wait for the pilot" },
+          "correct": "B"
+        },
+        {
+          "id": "r8",
+          "prompt": "\"Vessels shall not exceed 6 knots in the port approach channel.\" This means:",
+          "options": { "A": "You can go 6 knots or faster", "B": "Speed must be 6 knots or less", "C": "6 knots is the minimum speed", "D": "Only tugs may exceed 6 knots" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "VOCABULARY",
+      "title": "Maritime Vocabulary",
+      "select": 3,
+      "questions": [
+        {
+          "id": "v1",
+          "prompt": "Starboard is:",
+          "options": { "A": "Left side of the vessel", "B": "Right side of the vessel", "C": "Front of the vessel", "D": "Back of the vessel" },
+          "correct": "B"
+        },
+        {
+          "id": "v2",
+          "prompt": "\"Draft\" refers to:",
+          "options": { "A": "Ship's speed", "B": "Depth of water below keel", "C": "Vertical distance from waterline to keel", "D": "Cargo temperature" },
+          "correct": "C"
+        },
+        {
+          "id": "v3",
+          "prompt": "\"Berth\" is:",
+          "options": { "A": "A ship's engine room", "B": "A place where a ship is moored in port", "C": "A navigation chart", "D": "A safety meeting" },
+          "correct": "B"
+        },
+        {
+          "id": "v4",
+          "prompt": "\"Muster station\" is:",
+          "options": { "A": "Cargo loading point", "B": "Emergency assembly area", "C": "Ship's kitchen", "D": "Pilot station" },
+          "correct": "B"
+        },
+        {
+          "id": "v5",
+          "prompt": "\"Freeboard\" means:",
+          "options": { "A": "Free cargo space available", "B": "Distance from the waterline to the upper deck edge", "C": "Length of free mooring rope", "D": "Speed with no cargo" },
+          "correct": "B"
+        },
+        {
+          "id": "v6",
+          "prompt": "\"Ballast\" refers to:",
+          "options": { "A": "Fuel for the main engine", "B": "Water taken aboard to maintain stability", "C": "Extra cargo loaded for profit", "D": "Paint for hull maintenance" },
+          "correct": "B"
+        },
+        {
+          "id": "v7",
+          "prompt": "\"Abeam\" means:",
+          "options": { "A": "Directly ahead", "B": "At right angles to the vessel's centreline", "C": "Directly astern", "D": "At 45 degrees from the bow" },
+          "correct": "B"
+        },
+        {
+          "id": "v8",
+          "prompt": "\"Deadweight tonnage\" (DWT) measures:",
+          "options": { "A": "The weight of the empty vessel", "B": "The total weight a vessel can carry including cargo, fuel, crew, and stores", "C": "The weight of cargo only", "D": "The volume of the cargo holds" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "GRAMMAR",
+      "title": "Functional Grammar",
+      "select": 2,
+      "questions": [
+        {
+          "id": "g1",
+          "prompt": "Choose the best sentence:",
+          "options": { "A": "We must to check the lifeboat.", "B": "We must check the lifeboat.", "C": "We must checking the lifeboat.", "D": "We must checked the lifeboat." },
+          "correct": "B"
+        },
+        {
+          "id": "g2",
+          "prompt": "Incident report: \"During cargo ops, the hose ____ and cargo spilled.\"",
+          "options": { "A": "leak", "B": "leaked", "C": "leaking", "D": "leaks" },
+          "correct": "B"
+        },
+        {
+          "id": "g3",
+          "prompt": "Safety instruction: \"You ____ smoke in the engine room.\"",
+          "options": { "A": "don't have", "B": "mustn't", "C": "can", "D": "should to" },
+          "correct": "B"
+        },
+        {
+          "id": "g4",
+          "prompt": "Radio communication: \"Standby on VHF channel 16.\" means:",
+          "options": { "A": "Turn off the radio", "B": "Listen and be ready to respond on channel 16", "C": "Switch to channel 6 only", "D": "Use satellite phone" },
+          "correct": "B"
+        },
+        {
+          "id": "g5",
+          "prompt": "\"If the engine ____ , we would have arrived on time.\"",
+          "options": { "A": "didn't break down", "B": "hadn't broken down", "C": "doesn't break down", "D": "won't break down" },
+          "correct": "B"
+        },
+        {
+          "id": "g6",
+          "prompt": "\"The cargo ____ been discharged by the time the surveyor arrived.\"",
+          "options": { "A": "has", "B": "had", "C": "have", "D": "having" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "listening",
+      "title": "Listening Comprehension (VHF & Bridge Orders)",
+      "select": 2,
+      "questions": [
+        {
+          "id": "lc1",
+          "prompt": "[VHF transcript] \"All stations, all stations, all stations. This is Istanbul VTS. Bosphorus traffic one-way northbound until further notice. All southbound traffic anchor at designated area.\" What must southbound vessels do?",
+          "options": { "A": "Continue passage at reduced speed", "B": "Anchor at the designated area", "C": "Request special permission to proceed", "D": "Wait at the nearest port" },
+          "correct": "B"
+        },
+        {
+          "id": "lc2",
+          "prompt": "[Bridge order] \"Helmsman, port twenty. Steady on course 185.\" The helmsman should:",
+          "options": { "A": "Turn starboard 20 degrees", "B": "Turn port 20 degrees then steady on 185", "C": "Stop engines", "D": "Maintain current heading" },
+          "correct": "B"
+        },
+        {
+          "id": "lc3",
+          "prompt": "[VHF] \"MV Deniz, MV Deniz. This is Mersin Port Control. Your berth is number 7. Pilot will board at fairway buoy at 1400 local.\" What information was given?",
+          "options": { "A": "Departure time and fuel quantity", "B": "Berth number and pilot boarding location/time", "C": "Weather forecast and cargo plan", "D": "Crew list requirements" },
+          "correct": "B"
+        },
+        {
+          "id": "lc4",
+          "prompt": "[Bridge order] \"Dead slow ahead, standby anchor.\" This means the vessel is:",
+          "options": { "A": "Leaving the anchorage at full speed", "B": "Moving very slowly and ready to drop anchor if needed", "C": "Stopped and anchored", "D": "Drifting without power" },
+          "correct": "B"
+        },
+        {
+          "id": "lc5",
+          "prompt": "[VHF] \"Securité, securité, securité. Unlit barge adrift in position 40°50'N, 029°10'E. All vessels exercise caution.\" What type of warning is this?",
+          "options": { "A": "Distress — vessel sinking", "B": "Urgency — crew medical emergency", "C": "Safety — navigation hazard", "D": "Routine traffic information" },
+          "correct": "C"
+        },
+        {
+          "id": "lc6",
+          "prompt": "[Bridge order] \"Midships. Steady as she goes.\" The helmsman should:",
+          "options": { "A": "Continue turning", "B": "Center the rudder and hold the current heading", "C": "Stop the engine", "D": "Turn hard to port" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "situational",
+      "title": "Situational Decision Making",
+      "select": 2,
+      "questions": [
+        {
+          "id": "sd1",
+          "prompt": "You are OOW and visibility suddenly drops to 0.5 NM in fog. Your immediate actions should include:",
+          "options": { "A": "Maintain speed and course, it will clear soon", "B": "Reduce speed, sound fog signals, inform the master, plot radar targets", "C": "Anchor immediately", "D": "Call the engine room to shut down" },
+          "correct": "B"
+        },
+        {
+          "id": "sd2",
+          "prompt": "A crew member reports smelling smoke in the accommodation area. As the duty officer, you should first:",
+          "options": { "A": "Wait to see if others also smell it", "B": "Investigate immediately and activate fire patrol, prepare to sound the alarm", "C": "Continue your watch and check later", "D": "Open all windows for ventilation" },
+          "correct": "B"
+        },
+        {
+          "id": "sd3",
+          "prompt": "During mooring operations, the second line parts under tension. The correct response is:",
+          "options": { "A": "Immediately reattach the same line", "B": "Stop operations, clear the snap-back zone, assess the situation, report to the master", "C": "Continue with remaining lines", "D": "Speed up the operation to compensate" },
+          "correct": "B"
+        },
+        {
+          "id": "sd4",
+          "prompt": "You discover that a cargo tank vent has been left open during heavy rain. What is the primary concern?",
+          "options": { "A": "Paint damage on deck", "B": "Water contamination of cargo and potential stability issues", "C": "Increased fuel consumption", "D": "Crew getting wet" },
+          "correct": "B"
+        },
+        {
+          "id": "sd5",
+          "prompt": "A vessel on your starboard bow is on a steady bearing and decreasing range. According to COLREGs, you should:",
+          "options": { "A": "Maintain course and speed — you are the stand-on vessel", "B": "Give way — alter course to starboard and pass astern", "C": "Sound five short blasts", "D": "Call VTS for instructions" },
+          "correct": "B"
+        },
+        {
+          "id": "sd6",
+          "prompt": "The chief engineer reports that the main engine cooling water temperature is rising abnormally. As master, your first instruction should be:",
+          "options": { "A": "Increase engine RPM to cool the system", "B": "Reduce speed, investigate the cause, and prepare contingency plans", "C": "Continue at full speed to reach port faster", "D": "Shut down all auxiliary engines" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "operational_vocab",
+      "title": "Operational Maritime Vocabulary",
+      "select": 2,
+      "questions": [
+        {
+          "id": "ov1",
+          "prompt": "\"SMCP\" stands for:",
+          "options": { "A": "Ship Master's Command Protocol", "B": "Standard Marine Communication Phrases", "C": "Safety Management Compliance Plan", "D": "Steering & Maneuvering Control Procedures" },
+          "correct": "B"
+        },
+        {
+          "id": "ov2",
+          "prompt": "\"Bunkering\" means:",
+          "options": { "A": "Loading cargo into holds", "B": "Taking on fuel for the vessel", "C": "Anchoring the vessel", "D": "Cleaning the hull" },
+          "correct": "B"
+        },
+        {
+          "id": "ov3",
+          "prompt": "\"Trim\" of a vessel refers to:",
+          "options": { "A": "The paint condition of the hull", "B": "The difference between forward and aft drafts", "C": "The number of crew on board", "D": "The age of the vessel" },
+          "correct": "B"
+        },
+        {
+          "id": "ov4",
+          "prompt": "\"ISM Code\" is related to:",
+          "options": { "A": "International cargo insurance", "B": "International Safety Management of ships", "C": "International Seafarer Migration", "D": "Internal Ship Mechanics" },
+          "correct": "B"
+        },
+        {
+          "id": "ov5",
+          "prompt": "\"Inert gas system\" is used to:",
+          "options": { "A": "Cool the engine room", "B": "Replace oxygen in cargo tanks to prevent explosion", "C": "Generate electricity", "D": "Purify drinking water" },
+          "correct": "B"
+        },
+        {
+          "id": "ov6",
+          "prompt": "\"Fender\" on a vessel is used for:",
+          "options": { "A": "Navigation", "B": "Protecting the hull during berthing", "C": "Cooking food", "D": "Communication" },
+          "correct": "B"
+        },
+        {
+          "id": "ov7",
+          "prompt": "\"ECDIS\" stands for:",
+          "options": { "A": "Engine Control & Display Information System", "B": "Electronic Chart Display and Information System", "C": "Emergency Communication & Distress Indication System", "D": "External Cargo Distribution & Inventory System" },
+          "correct": "B"
+        },
+        {
+          "id": "ov8",
+          "prompt": "\"Hawser\" is a:",
+          "options": { "A": "Type of anchor", "B": "Large mooring or towing rope", "C": "Navigation instrument", "D": "Fire extinguisher" },
+          "correct": "B"
+        }
+      ]
+    },
+    {
+      "code": "safety_comm",
+      "title": "Safety Communication (SMCP & Emergency)",
+      "select": 2,
+      "questions": [
+        {
+          "id": "sc1",
+          "prompt": "The correct SMCP phrase when you do not understand a message is:",
+          "options": { "A": "\"Repeat please\"", "B": "\"Say again\" (followed by the part not understood)", "C": "\"What did you say?\"", "D": "\"I can't hear you\"" },
+          "correct": "B"
+        },
+        {
+          "id": "sc2",
+          "prompt": "\"PAN PAN\" is used for:",
+          "options": { "A": "Immediate danger to life or vessel", "B": "Urgent situation requiring assistance but no immediate danger to life", "C": "Routine port entry requests", "D": "Weather forecasts" },
+          "correct": "B"
+        },
+        {
+          "id": "sc3",
+          "prompt": "During a fire drill, the phrase \"Fire, fire, fire! Fire in the engine room!\" should be announced on:",
+          "options": { "A": "VHF channel 16 only", "B": "The ship's general alarm followed by PA announcement", "C": "Telephone to the agent", "D": "Email to the company" },
+          "correct": "B"
+        },
+        {
+          "id": "sc4",
+          "prompt": "\"Man overboard! Starboard side!\" — After hearing this, the helmsman should:",
+          "options": { "A": "Continue on course", "B": "Put the helm hard to starboard (Williamson turn) and throw lifebuoy", "C": "Stop engines immediately", "D": "Call the coast guard first" },
+          "correct": "B"
+        },
+        {
+          "id": "sc5",
+          "prompt": "In SMCP, \"I say again\" is used when:",
+          "options": { "A": "You didn't hear the other station", "B": "You are repeating your own important message for clarity", "C": "You want to end the conversation", "D": "You disagree with the instruction" },
+          "correct": "B"
+        },
+        {
+          "id": "sc6",
+          "prompt": "The emergency signal for abandon ship is:",
+          "options": { "A": "One long blast", "B": "Seven short blasts followed by one long blast on the ship's whistle", "C": "Three short blasts", "D": "Continuous sounding of the fog horn" },
+          "correct": "B"
+        }
+      ]
+    }
+  ],
+  "writing_prompt": {
+    "id": "w1",
+    "prompt": "Describe your last vessel and your main duties in English. Include: vessel type, trading area, and one safety responsibility.",
+    "min_words": 60,
+    "max_words": 120,
+    "rubric": {
+      "task_completion": { "max": 5, "description": "Addressed all parts of the prompt" },
+      "clarity": { "max": 5, "description": "Clear and understandable expression" },
+      "maritime_vocabulary": { "max": 5, "description": "Correct use of maritime terminology" },
+      "grammar_control": { "max": 5, "description": "Grammatical accuracy" },
+      "coherence": { "max": 5, "description": "Logical flow and structure" }
+    }
+  }
+}

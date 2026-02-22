@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BehavioralProfile;
+use App\Models\CandidateScoringVector;
 use App\Models\FormInterview;
+use App\Models\LanguageAssessment;
 use App\Models\ModelFeature;
 use App\Models\ModelPrediction;
 use App\Models\PoolCandidate;
@@ -226,6 +229,15 @@ class CandidatePoolController extends Controller
                     'z_score' => $modelFeature->z_score,
                     'risk_flags' => $modelFeature->risk_flags_json,
                 ] : null,
+
+                // Behavioral profile (Phase B)
+                'behavioral_profile' => $this->buildBehavioralProfile($candidate->id),
+
+                // English assessment details (Phase B)
+                'english_assessment' => $this->buildEnglishAssessment($candidate->id),
+
+                // Scoring vector (Phase B)
+                'scoring_vector' => $this->buildScoringVector($candidate->id),
             ],
         ]);
     }
@@ -447,6 +459,78 @@ class CandidatePoolController extends Controller
             'days_since_activity' => $candidate->last_assessed_at
                 ? $candidate->last_assessed_at->diffInDays(now())
                 : $candidate->created_at->diffInDays(now()),
+        ];
+    }
+
+    /**
+     * Build behavioral profile data for admin view.
+     */
+    private function buildBehavioralProfile(string $candidateId): ?array
+    {
+        $profile = BehavioralProfile::where('candidate_id', $candidateId)
+            ->where('version', 'v1')
+            ->first();
+
+        if (!$profile) {
+            return null;
+        }
+
+        return [
+            'dimensions' => $profile->dimensions_json,
+            'fit_json' => $profile->fit_json,
+            'flags' => $profile->flags_json,
+            'confidence' => $profile->confidence,
+            'status' => $profile->status,
+        ];
+    }
+
+    /**
+     * Build English assessment data for admin view.
+     */
+    private function buildEnglishAssessment(string $candidateId): ?array
+    {
+        $assessment = LanguageAssessment::where('candidate_id', $candidateId)->first();
+
+        if (!$assessment) {
+            return null;
+        }
+
+        return [
+            'overall_score' => $assessment->overall_score,
+            'estimated_level' => $assessment->locked_level ?? $assessment->estimated_level,
+            'confidence' => $assessment->confidence,
+            'mcq_score' => $assessment->mcq_score,
+            'writing_score' => $assessment->writing_score,
+            'interview_score' => $assessment->interview_score,
+            'declared_level' => $assessment->declared_level,
+            'locked_level' => $assessment->locked_level,
+            'signals' => $assessment->signals,
+        ];
+    }
+
+    /**
+     * Build scoring vector data for admin view.
+     */
+    private function buildScoringVector(string $candidateId): ?array
+    {
+        $vector = CandidateScoringVector::where('candidate_id', $candidateId)
+            ->where('version', 'v1')
+            ->first();
+
+        if (!$vector) {
+            return null;
+        }
+
+        return [
+            'technical' => $vector->technical_score,
+            'behavioral' => $vector->behavioral_score,
+            'reliability' => $vector->reliability_score,
+            'personality' => $vector->personality_score,
+            'english_proficiency' => $vector->english_proficiency,
+            'english_level' => $vector->english_level,
+            'english_weight' => $vector->english_weight,
+            'composite_score' => $vector->composite_score,
+            'computed_at' => $vector->computed_at?->toIso8601String(),
         ];
     }
 

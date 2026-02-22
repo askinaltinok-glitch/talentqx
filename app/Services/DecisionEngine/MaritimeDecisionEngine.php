@@ -508,33 +508,43 @@ class MaritimeDecisionEngine
             2
         );
         $strengthNames = array_map(
-            fn($c) => self::CATEGORY_LABELS[$c] ?? $c,
+            fn($c) => __("maritime.category.{$c}") !== "maritime.category.{$c}"
+                ? __("maritime.category.{$c}")
+                : (self::CATEGORY_LABELS[$c] ?? $c),
             $strengths
         );
 
         // Concerns
         $concerns = [];
         if (collect($riskFlags)->contains(fn($f) => $f['severity'] === 'critical')) {
-            $concerns[] = 'critical risk flags';
+            $concerns[] = __('maritime.concern.critical_risk');
         }
         if (collect($riskFlags)->contains(fn($f) => $f['severity'] === 'major')) {
-            $concerns[] = 'major risk concerns';
+            $concerns[] = __('maritime.concern.major_risk');
         }
         if ($certStatus === 'expired') {
-            $concerns[] = 'expired certificate';
+            $concerns[] = __('maritime.concern.expired_cert');
         }
         if (in_array($certStatus, ['unknown', 'missing'], true)) {
-            $concerns[] = 'unverified certificate';
+            $concerns[] = __('maritime.concern.unverified_cert');
         }
 
-        $parts = ["{$label} recommendation (score: {$finalScore}/100, confidence: {$confidencePct}%)."];
+        $parts = [__('maritime.explanation.recommendation', [
+            'decision' => $label,
+            'score' => $finalScore,
+            'confidence' => $confidencePct,
+        ])];
 
         if (!empty($strengthNames)) {
-            $parts[] = 'Strengths: ' . implode(', ', $strengthNames) . '.';
+            $parts[] = __('maritime.explanation.strengths', [
+                'strengths' => implode(', ', $strengthNames),
+            ]);
         }
 
         if (!empty($concerns)) {
-            $parts[] = 'Concerns: ' . implode(', ', array_slice($concerns, 0, 2)) . '.';
+            $parts[] = __('maritime.explanation.concerns', [
+                'concerns' => implode(', ', array_slice($concerns, 0, 2)),
+            ]);
         }
 
         return mb_substr(implode(' ', $parts), 0, 320);

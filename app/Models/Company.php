@@ -11,6 +11,16 @@ class Company extends Model
 {
     use HasFactory, HasUuids;
 
+    public static function booted(): void
+    {
+        static::creating(function (Company $company) {
+            $settings = $company->settings ?? [];
+            $settings['grace_credits_total'] = $settings['grace_credits_total'] ?? 5;
+            $settings['grace_credits_used']  = $settings['grace_credits_used']  ?? 0;
+            $company->settings = $settings;
+        });
+    }
+
     protected $fillable = [
         'name',
         'slug',
@@ -54,7 +64,7 @@ class Company extends Model
     /**
      * Valid subscription plans.
      */
-    public const PLANS = ['free', 'starter', 'pro', 'enterprise'];
+    public const PLANS = ['free', 'pilot', 'mini', 'midi', 'starter', 'pro', 'enterprise'];
 
     /**
      * Valid billing types.
@@ -228,6 +238,42 @@ class Company extends Model
     }
 
     /**
+     * Get grace credits total from settings JSON.
+     */
+    public function getGraceCreditsTotal(): int
+    {
+        return ($this->settings ?? [])['grace_credits_total'] ?? 5;
+    }
+
+    /**
+     * Get grace credits used from settings JSON.
+     */
+    public function getGraceCreditsUsed(): int
+    {
+        return ($this->settings ?? [])['grace_credits_used'] ?? 0;
+    }
+
+    /**
+     * Set grace credits total in settings JSON.
+     */
+    public function setGraceCreditsTotal(int $total): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['grace_credits_total'] = $total;
+        $this->settings = $settings;
+    }
+
+    /**
+     * Set grace credits used in settings JSON.
+     */
+    public function setGraceCreditsUsed(int $used): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['grace_credits_used'] = $used;
+        $this->settings = $settings;
+    }
+
+    /**
      * Get company initials (2 letters) for logo placeholder.
      * Example: "Ekler İstanbul" => "Eİ", "Acme Corp" => "AC"
      */
@@ -268,6 +314,24 @@ class Company extends Model
             'postal_code' => $this->billing_postal_code,
             'email' => $this->billing_email ?: $this->users()->first()?->email,
         ];
+    }
+
+    /**
+     * Check if behavioral details should be shown in HR portal.
+     * Default: false (safe mode — show only fit/confidence).
+     */
+    public function showBehavioralDetails(): bool
+    {
+        return (bool) (($this->settings ?? [])['show_behavioral_details'] ?? false);
+    }
+
+    /**
+     * Check if AIS trust evidence should be shown in HR portal.
+     * Default: false (off until company opts in).
+     */
+    public function showTrustEvidence(): bool
+    {
+        return (bool) (($this->settings ?? [])['show_trust_evidence'] ?? false);
     }
 
     /**

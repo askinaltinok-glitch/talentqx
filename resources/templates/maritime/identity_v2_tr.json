@@ -1,0 +1,174 @@
+{
+  "version": "v2",
+  "framework": "maritime_command",
+  "type": "maritime_identity_v2",
+  "phase": 1,
+  "language": "tr",
+  "sections": [
+    {
+      "code": "A",
+      "title": "Gemi Komuta Deneyimi",
+      "questions": [
+        {
+          "slot": 1,
+          "code": "VESSEL_HISTORY",
+          "prompt": "Görev yaptığınız tüm gemi tiplerini listeleyin. Her biri için: gemi tipi, yaklaşık DWT, rütbeniz ve görev süresini belirtin.",
+          "extraction_target": "vessel_experience",
+          "input_type": "structured_text",
+          "min_length": 50,
+          "required": true
+        },
+        {
+          "slot": 2,
+          "code": "BRIDGE_TECHNOLOGY",
+          "prompt": "Kullandığınız köprü üstü ekipmanlarını açıklayın. ECDIS üretici ve sürümü, radar/ARPA sistemleri, DP sınıfı (varsa), AIS entegrasyonu ve köprü otomasyon seviyesini belirtin.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 3,
+          "code": "PROPULSION_SYSTEMS",
+          "prompt": "Hangi sevk sistemleriyle çalıştınız? Ana makine tipi, güç aralığı, yakıt türleri ve varsa çift yakıtlı veya elektrikli sevk deneyiminizi belirtin.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "B",
+      "title": "Sefer Bölgeleri",
+      "questions": [
+        {
+          "slot": 4,
+          "code": "TRADING_AREAS",
+          "prompt": "Görev yaptığınız sefer bölgelerini ve rotaları listeleyin. Belirli denizler, boğazlar, kanallar ve liman bölgelerini belirtin. Nehir, kıyı, yakın sefer veya açık deniz ortamlarından hangilerinde çalıştığınızı belirtin.",
+          "extraction_target": "trading_areas",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 5,
+          "code": "PORT_COMPLEXITY",
+          "prompt": "Kaç farklı limana uğradınız? Kalabalık demir yerleri, dar yaklaşma kanalları veya yoğun trafikli liman alanlarıyla deneyiminizi açıklayın. Buz navigasyonu veya dar sular deneyiminiz varsa belirtin.",
+          "extraction_target": "trading_areas",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "C",
+      "title": "Yük Operasyonları",
+      "questions": [
+        {
+          "slot": 6,
+          "code": "CARGO_OPERATIONS",
+          "prompt": "Hangi yük türlerini taşıdınız? Yük planlaması, yükleme sıralaması, tank/ambar hazırlığındaki doğrudan katılımınızı açıklayın. Konteyner, tanker, LNG, dökme yük, yolcu veya tehlikeli yük deneyiminizi belirtin.",
+          "extraction_target": "cargo_history",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        },
+        {
+          "slot": 7,
+          "code": "CARGO_INCIDENTS",
+          "prompt": "Yaşadığınız yükle ilgili olayları açıklayın: dökülme, kontaminasyon, kayma, sıcaklık sapması veya tehlikeli madde sorunları. Rolünüzü ve sonucunu belirtin.",
+          "extraction_target": "incident_history",
+          "input_type": "structured_text",
+          "min_length": 10,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "D",
+      "title": "Mürettebat Komuta Ölçeği",
+      "questions": [
+        {
+          "slot": 8,
+          "code": "CREW_MANAGEMENT",
+          "prompt": "Doğrudan yönettiğiniz en büyük mürettebat kaç kişiydi? Denetim rolünüzü, departman yapısını, mürettebatın çok kültürlü olup olmadığını, sendikalı olup olmadığını veya açık deniz/karma takımlar içerip içermediğini açıklayın.",
+          "extraction_target": "crew_scale_history",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        }
+      ]
+    },
+    {
+      "code": "E",
+      "title": "Risk ve Olay Geçmişi",
+      "questions": [
+        {
+          "slot": 9,
+          "code": "INCIDENT_HISTORY",
+          "prompt": "Karıştığınız denizcilik olaylarını, ramak kala durumlarını veya acil durumları açıklayın: karaya oturma, çarpışma, dökülme, yangın, su alma, denize adam düşmesi. Rolünüzü, ciddiyetini ve sonucunu belirtin.",
+          "extraction_target": "incident_history",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": true
+        },
+        {
+          "slot": 10,
+          "code": "WEATHER_OPERATIONS",
+          "prompt": "Karşılaştığınız en ağır hava koşullarını açıklayın. Deniz durumu, rüzgar kuvveti ve aldığınız kararları belirtin. Kriz liderliği deneyiminizi açıklayın.",
+          "extraction_target": "weather_severity",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "F",
+      "title": "Teknik Bağımlılık",
+      "questions": [
+        {
+          "slot": 11,
+          "code": "MANUAL_NAVIGATION",
+          "prompt": "Navigasyon sürenizin yüzde kaçı manuel, yüzde kaçı otomatiktir? Arızalı sistemlerle, otomasyon geçersiz kılmalarıyla veya manuel yedekleme prosedürleriyle çalışma deneyiminizi açıklayın.",
+          "extraction_target": "automation_exposure",
+          "input_type": "structured_text",
+          "min_length": 20,
+          "required": false
+        }
+      ]
+    },
+    {
+      "code": "G",
+      "title": "Sertifika ve Komuta",
+      "questions": [
+        {
+          "slot": 12,
+          "code": "CERTIFICATION_STATUS",
+          "prompt": "Mevcut sertifikalarınızı listeleyin: STCW, CoC, tanker endorsement, DP sertifikaları, LNG sertifikaları, bayrak devleti onayları. Her biri için: veren makam ve geçerlilik tarihini belirtin. Bir geminin bağımsız komutanlığını yaptınız mı? Yaptıysanız: gemi tipi, DWT, süre, sefer bölgesi.",
+          "extraction_target": "certifications",
+          "input_type": "structured_text",
+          "min_length": 30,
+          "required": true
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "required_fields_for_completion": [
+      "VESSEL_HISTORY",
+      "TRADING_AREAS",
+      "CARGO_OPERATIONS",
+      "CREW_MANAGEMENT",
+      "CERTIFICATION_STATUS"
+    ],
+    "min_answers_for_detection": 5
+  },
+  "metadata": {
+    "total_questions": 12,
+    "required_questions": 7,
+    "time_limit_minutes": 60
+  }
+}

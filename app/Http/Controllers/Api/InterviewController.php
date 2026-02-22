@@ -125,12 +125,9 @@ class InterviewController extends Controller
         if (!$this->creditService->canUseCredit($company)) {
             return response()->json([
                 'success' => false,
-                'error' => [
-                    'code' => 'INSUFFICIENT_CREDITS',
-                    'message' => 'Kontür limitinize ulaştınız. Yeni mülakat oluşturmak için kontür satın alın.',
-                    'contact' => 'sales@talentqx.com',
-                ],
-            ], 422);
+                'code' => 'credits_exhausted',
+                'message' => 'Interview quota exhausted. Please contact support.',
+            ], 402);
         }
 
         $expiresInHours = $validated['expires_in_hours'] ?? config('interview.token_expiry_hours', 72);
