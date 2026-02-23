@@ -182,7 +182,7 @@ class ProfileController extends Controller
 
         // Use the existing password reset service
         $passwordService = app(\App\Services\Auth\PasswordResetService::class);
-        $passwordService->sendResetEmail($user);
+        $passwordService->sendResetLink($user, $request->ip(), $request->userAgent());
 
         return response()->json([
             'success' => true,

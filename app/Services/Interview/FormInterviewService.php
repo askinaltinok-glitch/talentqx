@@ -251,6 +251,14 @@ class FormInterviewService
      */
     public function completeAndScore(FormInterview $interview): FormInterview
     {
+        // Clean workflow guard: interview must have a valid (non-expired) invitation
+        if (config('maritime.clean_workflow_v1') && $interview->industry_code === 'maritime') {
+            $invitation = \App\Models\InterviewInvitation::where('form_interview_id', $interview->id)->first();
+            if (!$invitation || $invitation->status === \App\Models\InterviewInvitation::STATUS_EXPIRED) {
+                throw new \RuntimeException('Cannot score interview without valid invitation.');
+            }
+        }
+
         // Pre-flight: Load and validate answers
         $interview->load('answers');
         $answerCount = $interview->answers->count();

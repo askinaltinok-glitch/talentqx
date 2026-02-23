@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\Api\OctopusAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BehavioralProfile;
 use App\Models\CandidateCredential;
+use App\Models\CandidateScoringVector;
 use App\Models\CandidateTimelineEvent;
 use App\Models\LanguageAssessment;
 use App\Models\PoolCandidate;
 use App\Helpers\RadarChartGenerator;
 use App\Models\CandidateDecisionOverride;
 use App\Services\ExecutiveSummary\ExecutiveSummaryBuilder;
+use App\Services\Maritime\CertificateLifecycleService;
+use App\Services\Behavioral\VesselFitEvidenceService;
+use App\Services\Behavioral\VesselFitProvenanceService;
+use App\Services\Fleet\CrewSynergyEngineV2;
 use App\Services\Trust\CrewReliabilityCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -54,8 +60,12 @@ class CandidateController extends Controller
                 'email' => $c->email,
                 'phone' => $c->phone,
                 'country_code' => $c->country_code,
+                'nationality' => $c->nationality,
+                'license_country' => $c->license_country,
                 'english_level_self' => $c->english_level_self,
                 'source_channel' => $c->source_channel,
+                'source_type' => $c->source_type,
+                'source_label' => $c->source_label,
                 'status' => $c->status,
                 'seafarer' => $c->seafarer,
                 'last_assessed_at' => $c->last_assessed_at?->toIso8601String(),
@@ -137,6 +147,7 @@ class CandidateController extends Controller
                 'profile',
                 'contactPoints',
                 'credentials',
+                'certificates',
                 'contracts.aisVerification',
                 'contracts.latestAisVerification',
                 'contracts.vessel',
@@ -158,9 +169,19 @@ class CandidateController extends Controller
                 'email' => $candidate->email,
                 'phone' => $candidate->phone,
                 'country_code' => $candidate->country_code,
+                'nationality' => $candidate->nationality,
+                'country_of_residence' => $candidate->country_of_residence,
+                'passport_expiry' => $candidate->passport_expiry?->toDateString(),
+                'visa_status' => $candidate->visa_status,
+                'license_country' => $candidate->license_country,
+                'license_class' => $candidate->license_class,
+                'flag_endorsement' => $candidate->flag_endorsement,
                 'preferred_language' => $candidate->preferred_language,
                 'english_level_self' => $candidate->english_level_self,
                 'source_channel' => $candidate->source_channel,
+                'source_type' => $candidate->source_type,
+                'source_company_id' => $candidate->source_company_id,
+                'source_label' => $candidate->source_label,
                 'candidate_source' => $candidate->candidate_source,
                 'status' => $candidate->status,
                 'seafarer' => $candidate->seafarer,
@@ -200,6 +221,11 @@ class CandidateController extends Controller
                     'last_reminded_at' => $c->last_reminded_at?->toIso8601String(),
                 ]),
 
+                'certificates' => app(CertificateLifecycleService::class)
+                    ->enrichWithRiskLevels($candidate->certificates),
+                'certificate_compliance' => app(CertificateLifecycleService::class)
+                    ->getComplianceSummary($candidate->certificates),
+
                 'contracts_count' => $candidate->contracts->count(),
                 'contracts' => $candidate->contracts->map(
                     fn($c) => \App\Presenters\CandidateContractAisPresenter::present($c)
@@ -237,6 +263,10 @@ class CandidateController extends Controller
                 ]),
 
                 'language_assessment' => $this->formatLanguageAssessment($candidate->id),
+
+                // Phase B: Behavioral profile + scoring vector
+                'behavioral_profile' => $this->formatBehavioralProfile($candidate->id),
+                'scoring_vector' => $this->formatScoringVector($candidate->id),
             ],
         ]);
     }
@@ -425,7 +455,7 @@ class CandidateController extends Controller
     public function decisionPacketPdf(string $id)
     {
         $candidate = PoolCandidate::where('primary_industry', 'maritime')
-            ->with(['trustProfile', 'contracts.latestAisVerification', 'credentials'])
+            ->with(['trustProfile', 'contracts.latestAisVerification', 'credentials', 'certificates'])
             ->find($id);
 
         if (!$candidate) {
@@ -454,14 +484,52 @@ class CandidateController extends Controller
             }
         }
 
+        // Certificate lifecycle risk data
+        $certService = app(CertificateLifecycleService::class);
+        $certificateRisks = $certService->enrichWithRiskLevels($candidate->certificates);
+
+        // Vessel fit evidence
+        $vesselFitEvidence = [];
+        $behavioralProfile = BehavioralProfile::where('candidate_id', $candidate->id)
+            ->where('version', 'v1')
+            ->first();
+        if ($behavioralProfile && !empty($behavioralProfile->fit_json) && is_array($behavioralProfile->fit_json)) {
+            $vesselFitEvidence = app(VesselFitEvidenceService::class)
+                ->compute($candidate->id, $behavioralProfile->fit_json, (float) ($behavioralProfile->confidence ?? 0));
+        }
+
+        // Find the latest completed interview for evidence section
+        $interview = \App\Models\FormInterview::with('answers')
+            ->where('pool_candidate_id', $candidate->id)
+            ->where('status', 'completed')
+            ->latest('completed_at')
+            ->first();
+
+        // Crew compatibility (V2) — find active vessel slot
+        $compatibilityData = null;
+        $synergyEngine = app(CrewSynergyEngineV2::class);
+        if ($synergyEngine->isEnabled()) {
+            $activeSlot = \Illuminate\Support\Facades\DB::table('vessel_crew_skeleton_slots')
+                ->where('candidate_id', $candidate->id)
+                ->where('is_active', true)
+                ->first();
+            if ($activeSlot) {
+                $compatibilityData = $synergyEngine->computeCompatibility($candidate->id, $activeSlot->vessel_id);
+            }
+        }
+
         $pdf = Pdf::loadView('pdf.decision-packet', [
             'candidate' => $candidate,
+            'interview' => $interview,
             'trustProfile' => $tp,
             'execSummary' => $execSummary,
             'compliancePack' => $compliancePack,
             'rankStcw' => $detail['rank_stcw'] ?? null,
             'stabilityRisk' => $detail['stability_risk'] ?? null,
             'radarChart' => $radarChart,
+            'certificateRisks' => $certificateRisks,
+            'vesselFitEvidence' => $vesselFitEvidence,
+            'compatibilityData' => $compatibilityData,
         ]);
 
         $pdf->setPaper('A4', 'portrait');
@@ -490,6 +558,54 @@ class CandidateController extends Controller
             'locked_level' => $a->locked_level,
             'locked_at' => $a->locked_at?->toIso8601String(),
             'signals' => $a->signals,
+        ];
+    }
+
+    private function formatBehavioralProfile(string $candidateId): ?array
+    {
+        $profile = BehavioralProfile::where('candidate_id', $candidateId)
+            ->where('version', 'v1')
+            ->first();
+
+        if (!$profile) return null;
+
+        $fitJson = $profile->fit_json;
+
+        // Compute evidence-based vessel fit
+        $vesselFitEvidence = null;
+        if (!empty($fitJson) && is_array($fitJson)) {
+            $vesselFitEvidence = app(VesselFitEvidenceService::class)
+                ->compute($candidateId, $fitJson, (float) ($profile->confidence ?? 0));
+        }
+
+        return [
+            'dimensions' => $profile->dimensions_json,
+            'fit_json' => $fitJson,
+            'vessel_fit_evidence' => $vesselFitEvidence,
+            'flags' => $profile->flags_json,
+            'confidence' => $profile->confidence,
+            'status' => $profile->status,
+        ];
+    }
+
+    private function formatScoringVector(string $candidateId): ?array
+    {
+        $vector = CandidateScoringVector::where('candidate_id', $candidateId)
+            ->where('version', 'v1')
+            ->first();
+
+        if (!$vector) return null;
+
+        return [
+            'technical' => $vector->technical_score,
+            'behavioral' => $vector->behavioral_score,
+            'reliability' => $vector->reliability_score,
+            'personality' => $vector->personality_score,
+            'english_proficiency' => $vector->english_proficiency,
+            'english_level' => $vector->english_level,
+            'english_weight' => $vector->english_weight,
+            'composite_score' => $vector->composite_score,
+            'computed_at' => $vector->computed_at?->toIso8601String(),
         ];
     }
 }

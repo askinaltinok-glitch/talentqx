@@ -22,7 +22,7 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->index(['role_key', 'context_key', 'locale']);
-                $table->unique(['role_key', 'context_key', 'question_key', 'locale']);
+                $table->unique(['role_key', 'context_key', 'question_key', 'locale'], 'iq_role_ctx_qkey_locale_unique');
             });
         }
     }

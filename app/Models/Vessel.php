@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vessel extends Model
@@ -28,6 +29,14 @@ class Vessel extends Model
     const SOURCE_MANUAL = 'manual';
     const SOURCE_AIS_API = 'ais_api';
     const SOURCE_IMPORT = 'import';
+
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_vessels')
+            ->withPivot('role', 'is_active', 'assigned_at')
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
 
     public function aisVerifications(): HasMany
     {

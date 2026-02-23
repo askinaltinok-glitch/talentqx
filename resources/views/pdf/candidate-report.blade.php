@@ -462,7 +462,10 @@
                 <tr><th>E-posta</th><td>{{ $candidate->email }}</td></tr>
                 <tr><th>Telefon</th><td>{{ $candidate->phone }}</td></tr>
                 <tr><th>Ülke</th><td>{{ $candidate->country_code }}</td></tr>
-                <tr><th>Kaynak</th><td>{{ $candidate->source_channel }}</td></tr>
+                <tr><th>Kaynak</th><td>{{ $candidate->source_label ?: $candidate->source_channel }}</td></tr>
+                @if($candidate->source_type === 'company_invite' && $candidate->source_label)
+                <tr><th>Şirket Daveti</th><td style="color: #2563eb; font-weight: bold;">{{ $candidate->source_label }}</td></tr>
+                @endif
             </table>
         </div>
         <div class="col-gap"></div>
@@ -656,24 +659,194 @@
 </div>
 @endif
 
-<!-- MÜLAKAT CEVAPLARI -->
+<!-- YETKİNLİK NARRATIVE ÖZETİ -->
 <div class="section">
-    <div class="section-title">Mülakat Cevapları ({{ $answers->count() }} Soru)</div>
-
-    @foreach($answers as $a)
-        <div class="answer-box">
-            <div class="answer-head">
-                <div class="ah-left">Soru {{ $a->slot }} — {{ $compLabels[$a->competency] ?? $a->competency }}</div>
-                <div class="ah-right">
-                    <span class="badge {{ $a->score >= 5 ? 'badge-5' : ($a->score >= 4 ? 'badge-4' : ($a->score >= 3 ? 'badge-3' : 'badge-low')) }}">
-                        {{ $a->score }} / 5
-                    </span>
-                </div>
-            </div>
-            <div class="answer-body">{{ $a->answer_text }}</div>
+    <div class="section-title">Yetkinlik Değerlendirme Özeti</div>
+    @php
+        // Group competencies by performance tier
+        $excellent = collect($scores)->filter(fn($s) => $s >= 85)->keys();
+        $good = collect($scores)->filter(fn($s) => $s >= 70 && $s < 85)->keys();
+        $developing = collect($scores)->filter(fn($s) => $s < 70)->keys();
+    @endphp
+    <div style="padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px;">
+        @if($excellent->isNotEmpty())
+        <div style="margin-bottom: 6px;">
+            <span style="font-size: 8px; font-weight: bold; color: #059669;">● Güçlü Alanlar:</span>
+            <span style="font-size: 8.5px; color: #334155;">
+                {{ $excellent->map(fn($k) => ($compLabels[$k] ?? $k) . ' (' . $scores[$k] . ')')->implode(', ') }}
+            </span>
         </div>
-    @endforeach
+        @endif
+        @if($good->isNotEmpty())
+        <div style="margin-bottom: 6px;">
+            <span style="font-size: 8px; font-weight: bold; color: #d97706;">● Yeterli Alanlar:</span>
+            <span style="font-size: 8.5px; color: #334155;">
+                {{ $good->map(fn($k) => ($compLabels[$k] ?? $k) . ' (' . $scores[$k] . ')')->implode(', ') }}
+            </span>
+        </div>
+        @endif
+        @if($developing->isNotEmpty())
+        <div style="margin-bottom: 6px;">
+            <span style="font-size: 8px; font-weight: bold; color: #dc2626;">● Gelişim Alanları:</span>
+            <span style="font-size: 8.5px; color: #334155;">
+                {{ $developing->map(fn($k) => ($compLabels[$k] ?? $k) . ' (' . $scores[$k] . ')')->implode(', ') }}
+            </span>
+        </div>
+        @endif
+        <div style="margin-top: 6px; font-size: 8.5px; color: #334155; line-height: 1.6;">
+            {{ $candidate->first_name }} {{ $candidate->last_name }},
+            {{ count($scores) }} yetkinlik alanında değerlendirilmiştir. Ortalama skor <strong>{{ $avgScore }}/100</strong> olup,
+            @if($avgScore >= 85) performans mükemmel seviyededir.
+            @elseif($avgScore >= 70) performans yeterli seviyededir.
+            @else performansında gelişim alanları tespit edilmiştir.
+            @endif
+            @if(!empty($ds['explanation'])) {{ $ds['explanation'] }} @endif
+        </div>
+    </div>
 </div>
+
+<!-- DEĞERLENDİRME KANITI (question_code + competency + evidence extract) -->
+@if($interview->answers && $interview->answers->count() > 0)
+<div class="section">
+    <div class="section-title">Değerlendirme Kanıtları</div>
+    <table class="comp-tbl">
+        <thead>
+            <tr>
+                <th style="width: 8%;">Kod</th>
+                <th style="width: 20%;">Yetkinlik</th>
+                <th style="width: 10%; text-align: center;">Skor</th>
+                <th style="width: 62%;">Kanıt Özeti</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($interview->answers->sortBy('slot') as $answer)
+            @php
+                $evidenceWords = array_slice(explode(' ', trim($answer->answer_text)), 0, 25);
+                $evidence = implode(' ', $evidenceWords);
+                if (count(explode(' ', trim($answer->answer_text))) > 25) $evidence .= '…';
+                $ansScore = $scores[$answer->competency] ?? $answer->score ?? null;
+            @endphp
+            <tr>
+                <td style="font-weight: bold; color: #0f4c81; font-size: 8px;">Q{{ $answer->slot }}</td>
+                <td style="font-size: 8.5px;">{{ $compLabels[$answer->competency] ?? ucfirst(str_replace('_', ' ', $answer->competency)) }}</td>
+                <td style="text-align: center; font-weight: bold; color: {{ ($ansScore ?? 0) >= 85 ? '#059669' : (($ansScore ?? 0) >= 70 ? '#d97706' : '#dc2626') }};">
+                    {{ $ansScore ?? '—' }}
+                </td>
+                <td style="font-size: 8px; color: #475569; line-height: 1.4;">{{ $evidence }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    <div style="margin-top: 3px; font-size: 6.5px; color: #94a3b8;">
+        Kanıt özeti: aday cevabının ilk 25 kelimesi. Tam metin gizlidir. Soru metinleri gösterilmez.
+    </div>
+</div>
+@endif
+
+<!-- KARAR GEREKÇESİ -->
+@if(!empty($ds))
+<div class="section">
+    <div class="section-title">Karar Gerekçesi</div>
+    <div style="padding: 6px; background: #f8fafc; border: 1px solid #e2e8f0;">
+        <table class="data-tbl" style="margin-bottom: 6px;">
+            <tr>
+                <th>Karar</th>
+                <td><strong style="color: {{ $decisionColor }};">{{ strtoupper($interview->decision ?? '—') }}</strong></td>
+            </tr>
+            <tr>
+                <th>Güven Oranı</th>
+                <td>%{{ $ds['confidence_pct'] ?? '—' }}</td>
+            </tr>
+            @if(!empty($ds['reason']))
+            <tr>
+                <th>Gerekçe</th>
+                <td>{{ $ds['reason'] }}</td>
+            </tr>
+            @endif
+            @if(!empty($ds['action_line']))
+            <tr>
+                <th>Önerilen Aksiyon</th>
+                <td>{{ $ds['action_line'] }}</td>
+            </tr>
+            @endif
+        </table>
+        @if(!empty($ds['strengths']))
+        <div style="margin-bottom: 4px;">
+            <span style="font-size: 7.5px; font-weight: bold; color: #059669; text-transform: uppercase;">Güçlü Yönler:</span>
+            <span style="font-size: 8.5px; color: #334155;">
+                @foreach($ds['strengths'] as $s) {{ $s }}@if(!$loop->last); @endif @endforeach
+            </span>
+        </div>
+        @endif
+        @if(!empty($ds['risks']))
+        <div>
+            <span style="font-size: 7.5px; font-weight: bold; color: #dc2626; text-transform: uppercase;">Risk Faktörleri:</span>
+            <span style="font-size: 8.5px; color: #334155;">
+                @foreach($ds['risks'] as $r) {{ $r }}@if(!$loop->last); @endif @endforeach
+            </span>
+        </div>
+        @endif
+    </div>
+</div>
+@endif
+
+<!-- RİSK NOTLARI -->
+@if(!empty($interview->risk_flags) && count($interview->risk_flags) > 0)
+<div class="section">
+    <div class="section-title">Risk Bayrakları ({{ count($interview->risk_flags) }})</div>
+    <div style="padding: 6px; border: 1px solid #fecaca; background: #fef2f2;">
+        @foreach($interview->risk_flags as $flag)
+        <div style="margin-bottom: 3px; font-size: 8.5px; color: #991b1b;">
+            <span style="font-weight: bold;">⚠</span>
+            @if(is_array($flag))
+                {{ $flag['code'] ?? '' }}: {{ $flag['detail'] ?? $flag['message'] ?? '' }}
+            @else
+                {{ $flag }}
+            @endif
+        </div>
+        @endforeach
+    </div>
+</div>
+@endif
+
+<!-- SERTİFİKA DURUMU -->
+@if(!empty($certificateRisks) && count($certificateRisks) > 0)
+<div class="section">
+    <div class="section-title">Sertifika Geçerlilik Durumu</div>
+    <table class="comp-tbl">
+        <thead>
+            <tr>
+                <th style="width: 25%;">Sertifika</th>
+                <th style="width: 15%;">No</th>
+                <th style="width: 15%;">Veriliş</th>
+                <th style="width: 15%;">Bitiş</th>
+                <th style="width: 15%;">Durum</th>
+                <th style="width: 15%;">Kalan Gün</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($certificateRisks as $cert)
+            <tr>
+                <td style="font-weight: bold;">{{ strtoupper($cert['certificate_type']) }}</td>
+                <td>{{ $cert['certificate_code'] ?? '—' }}</td>
+                <td>{{ $cert['issued_at'] ?? '—' }}</td>
+                <td>{{ $cert['expires_at'] ?? '—' }}</td>
+                <td>
+                    <span style="display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 7px; font-weight: bold;
+                        background: {{ $cert['risk_color'] === 'green' ? '#d1fae5' : ($cert['risk_color'] === 'yellow' ? '#fef3c7' : ($cert['risk_color'] === 'red' ? '#fee2e2' : '#f1f5f9')) }};
+                        color: {{ $cert['risk_color'] === 'green' ? '#065f46' : ($cert['risk_color'] === 'yellow' ? '#92400e' : ($cert['risk_color'] === 'red' ? '#991b1b' : '#475569')) }};">
+                        {{ strtoupper($cert['risk_level']) }}
+                    </span>
+                </td>
+                <td style="text-align: center; font-weight: bold; color: {{ $cert['risk_color'] === 'green' ? '#059669' : ($cert['risk_color'] === 'red' ? '#dc2626' : '#d97706') }};">
+                    {{ $cert['days_remaining'] !== null ? $cert['days_remaining'] : '—' }}
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
 
 <!-- İMZA BLOĞU (stays on same page as answers) -->
 <div class="sig-block">

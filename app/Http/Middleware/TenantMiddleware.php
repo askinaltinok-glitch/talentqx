@@ -25,6 +25,16 @@ class TenantMiddleware
             // Validate tenant exists
             $tenant = Company::find($tenantId);
             if ($tenant) {
+                // Admins must NEVER be tenant-scoped — skip binding so
+                // BelongsToTenant global scopes don't filter their queries.
+                $user = $request->user();
+                if ($user && ($user->is_platform_admin || $user->is_octopus_admin)) {
+                    // Still expose tenant info on request for controllers that need it,
+                    // but do NOT bind to the container (no auto-scoping).
+                    $request->merge(['tenant_id' => $tenantId]);
+                    return $next($request);
+                }
+
                 app()->instance('current_tenant_id', $tenantId);
                 app()->instance('current_tenant', $tenant);
 

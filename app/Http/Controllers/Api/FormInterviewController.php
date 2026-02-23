@@ -11,6 +11,7 @@ use App\Models\FormInterview;
 use App\Models\PoolCandidate;
 use App\Services\Consent\ConsentService;
 use App\Services\Interview\FormInterviewService;
+use App\Services\Maritime\CareerFeedbackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -123,35 +124,41 @@ class FormInterviewController extends Controller
      * Get a form interview by ID
      * GET /v1/form-interviews/{id}
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         $interview = FormInterview::with('answers')->findOrFail($id);
 
-        return response()->json([
-            'data' => [
-                'id' => $interview->id,
-                'status' => $interview->status,
-                'version' => $interview->version,
-                'language' => $interview->language,
-                'position_code' => $interview->position_code,
-                'template_position_code' => $interview->template_position_code,
-                'template_json' => $interview->template_json,
-                'meta' => $interview->meta,
-                'answers' => $interview->answers->map(fn($a) => [
-                    'slot' => $a->slot,
-                    'competency' => $a->competency,
-                    'answer_text' => $a->answer_text,
-                ]),
-                'competency_scores' => $interview->competency_scores,
-                'risk_flags' => $interview->risk_flags,
-                'final_score' => $interview->final_score,
-                'decision' => $interview->decision,
-                'decision_reason' => $interview->decision_reason,
-                'completed_at' => $interview->completed_at,
-                'created_at' => $interview->created_at,
-                'updated_at' => $interview->updated_at,
-            ],
-        ]);
+        // Base data: always visible (needed during interview flow)
+        $data = [
+            'id' => $interview->id,
+            'status' => $interview->status,
+            'version' => $interview->version,
+            'language' => $interview->language,
+            'position_code' => $interview->position_code,
+            'template_position_code' => $interview->template_position_code,
+            'template_json' => $interview->template_json,
+            'meta' => $interview->meta,
+            'answers' => $interview->answers->map(fn($a) => [
+                'slot' => $a->slot,
+                'competency' => $a->competency,
+                'answer_text' => $a->answer_text,
+            ]),
+            'completed_at' => $interview->completed_at,
+            'created_at' => $interview->created_at,
+            'updated_at' => $interview->updated_at,
+        ];
+
+        // Sensitive scoring data: only for authenticated admin/company users
+        $user = $request->user() ?? auth('sanctum')->user();
+        if ($user) {
+            $data['competency_scores'] = $interview->competency_scores;
+            $data['risk_flags'] = $interview->risk_flags;
+            $data['final_score'] = $interview->final_score;
+            $data['decision'] = $interview->decision;
+            $data['decision_reason'] = $interview->decision_reason;
+        }
+
+        return response()->json(['data' => $data]);
     }
 
     /**
@@ -191,7 +198,7 @@ class FormInterviewController extends Controller
      * Complete the interview and calculate scores
      * POST /v1/form-interviews/{id}/complete
      */
-    public function complete(string $id): JsonResponse
+    public function complete(Request $request, string $id): JsonResponse
     {
         $interview = FormInterview::with('answers')->findOrFail($id);
 
@@ -204,16 +211,24 @@ class FormInterviewController extends Controller
 
         $scored = $this->service->completeAndScore($interview);
 
-        return response()->json([
+        // Base response: safe for all callers
+        $data = [
             'id' => $scored->id,
             'status' => $scored->status,
-            'final_score' => $scored->final_score,
-            'decision' => $scored->decision,
-            'decision_reason' => $scored->decision_reason,
-            'competency_scores' => $scored->competency_scores,
-            'risk_flags' => $scored->risk_flags,
             'completed_at' => $scored->completed_at,
-        ]);
+        ];
+
+        // Sensitive scoring data: only for authenticated admin/company users
+        $user = $request->user() ?? auth('sanctum')->user();
+        if ($user) {
+            $data['final_score'] = $scored->final_score;
+            $data['decision'] = $scored->decision;
+            $data['decision_reason'] = $scored->decision_reason;
+            $data['competency_scores'] = $scored->competency_scores;
+            $data['risk_flags'] = $scored->risk_flags;
+        }
+
+        return response()->json($data);
     }
 
     /**
@@ -269,13 +284,45 @@ class FormInterviewController extends Controller
         $company = $user->company_id ? Company::find($user->company_id) : null;
         $behavioralPdf = $this->behavioralSnapshotForPortal($interview, $company);
 
+        // Build candidate object for template compatibility
+        $candidate = $interview->pool_candidate_id
+            ? \App\Models\PoolCandidate::with(['credentials', 'certificates', 'contracts.latestAisVerification'])->find($interview->pool_candidate_id)
+            : null;
+
+        if (!$candidate) {
+            $meta = $interview->meta ?? [];
+            $candidate = (object) [
+                'id' => null, 'first_name' => $meta['candidate_name'] ?? 'Unknown', 'last_name' => '',
+                'email' => '', 'phone' => '', 'country_code' => '', 'nationality' => null,
+                'license_country' => null, 'flag_endorsement' => null, 'passport_expiry' => null,
+                'status' => $interview->status, 'seafarer' => false, 'source_meta' => [],
+                'credentials' => collect(), 'certificates' => collect(), 'contracts' => collect(),
+            ];
+        }
+
+        // Certificate lifecycle risk data
+        $certificateRisks = [];
+        if ($candidate->id) {
+            $certService = app(\App\Services\Maritime\CertificateLifecycleService::class);
+            $certs = $candidate instanceof \App\Models\PoolCandidate ? $candidate->certificates : collect();
+            $certificateRisks = $certService->enrichWithRiskLevels($certs);
+        }
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.decision-packet', [
             'interview' => $interview,
+            'candidate' => $candidate,
             'outcome' => $interview->outcome,
             'checksum' => $checksum,
             'generatedAt' => $generatedAt,
             'generatedBy' => $generatedBy,
             'behavioralSnapshot' => $behavioralPdf,
+            'execSummary' => [],
+            'trustProfile' => null,
+            'compliancePack' => null,
+            'rankStcw' => null,
+            'stabilityRisk' => null,
+            'radarChart' => null,
+            'certificateRisks' => $certificateRisks,
         ]);
 
         $pdf->setPaper('A4', 'portrait');
@@ -306,6 +353,25 @@ class FormInterviewController extends Controller
             ], 400);
         }
 
+        // Try to resolve Sanctum user (admin/company portal)
+        // api.token middleware doesn't set auth, so we try Sanctum guard explicitly
+        $user = $request->user() ?? auth('sanctum')->user();
+
+        // Authenticated user (admin/company) gets full scoring data
+        if ($user) {
+            $request->setUserResolver(fn() => $user);
+            return $this->scoreForAdmin($request, $interview);
+        }
+
+        // Candidate (unauthenticated) gets career feedback only
+        return $this->scoreForCandidate($interview);
+    }
+
+    /**
+     * Full scoring data for authenticated admin/company users.
+     */
+    private function scoreForAdmin(Request $request, FormInterview $interview): JsonResponse
+    {
         $data = [
             'id' => $interview->id,
             'status' => $interview->status,
@@ -317,7 +383,6 @@ class FormInterviewController extends Controller
             'completed_at' => $interview->completed_at,
         ];
 
-        // Behavioral snapshot: gated by company setting
         $company = $request->user()?->company_id
             ? Company::find($request->user()->company_id)
             : null;
@@ -327,7 +392,6 @@ class FormInterviewController extends Controller
             $data['behavioral_snapshot'] = $behavioralSnapshot;
         }
 
-        // AIS trust evidence: gated by company setting
         if ($company?->showTrustEvidence()) {
             $poolCandidate = $interview->poolCandidate;
             if ($poolCandidate) {
@@ -351,6 +415,28 @@ class FormInterviewController extends Controller
         }
 
         return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Career feedback only — no raw scores, no decision labels, no thresholds.
+     */
+    private function scoreForCandidate(FormInterview $interview): JsonResponse
+    {
+        $feedback = app(CareerFeedbackService::class)
+            ->fromCompetencyScores(
+                $interview->competency_scores ?? [],
+                $interview->decision,
+                $interview->risk_flags ?? [],
+            );
+
+        return response()->json([
+            'data' => [
+                'id' => $interview->id,
+                'status' => 'completed',
+                'completed_at' => $interview->completed_at,
+                'career_feedback' => $feedback,
+            ],
+        ]);
     }
 
     /**

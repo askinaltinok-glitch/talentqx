@@ -202,9 +202,13 @@ class InterviewController extends Controller
 
         $generatedAt = now()->format('d.m.Y H:i');
         $user = $request->user();
-        $generatedBy = $user
-            ? ($user->name ?? $user->email) . ' (' . $user->email . ')'
-            : 'Octopus Admin';
+        if (!$user) {
+            $generatedBy = 'Octopus Admin';
+        } elseif ($user->is_octopus_admin) {
+            $generatedBy = 'Platform admin tarafından oluşturulmuştur';
+        } else {
+            $generatedBy = ($user->name ?? $user->email) . ' (' . $user->email . ')';
+        }
 
         // Behavioral snapshot for PDF (Octo-admin sees full details)
         $bp = $interview->behavioralProfile;
@@ -219,6 +223,16 @@ class InterviewController extends Controller
             'computed_at' => $bp->computed_at?->toIso8601String(),
         ] : null;
 
+        // Certificate risk data for the report
+        $certificateRisks = [];
+        if ($candidate->id) {
+            $realCandidate = $candidate instanceof PoolCandidate ? $candidate : PoolCandidate::find($candidate->id);
+            if ($realCandidate) {
+                $certService = app(\App\Services\Maritime\CertificateLifecycleService::class);
+                $certificateRisks = $certService->enrichWithRiskLevels($realCandidate->certificates);
+            }
+        }
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.candidate-report', [
             'candidate' => $candidate,
             'interview' => $interview,
@@ -226,6 +240,7 @@ class InterviewController extends Controller
             'generatedAt' => $generatedAt,
             'generatedBy' => $generatedBy,
             'behavioralSnapshot' => $behavioralSnapshot,
+            'certificateRisks' => $certificateRisks,
         ]);
 
         $pdf->setPaper('A4', 'portrait');

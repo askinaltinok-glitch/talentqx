@@ -416,9 +416,13 @@ class AdminFormInterviewController extends Controller
 
         $generatedAt = now()->toIso8601String();
         $adminUser = $request->user();
-        $generatedBy = $adminUser
-            ? ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')'
-            : 'Platform Admin';
+        if (!$adminUser) {
+            $generatedBy = 'Platform Admin';
+        } elseif ($adminUser->is_octopus_admin) {
+            $generatedBy = 'Platform admin tarafından oluşturulmuştur';
+        } else {
+            $generatedBy = ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')';
+        }
 
         // Generate PDF
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.decision-packet', [
@@ -489,9 +493,39 @@ class AdminFormInterviewController extends Controller
 
         $generatedAt = now()->format('d.m.Y H:i');
         $adminUser = $request->user();
-        $generatedBy = $adminUser
-            ? ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')'
-            : 'Platform Admin';
+        if (!$adminUser) {
+            $generatedBy = 'Platform Admin';
+        } elseif ($adminUser->is_octopus_admin) {
+            $generatedBy = 'Platform admin tarafından oluşturulmuştur';
+        } else {
+            $generatedBy = ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')';
+        }
+
+        // Certificate lifecycle risk data
+        $certificateRisks = [];
+        if ($candidate->id ?? null) {
+            $realCandidate = \App\Models\PoolCandidate::with('certificates')->find($candidate->id);
+            if ($realCandidate && $realCandidate->certificates->isNotEmpty()) {
+                $certService = app(\App\Services\Maritime\CertificateLifecycleService::class);
+                $certificateRisks = $certService->enrichWithRiskLevels($realCandidate->certificates);
+            }
+        }
+
+        // Behavioral snapshot (if available)
+        $behavioralSnapshot = null;
+        $profile = $interview->behavioralProfile;
+        if ($profile && $profile->status === \App\Models\BehavioralProfile::STATUS_FINAL) {
+            $behavioralSnapshot = [
+                'status' => $profile->status,
+                'confidence' => (float) $profile->confidence,
+                'fit_top3' => $profile->fit_json ? collect($profile->fit_json)
+                    ->map(fn($v, $k) => ['class' => $k, 'fit' => $v['normalized_fit'] ?? 0, 'risk_flag' => $v['risk_flag'] ?? false, 'friction_flag' => $v['friction_flag'] ?? false])
+                    ->sortByDesc('fit')->take(3)->values()->toArray() : null,
+                'flags' => $profile->flags_json,
+                'dimensions' => $profile->dimensions_json,
+                'computed_at' => $profile->computed_at?->toIso8601String(),
+            ];
+        }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.candidate-report', [
             'candidate' => $candidate,
@@ -499,6 +533,8 @@ class AdminFormInterviewController extends Controller
             'answers' => $interview->answers,
             'generatedAt' => $generatedAt,
             'generatedBy' => $generatedBy,
+            'behavioralSnapshot' => $behavioralSnapshot,
+            'certificateRisks' => $certificateRisks,
         ]);
 
         $pdf->setPaper('A4', 'portrait');

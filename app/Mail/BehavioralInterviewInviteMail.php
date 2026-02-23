@@ -33,7 +33,8 @@ class BehavioralInterviewInviteMail extends Mailable
     public function content(): \Illuminate\Mail\Mailables\Content
     {
         $appDomain = $this->brand['frontend_domain'] ?? 'app.octopus-ai.net';
-        $interviewUrl = "https://{$appDomain}/{$this->candidateLocale}/maritime/behavioral-interview?candidate_id={$this->candidate->id}";
+        $token = $this->candidate->public_token ?? '';
+        $interviewUrl = "https://{$appDomain}/{$this->candidateLocale}/maritime/behavioral-interview?candidate_id={$this->candidate->id}&t={$token}";
 
         return new \Illuminate\Mail\Mailables\Content(
             view: 'emails.behavioral-interview-invite',

@@ -20,6 +20,7 @@ class AuditLog extends Model
         'entity_id',
         'old_values',
         'new_values',
+        'metadata',
         'ip_address',
         'user_agent',
         'created_at',
@@ -28,6 +29,7 @@ class AuditLog extends Model
     protected $casts = [
         'old_values' => 'array',
         'new_values' => 'array',
+        'metadata' => 'array',
         'created_at' => 'datetime',
     ];
 

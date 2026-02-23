@@ -302,6 +302,74 @@ Schedule::command('maritime:send-behavioral-invites')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/behavioral-invites.log'));
 
+// ===========================================
+// INTERVIEW INVITATION EXPIRY SWEEP (every 5 min)
+// ===========================================
+Schedule::command('maritime:expire-invitations')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/invitation-expiry.log'));
+
+// ===========================================
+// OBSERVABILITY LOG RETENTION (daily at 3:45 AM)
+// ===========================================
+// Prune maritime_invite_runs older than 90 days
+Schedule::call(function () {
+    $deleted = \Illuminate\Support\Facades\DB::table('maritime_invite_runs')
+        ->where('started_at', '<', now()->subDays(90))
+        ->delete();
+    if ($deleted > 0) {
+        \Illuminate\Support\Facades\Log::info("maritime_invite_runs: pruned {$deleted} rows older than 90 days");
+    }
+})->name('prune-maritime-invite-runs')
+  ->dailyAt('03:45')
+  ->withoutOverlapping();
+
+// ===========================================
+// WEEKLY JOB PULSE (every Monday 10:00 Istanbul)
+// ===========================================
+// Send weekly digest emails to active maritime candidates
+Schedule::command('maritime:weekly-job-pulse --limit=200')
+    ->weeklyOn(1, '10:00')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/weekly-job-pulse.log'));
+
+// ===========================================
+// SUBSCRIPTION EXPIRY REMINDERS (daily at 09:30 Istanbul)
+// ===========================================
+// Send reminders to companies 7d, 3d, 1d before subscription expires
+Schedule::command('subscriptions:send-reminders')
+    ->dailyAt('09:30')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/subscription-reminders.log'));
+
+// ===========================================
+// CANDIDATE MEMBERSHIP EXPIRY (daily at 04:30 Istanbul)
+// ===========================================
+// Downgrade expired candidate memberships to free tier
+Schedule::command('memberships:check-expiry')
+    ->dailyAt('04:30')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/membership-expiry.log'));
+
+// ===========================================
+// TRASH UNVERIFIED CANDIDATES (daily at 3:30 AM)
+// ===========================================
+// Archive candidates who haven't verified email within 48 hours
+Schedule::command('candidates:trash-unverified --hours=48')
+    ->dailyAt('03:30')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/trash-unverified.log'));
+
 // Reset monthly credits for all companies (runs at midnight on the 1st of each month)
 Schedule::command('credits:reset-monthly')
     ->monthlyOn(1, '00:00')

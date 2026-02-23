@@ -40,6 +40,9 @@ class RequireCustomerScope
 
         // AI Copilot
         'v1/copilot',
+
+        // Portal (fleet, manning, roster, crew planning)
+        'v1/portal',
     ];
 
     /**

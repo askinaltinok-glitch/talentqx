@@ -47,6 +47,16 @@ return [
     | This is a standalone structured behavioral assessment sent via email.
     */
     'behavioral_interview_v1' => (bool) env('MARITIME_BEHAVIORAL_INTERVIEW_V1', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interview Engine v2 (Versioned, role-aware, culture-aware)
+    |--------------------------------------------------------------------------
+    | Standalone structured behavioral assessment with 12 questions,
+    | 7 dimensions, locale-aware question sets, and v2 scoring.
+    | Runs in parallel with v1 — does NOT break existing endpoints.
+    */
+    'interview_engine_v2' => (bool) env('MARITIME_INTERVIEW_ENGINE_V2', false),
     'behavioral_invite_delay' => (int) env('MARITIME_BEHAVIORAL_INVITE_DELAY', 180), // minutes
 
     /*
@@ -56,6 +66,15 @@ return [
     | Unified scoring vector [technical, behavior, reliability, personality, english]
     */
     'vector_v1' => (bool) env('MARITIME_VECTOR_V1', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token Enforcement (public candidate endpoints)
+    |--------------------------------------------------------------------------
+    | When true (default), all public candidate endpoints require ?t=<token>.
+    | Set to false for a 24-hour grace period during deploys (frontend → backend).
+    */
+    'token_enforcement' => (bool) env('MARITIME_TOKEN_ENFORCEMENT', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -636,4 +655,160 @@ return [
         'primary'   => 6,
         'secondary' => 2,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Disposable Email Domain Denylist
+    |--------------------------------------------------------------------------
+    | Domains listed here will be blocked during maritime apply.
+    | Add more domains as spam patterns emerge.
+    */
+    /*
+    |--------------------------------------------------------------------------
+    | Crew Synergy Engine V2
+    |--------------------------------------------------------------------------
+    | 4-pillar crew compatibility scoring: captain fit, team balance,
+    | vessel fit, operational risk. Feature-flagged for parallel rollout.
+    */
+    'crew_synergy_v2' => (bool) env('CREW_SYNERGY_ENGINE_V2', false),
+
+    'synergy_v2' => [
+        'captain_style_thresholds' => [
+            'authoritative' => ['DISCIPLINE_COMPLIANCE' => 70, 'CONFLICT_RISK' => 60],
+            'collaborative' => ['TEAM_COOPERATION' => 70, 'COMM_CLARITY' => 65],
+            'adaptive'      => ['STRESS_CONTROL' => 65, 'LEARNING_GROWTH' => 65],
+        ],
+        'team_balance_ideal_std_range' => [8, 25],
+        'component_weights' => [
+            'captain_fit'      => 0.25,
+            'team_balance'     => 0.20,
+            'vessel_fit'       => 0.30,
+            'operational_risk' => 0.25,
+        ],
+        'cert_expiry_warning_days' => 90,
+        'early_termination_threshold_ratio' => 0.3,
+        'cache_ttl_seconds' => 300,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synergy V2 — Role-Based Weight Map (respect/discipline)
+    |--------------------------------------------------------------------------
+    | Per-role behavioral dimension weights for crew synergy scoring.
+    | Used by RoleWeightMap service. Tenant overrides via feature flag payload.
+    */
+    'synergy_weights' => [
+        'version' => '2026-02-23',
+
+        'missing_dimension_default_score' => 0.5,
+
+        'normalization' => [
+            'sum_to_1' => true,
+        ],
+
+        'defaults' => [
+            'weights' => [
+                'respect' => 0.14,
+                'discipline' => 0.14,
+                'communication' => 0.14,
+                'initiative' => 0.12,
+                'conflict_handling' => 0.12,
+                'teamwork' => 0.18,
+                'stress_tolerance' => 0.16,
+            ],
+        ],
+
+        'roles' => [
+            'master' => [
+                'weights' => [
+                    'respect' => 0.22,
+                    'discipline' => 0.18,
+                    'communication' => 0.16,
+                    'initiative' => 0.10,
+                    'conflict_handling' => 0.10,
+                    'teamwork' => 0.14,
+                    'stress_tolerance' => 0.10,
+                ],
+            ],
+            'chief_officer' => [
+                'weights' => [
+                    'respect' => 0.18,
+                    'discipline' => 0.18,
+                    'communication' => 0.18,
+                    'initiative' => 0.10,
+                    'conflict_handling' => 0.10,
+                    'teamwork' => 0.14,
+                    'stress_tolerance' => 0.12,
+                ],
+            ],
+            'chief_engineer' => [
+                'weights' => [
+                    'respect' => 0.18,
+                    'discipline' => 0.22,
+                    'communication' => 0.14,
+                    'initiative' => 0.12,
+                    'conflict_handling' => 0.10,
+                    'teamwork' => 0.12,
+                    'stress_tolerance' => 0.12,
+                ],
+            ],
+            'able_seaman' => [
+                'weights' => [
+                    'respect' => 0.14,
+                    'discipline' => 0.16,
+                    'communication' => 0.12,
+                    'initiative' => 0.10,
+                    'conflict_handling' => 0.10,
+                    'teamwork' => 0.22,
+                    'stress_tolerance' => 0.16,
+                ],
+            ],
+        ],
+    ],
+
+    'disposable_email_domains' => [
+        'tempmail.com', 'temp-mail.org', 'temp-mail.io',
+        '10minutemail.com', '10minutemail.net',
+        'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org',
+        'mailinator.com', 'mailinator.net',
+        'throwaway.email', 'throwaway.com',
+        'yopmail.com', 'yopmail.fr', 'yopmail.net',
+        'sharklasers.com', 'guerrillamailblock.com',
+        'grr.la', 'dispostable.com', 'trashmail.com', 'trashmail.net',
+        'maildrop.cc', 'mailnesia.com', 'tempail.com',
+        'fakeinbox.com', 'mailcatch.com', 'tempr.email',
+        'discard.email', 'getnada.com', 'emailondeck.com',
+        'mohmal.com', 'minutemail.com',
+        'burnermail.io', 'inboxbear.com', 'mytemp.email',
+        'tempmailaddress.com', 'tempinbox.com',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Clean Recruitment Workflow v1
+    |--------------------------------------------------------------------------
+    | Separates application (factual data) from behavioral interview.
+    | When enabled: application collects data only, then a dedicated invitation
+    | system gates the behavioral interview with a 48-hour expiring token.
+    */
+    'clean_workflow_v1' => (bool) env('MARITIME_CLEAN_WORKFLOW_V1', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vessel Requirement Engine v1
+    |--------------------------------------------------------------------------
+    | When enabled, CandidateDecisionService uses vessel-type requirement
+    | profiles (cert fit, experience fit, behavior fit, availability fit)
+    | instead of the legacy hardcoded 4-pillar weights.
+    */
+    'vessel_requirement_engine_v1' => (bool) env('VESSEL_REQUIREMENT_ENGINE_V1', false),
+    'interview_invite_delay_minutes' => (int) env('MARITIME_INTERVIEW_INVITE_DELAY_MINUTES', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Voice Gateway (Deepgram streaming dictation)
+    |--------------------------------------------------------------------------
+    | Shared HMAC secret with AiModelsPanel voice gateway.
+    */
+    'voice_gateway_secret' => env('VOICE_GATEWAY_SECRET', ''),
 ];

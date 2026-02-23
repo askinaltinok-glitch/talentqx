@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Mail\ApplicationReceivedMail;
 use App\Mail\BehavioralInterviewInviteMail;
 use App\Mail\InterviewCompletedMail;
+use App\Mail\InterviewInvitationMail;
+use App\Models\InterviewInvitation;
 use App\Models\CandidateEmailLog;
 use App\Models\FormInterview;
 use App\Models\PoolCandidate;
@@ -131,14 +133,29 @@ class SendCandidateEmailJob implements ShouldQueue
         return BrandResolver::fromCandidate($candidate);
     }
 
-    private function buildMailable(PoolCandidate $candidate, array $brand): ApplicationReceivedMail|InterviewCompletedMail|BehavioralInterviewInviteMail|null
+    private function buildMailable(PoolCandidate $candidate, array $brand): ApplicationReceivedMail|InterviewCompletedMail|BehavioralInterviewInviteMail|InterviewInvitationMail|null
     {
         return match ($this->mailType) {
             'application_received' => new ApplicationReceivedMail($candidate, $brand),
             'interview_completed' => new InterviewCompletedMail($candidate, $this->positionName, $brand),
             'behavioral_interview_invite' => new BehavioralInterviewInviteMail($candidate, $brand),
+            'interview_invitation' => $this->buildInterviewInvitationMail($candidate, $brand),
             default => null,
         };
+    }
+
+    private function buildInterviewInvitationMail(PoolCandidate $candidate, array $brand): ?InterviewInvitationMail
+    {
+        $invitation = InterviewInvitation::where('pool_candidate_id', $candidate->id)
+            ->whereIn('status', [InterviewInvitation::STATUS_INVITED, InterviewInvitation::STATUS_STARTED])
+            ->latest()
+            ->first();
+
+        if (!$invitation) {
+            return null;
+        }
+
+        return new InterviewInvitationMail($candidate, $invitation, $brand);
     }
 
     private function isWhitelisted(string $email): bool

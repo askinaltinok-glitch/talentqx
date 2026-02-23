@@ -8,11 +8,13 @@ use App\Models\CandidateQualificationCheck;
 use App\Models\FormInterview;
 use App\Models\LanguageAssessment;
 use App\Models\PoolCandidate;
+use App\Models\SeafarerCertificate;
 
 class CandidateDecisionPanelService
 {
     public function __construct(
         private readonly CrewSynergyPreviewService $synergyPreview,
+        private readonly CertificateLifecycleService $lifecycleService,
     ) {}
     /**
      * Known qualification keys for maritime candidates.
@@ -35,6 +37,16 @@ class CandidateDecisionPanelService
         $candidate = PoolCandidate::with(['trustProfile'])->find($candidateId);
         if (!$candidate) {
             return null;
+        }
+
+        // Clean workflow guard: no decision packet without completed behavioral interview
+        if (config('maritime.clean_workflow_v1')) {
+            $hasCompleted = $candidate->formInterviews()
+                ->where('status', 'completed')
+                ->exists();
+            if (!$hasCompleted) {
+                return null;
+            }
         }
 
         $qualifications = $this->buildQualifications($candidate);
@@ -72,8 +84,14 @@ class CandidateDecisionPanelService
             ->get()
             ->keyBy('qualification_key');
 
+        // Load all SeafarerCertificates for lifecycle data, keyed by certificate_type (lowercased)
+        $seafarerCerts = SeafarerCertificate::where('pool_candidate_id', $c->id)
+            ->get()
+            ->keyBy(fn(SeafarerCertificate $cert) => strtolower($cert->certificate_type));
+
         $items = [];
         $verifiedCount = 0;
+        $expiryStats = ['expired' => 0, 'critical' => 0, 'expiring_soon' => 0, 'valid' => 0, 'unknown' => 0];
 
         // Build full list from known qualifications
         $allKeys = array_keys(self::KNOWN_QUALIFICATIONS);
@@ -103,7 +121,33 @@ class CandidateDecisionPanelService
                 $verifiedCount++;
             }
 
-            $items[] = [
+            // Certificate lifecycle (expiry) data
+            $seafarerCert = $seafarerCerts->get($key);
+            $expiryData = [
+                'expires_at' => null,
+                'expiry_source' => null,
+                'risk_level' => 'unknown',
+                'risk_color' => 'gray',
+                'days_remaining' => null,
+                'risk_label' => null,
+            ];
+
+            if ($seafarerCert) {
+                $risk = $this->lifecycleService->getExpiryRiskLevel($seafarerCert);
+                $expiryData = [
+                    'expires_at' => $seafarerCert->expires_at?->toDateString(),
+                    'expiry_source' => $risk['expiry_source'],
+                    'risk_level' => $risk['level'],
+                    'risk_color' => $risk['color'],
+                    'days_remaining' => $risk['days_remaining'],
+                    'risk_label' => $risk['label'],
+                ];
+                $expiryStats[$risk['level']]++;
+            } else {
+                $expiryStats['unknown']++;
+            }
+
+            $items[] = array_merge([
                 'key' => $key,
                 'label' => __("maritime.qualification.{$key}") !== "maritime.qualification.{$key}"
                     ? __("maritime.qualification.{$key}")
@@ -113,7 +157,7 @@ class CandidateDecisionPanelService
                 'verified_by' => $check?->verified_by,
                 'verified_at' => $check?->verified_at?->toIso8601String(),
                 'notes' => $check?->notes,
-            ];
+            ], $expiryData);
         }
 
         return [
@@ -121,6 +165,7 @@ class CandidateDecisionPanelService
             'summary' => [
                 'verified_count' => $verifiedCount,
                 'total_count' => count($items),
+                'expiry_stats' => $expiryStats,
             ],
         ];
     }

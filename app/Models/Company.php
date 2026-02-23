@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
@@ -30,6 +31,10 @@ class Company extends Model
         'address',
         'city',
         'country',
+        'timezone',
+        'fleet_size',
+        'management_type',
+        'onboarding_completed',
         'subscription_plan',
         'subscription_ends_at',
         'is_premium',
@@ -54,6 +59,7 @@ class Company extends Model
         'settings' => 'array',
         'subscription_ends_at' => 'datetime',
         'grace_period_ends_at' => 'datetime',
+        'onboarding_completed' => 'boolean',
         'is_premium' => 'boolean',
         'monthly_credits' => 'integer',
         'credits_used' => 'integer',
@@ -75,6 +81,34 @@ class Company extends Model
      * Default grace period in days after subscription expires.
      */
     public const DEFAULT_GRACE_PERIOD_DAYS = 60;
+
+    public function companyVessels(): HasMany
+    {
+        return $this->hasMany(CompanyVessel::class);
+    }
+
+    public function fleetVessels(): HasMany
+    {
+        return $this->hasMany(FleetVessel::class);
+    }
+
+    public function vessels(): BelongsToMany
+    {
+        return $this->belongsToMany(Vessel::class, 'company_vessels')
+            ->withPivot('role', 'is_active', 'assigned_at')
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
+    public function applyLinks(): HasMany
+    {
+        return $this->hasMany(CompanyApplyLink::class);
+    }
+
+    public function certificateRules(): HasMany
+    {
+        return $this->hasMany(CompanyCertificateRule::class);
+    }
 
     public function users(): HasMany
     {

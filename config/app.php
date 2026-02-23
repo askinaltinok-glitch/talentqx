@@ -5,6 +5,7 @@ return [
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'https://octopus-ai.net')),
     'timezone' => env('APP_TIMEZONE', 'Europe/Istanbul'),
     'locale' => env('APP_LOCALE', 'tr'),
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),

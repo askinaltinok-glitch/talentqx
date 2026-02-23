@@ -16,6 +16,18 @@ class SeafarerCertificate extends Model
 {
     use HasUuids;
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $cert) {
+            // Data integrity: expires_at must be after issued_at
+            if ($cert->issued_at && $cert->expires_at) {
+                if ($cert->expires_at->lte($cert->issued_at)) {
+                    throw new \InvalidArgumentException('Certificate expiry date must be after issue date.');
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'pool_candidate_id',
         'certificate_type',
@@ -24,6 +36,8 @@ class SeafarerCertificate extends Model
         'issuing_country',
         'issued_at',
         'expires_at',
+        'expiry_source',
+        'self_declared',
         'document_url',
         'document_hash',
         'verification_status',
@@ -36,7 +50,27 @@ class SeafarerCertificate extends Model
         'issued_at' => 'date',
         'expires_at' => 'date',
         'verified_at' => 'datetime',
+        'self_declared' => 'boolean',
     ];
+
+    // Expiry source constants
+    public const EXPIRY_SOURCE_UPLOADED = 'uploaded';
+    public const EXPIRY_SOURCE_ESTIMATED_DEFAULT = 'estimated_default';
+    public const EXPIRY_SOURCE_ESTIMATED_COUNTRY = 'estimated_country';
+    public const EXPIRY_SOURCE_ESTIMATED_COMPANY = 'estimated_company';
+    public const EXPIRY_SOURCE_UNKNOWN = 'unknown';
+
+    /**
+     * Check if expiry date was estimated (not uploaded by user).
+     */
+    public function isExpiryEstimated(): bool
+    {
+        return in_array($this->expiry_source, [
+            self::EXPIRY_SOURCE_ESTIMATED_DEFAULT,
+            self::EXPIRY_SOURCE_ESTIMATED_COUNTRY,
+            self::EXPIRY_SOURCE_ESTIMATED_COMPANY,
+        ]);
+    }
 
     // Verification statuses
     public const STATUS_PENDING = 'pending';

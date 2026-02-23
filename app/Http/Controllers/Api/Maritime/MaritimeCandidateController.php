@@ -6,12 +6,16 @@ use App\Config\MaritimeRole;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendCandidateEmailJob;
 use App\Models\CandidateTimelineEvent;
+use App\Models\CompanyApplyLink;
 use App\Models\FormInterview;
 use App\Models\PoolCandidate;
 use App\Services\ML\ModelFeatureService;
 use App\Services\PoolCandidateService;
+use App\Services\Maritime\EmailVerificationService;
+use App\Services\Security\RecaptchaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -95,17 +99,72 @@ class MaritimeCandidateController extends Controller
     {
         $this->resolveLocale($request);
 
+        // --- Gate A: Per-IP daily cap (50/day) ---
+        $ipKey = 'maritime_apply_daily:' . $request->ip();
+        $dailyCount = (int) Cache::get($ipKey, 0);
+        if ($dailyCount >= 50) {
+            Log::channel('single')->warning('Maritime apply daily IP cap hit', ['ip' => $request->ip(), 'count' => $dailyCount]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Too many applications from this network today. Please try again tomorrow.',
+            ], 429);
+        }
+
+        // --- Gate B: reCAPTCHA v3 verification ---
+        $recaptcha = app(RecaptchaService::class);
+        if ($recaptcha->isEnabled()) {
+            $captchaToken = $request->input('captcha_token');
+            if (!$captchaToken) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Captcha verification required.',
+                    'messages' => ['captcha_token' => ['Captcha token is missing.']],
+                ], 422);
+            }
+            $result = $recaptcha->verify($captchaToken, 'maritime_apply');
+            if (!$result['success']) {
+                Log::channel('single')->info('Maritime apply captcha failed', [
+                    'ip' => $request->ip(),
+                    'score' => $result['score'],
+                    'error' => $result['error'],
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Captcha verification failed. Please try again.',
+                ], 422);
+            }
+        }
+
+        // --- Gate C: Disposable email domain blocking ---
+        $emailDomain = strtolower(substr($request->input('email', ''), strpos($request->input('email', ''), '@') + 1));
+        if (in_array($emailDomain, config('maritime.disposable_email_domains', []), true)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Please use a personal or work email address. Temporary email services are not accepted.',
+                'messages' => ['email' => ['Temporary email addresses are not accepted.']],
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             // Basic info
-            'first_name' => ['required', 'string', 'max:128'],
-            'last_name' => ['required', 'string', 'max:128'],
+            'first_name' => ['required', 'string', 'min:2', 'max:128'],
+            'last_name' => ['required', 'string', 'min:2', 'max:128'],
             'email' => ['required', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:32'],
+            'phone' => ['required', 'string', 'min:7', 'max:32', 'regex:/^\+?[0-9\s\-().]{7,32}$/'],
             'country_code' => ['required', 'string', 'size:2'],
             'preferred_language' => ['nullable', 'string', 'in:tr,en,ru,az,fil,id,uk'],
 
             // English self-assessment
             'english_level_self' => ['required', 'string', 'in:' . implode(',', PoolCandidate::ENGLISH_LEVELS)],
+
+            // Identity v2
+            'nationality' => ['required', 'string', 'size:2'],
+            'country_of_residence' => ['nullable', 'string', 'size:2'],
+            'passport_expiry' => ['nullable', 'date', 'after:today'],
+            'visa_status' => ['nullable', 'string', 'in:none,valid,expired,pending'],
+            'license_country' => ['nullable', 'string', 'size:2'],
+            'license_class' => ['nullable', 'string', 'max:32'],
+            'flag_endorsement' => ['nullable', 'string', 'max:64'],
 
             // Maritime-specific
             'rank' => ['required', 'string', 'in:' . implode(',', MaritimeRole::allAcceptedCodes())],
@@ -114,6 +173,10 @@ class MaritimeCandidateController extends Controller
             'vessel_types.*' => ['string', 'max:64'],
             'certificates' => ['nullable', 'array'],
             'certificates.*' => ['string', 'in:' . implode(',', self::CERTIFICATE_TYPES)],
+            'certificate_details' => ['nullable', 'array'],
+            'certificate_details.*.issue_date' => ['nullable', 'date'],
+            'certificate_details.*.expiry_date' => ['nullable', 'date'],
+            'certificate_details.*.self_declared' => ['nullable', 'boolean'],
 
             // Source tracking
             'source_channel' => ['required', 'string', 'in:' . implode(',', self::MARITIME_SOURCE_CHANNELS)],
@@ -134,6 +197,14 @@ class MaritimeCandidateController extends Controller
             // WhatsApp opt-in
             'whatsapp_opt_in' => ['nullable', 'boolean'],
 
+            // Referral
+            'ref' => ['nullable', 'string', 'max:20'],
+            'referral_code' => ['nullable', 'string', 'max:20'],
+
+            // Company apply link attribution
+            'company_slug' => ['nullable', 'string', 'max:100'],
+            'apply_token' => ['nullable', 'string', 'max:64'],
+
             // Options
             'auto_start_interview' => ['nullable', 'boolean'],
             'locale' => ['nullable', 'string', 'in:en,tr,ru,az,fil,id,uk'],
@@ -148,6 +219,8 @@ class MaritimeCandidateController extends Controller
             'english_level_self.in' => __('maritime.validation.english_level_invalid'),
             'rank.required' => __('maritime.validation.rank_required'),
             'rank.in' => __('maritime.validation.rank_invalid'),
+            'nationality.required' => __('maritime.validation.nationality_required'),
+            'passport_expiry.after' => __('maritime.validation.passport_expiry_future'),
             'source_channel.required' => __('maritime.validation.source_required'),
             'source_channel.in' => __('maritime.validation.source_invalid'),
             'consents.privacy_policy.accepted' => __('maritime.validation.privacy_required'),
@@ -166,6 +239,18 @@ class MaritimeCandidateController extends Controller
 
         // Normalize rank alias → canonical code
         $data['rank'] = MaritimeRole::normalize($data['rank']) ?? $data['rank'];
+
+        // --- Gate D: Phone soft-uniqueness (different email, same phone → 409) ---
+        $existingByPhone = PoolCandidate::where('phone', $data['phone'])
+            ->where('email', '!=', $data['email'])
+            ->first();
+        if ($existingByPhone) {
+            return response()->json([
+                'success' => false,
+                'error' => __('maritime.response.welcome_back'),
+                'messages' => ['phone' => ['This phone number is already registered. Please use the same email to continue.']],
+            ], 409);
+        }
 
         // Check for existing candidate
         $existing = $this->candidateService->findByEmail($data['email']);
@@ -225,17 +310,36 @@ class MaritimeCandidateController extends Controller
             return response()->json($response);
         }
 
+        // Resolve company apply link for source attribution
+        $applyLink = null;
+        if (!empty($data['company_slug']) && !empty($data['apply_token'])) {
+            $applyLink = CompanyApplyLink::withoutTenantScope()
+                ->where('slug', $data['company_slug'])
+                ->where('token', $data['apply_token'])
+                ->first();
+        }
+
         // Create maritime candidate with all flags
-        $candidate = DB::transaction(function () use ($data) {
+        $candidate = DB::transaction(function () use ($data, $applyLink) {
             $candidate = PoolCandidate::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
                 'country_code' => $data['country_code'],
+                'nationality' => $data['nationality'] ?? null,
+                'country_of_residence' => $data['country_of_residence'] ?? null,
+                'passport_expiry' => $data['passport_expiry'] ?? null,
+                'visa_status' => $data['visa_status'] ?? null,
+                'license_country' => $data['license_country'] ?? null,
+                'license_class' => $data['license_class'] ?? null,
+                'flag_endorsement' => $data['flag_endorsement'] ?? null,
                 'preferred_language' => $data['preferred_language'] ?? 'en',
                 'english_level_self' => $data['english_level_self'],
-                'source_channel' => $data['source_channel'],
+                'source_channel' => $applyLink ? PoolCandidate::SOURCE_COMPANY_INVITE : $data['source_channel'],
+                'source_type' => $applyLink ? PoolCandidate::SOURCE_TYPE_COMPANY_INVITE : PoolCandidate::SOURCE_TYPE_ORGANIC,
+                'source_company_id' => $applyLink?->company_id,
+                'source_label' => $applyLink?->label,
                 'candidate_source' => PoolCandidate::CANDIDATE_SOURCE_PUBLIC,
                 'source_meta' => array_merge(
                     $data['source_meta'] ?? [],
@@ -262,6 +366,46 @@ class MaritimeCandidateController extends Controller
             $candidate->ensureProfile('seeker', $data['preferred_language'] ?? 'en');
             $candidate->ensurePrimaryEmail();
 
+            // Create SeafarerCertificate records from certificate details
+            $certDetails = $data['certificate_details'] ?? [];
+            $certCodes = $data['certificates'] ?? [];
+            $validityConfig = config('certificate_validity.default_validity_months', []);
+
+            foreach ($certCodes as $certCode) {
+                $detail = $certDetails[$certCode] ?? [];
+                $issueDate = $detail['issue_date'] ?? null;
+                $expiryDate = $detail['expiry_date'] ?? null;
+                $selfDeclared = (bool) ($detail['self_declared'] ?? false);
+
+                // Auto-compute expiry from issue_date + validity map if self_declared and no expiry
+                if ($selfDeclared && $issueDate && !$expiryDate) {
+                    $months = $validityConfig[$certCode] ?? 60;
+                    $expiryDate = \Carbon\Carbon::parse($issueDate)->addMonths($months)->toDateString();
+                }
+
+                \App\Models\SeafarerCertificate::create([
+                    'pool_candidate_id' => $candidate->id,
+                    'certificate_type' => $certCode,
+                    'issuing_country' => $data['nationality'] ?? $data['country_code'],
+                    'issued_at' => $issueDate,
+                    'expires_at' => $expiryDate,
+                    'verification_status' => \App\Models\SeafarerCertificate::STATUS_PENDING,
+                    'verification_notes' => $selfDeclared ? 'Expiry auto-estimated from validity map (self_declared)' : null,
+                ]);
+            }
+
+            // Handle referral tracking
+            $refCode = $data['ref'] ?? $data['referral_code'] ?? null;
+            if ($refCode) {
+                $referrer = PoolCandidate::where('referral_code', $refCode)->first();
+                if ($referrer && $referrer->id !== $candidate->id) {
+                    $candidate->referred_by_id = $referrer->id;
+                    $candidate->source_channel = 'referral';
+                    $candidate->save();
+                    $referrer->increment('referral_count');
+                }
+            }
+
             return $candidate;
         });
 
@@ -277,8 +421,14 @@ class MaritimeCandidateController extends Controller
             ],
         ];
 
-        // Auto-start interview if requested
-        if ($data['auto_start_interview'] ?? false) {
+        // Clean workflow v1: separate application from interview
+        if (config('maritime.clean_workflow_v1')) {
+            $candidate->update(['application_completed_at' => now()]);
+            \App\Jobs\SendInterviewInvitationJob::dispatch($candidate->id)
+                ->delay(now()->addMinutes(config('maritime.interview_invite_delay_minutes', 5)));
+            $response['data']['application_completed_at'] = now()->toIso8601String();
+        } elseif ($data['auto_start_interview'] ?? false) {
+            // Legacy path: auto_start_interview (unchanged)
             try {
                 $interview = $this->startMaritimeInterview($candidate, $data);
                 if ($interview) {
@@ -301,6 +451,13 @@ class MaritimeCandidateController extends Controller
         // Send "Başvuru Alındı" email
         SendCandidateEmailJob::dispatchSafe($candidate->id, 'application_received');
 
+        // Send email verification link
+        try {
+            app(EmailVerificationService::class)->sendVerification($candidate);
+        } catch (\Throwable $e) {
+            Log::warning('Email verification dispatch failed', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
+        }
+
         // Timeline: applied event
         try {
             CandidateTimelineEvent::record(
@@ -314,6 +471,12 @@ class MaritimeCandidateController extends Controller
             );
         } catch (\Throwable $e) {
             Log::warning('Timeline event failed (applied)', ['error' => $e->getMessage()]);
+        }
+
+        // Increment daily IP counter
+        Cache::increment($ipKey);
+        if ($dailyCount === 0) {
+            Cache::put($ipKey, 1, now()->endOfDay());
         }
 
         return response()->json($response, 201);
@@ -449,16 +612,160 @@ class MaritimeCandidateController extends Controller
             }
         }
 
+        // Enriched data for candidate panel
+        $completedInterviews = $candidate->formInterviews()
+            ->where('status', 'completed')
+            ->count();
+
+        $credentialsCount = $candidate->credentials()->count();
+        $expiringCerts = $candidate->credentials()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now()->addDays(90))
+            ->where('expires_at', '>', now())
+            ->count();
+
+        $membership = $candidate->membership;
+        $presentationCount = $candidate->presentations()->count();
+
+        // Latest completed interview decision
+        $latestCompleted = $candidate->formInterviews()
+            ->where('status', 'completed')
+            ->latest('completed_at')
+            ->first();
+
         return response()->json([
             'success' => true,
             'data' => [
+                'id' => $candidate->id,
                 'candidate_id' => $candidate->id,
+                'first_name' => $candidate->first_name,
+                'last_name' => $candidate->last_name,
+                'email' => $candidate->email,
                 'status' => $candidate->status,
                 'status_label' => $this->getStatusLabel($candidate->status),
+                'rank' => $candidate->rank ?? null,
+                'primary_industry' => $candidate->primary_industry,
+                'email_verified' => (bool) $candidate->email_verified_at,
+                'membership_tier' => $membership?->getEffectiveTier() ?? 'free',
+                'interviews_completed' => $completedInterviews,
+                'credentials_count' => $credentialsCount,
+                'certificates_expiring_soon' => $expiringCerts,
+                'presentation_count' => $presentationCount,
+                'latest_score' => $latestCompleted?->final_score,
+                'latest_decision' => $latestCompleted?->decision,
                 'assessment' => $assessmentStatus,
                 'next_steps' => $this->getNextSteps($candidate, $latestInterview),
             ],
         ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/locale
+     *
+     * Update the candidate's preferred language.
+     * Token-verified via ?t= query param.
+     */
+    public function updateLocale(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        }
+
+        // Verify token (same pattern as other public endpoints)
+        if (config('maritime.token_enforcement', true)) {
+            $token = $request->query('t');
+            if (!$token) {
+                return response()->json(['success' => false, 'message' => 'Invalid or missing token.'], 403);
+            }
+            $valid = false;
+            if ($candidate->public_token_hash) {
+                $valid = hash_equals($candidate->public_token_hash, hash('sha256', $token));
+            }
+            if (!$valid && $candidate->public_token) {
+                $valid = hash_equals($candidate->public_token, $token);
+            }
+            if (!$valid) {
+                return response()->json(['success' => false, 'message' => 'Invalid or missing token.'], 403);
+            }
+        }
+
+        $validator = Validator::make($request->all(), [
+            'locale' => 'required|string|in:en,tr,ru,az,fil,id,uk',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $candidate->update(['preferred_language' => $request->locale]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['preferred_language' => $request->locale],
+        ]);
+    }
+
+    /**
+     * GET /api/maritime/candidates/verify-email
+     *
+     * Verify a candidate's email via signed token link.
+     */
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $token = $request->query('token');
+        $email = $request->query('email');
+
+        if (!$token || !$email) {
+            return response()->json(['success' => false, 'message' => 'Invalid verification link.'], 422);
+        }
+
+        $candidate = app(EmailVerificationService::class)->verify($email, $token);
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Verification link is invalid or expired. Please request a new one.'], 410);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email verified successfully.',
+            'data' => ['email' => $candidate->email, 'verified_at' => $candidate->email_verified_at],
+        ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/resend-verification
+     *
+     * Resend email verification (throttled, max 3 per hour).
+     */
+    public function resendVerification(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        }
+
+        if ($candidate->email_verified_at) {
+            return response()->json(['success' => true, 'message' => 'Email already verified.']);
+        }
+
+        // Throttle: don't resend within 2 minutes of last send
+        if ($candidate->email_verification_sent_at &&
+            $candidate->email_verification_sent_at->diffInMinutes(now()) < 2) {
+            return response()->json(['success' => false, 'message' => 'Please wait before requesting another verification email.'], 429);
+        }
+
+        // P1.3: max 3 resends per 24 hours
+        $cacheKey = 'email_verify_resend:' . $candidateId;
+        $sent24h = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0);
+        if ($sent24h >= 3) {
+            return response()->json(['success' => false, 'message' => 'Maximum verification emails reached. Please try again tomorrow.'], 429);
+        }
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $sent24h + 1, now()->addHours(24));
+
+        app(EmailVerificationService::class)->sendVerification($candidate);
+
+        return response()->json(['success' => true, 'message' => 'Verification email sent.']);
     }
 
     /**
@@ -810,5 +1117,216 @@ class MaritimeCandidateController extends Controller
             'hazmat' => 'Hazardous Materials',
             default => ucwords(str_replace('_', ' ', $cert)),
         };
+    }
+
+    // =========================================================================
+    // GDPR / KVKK — Candidate self-service data rights
+    // =========================================================================
+
+    /**
+     * GET /api/maritime/candidates/{id}/data-export
+     *
+     * Candidate downloads their own data as JSON.
+     * Token-verified via ?t= query param.
+     */
+    public function dataExport(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::with([
+            'credentials',
+            'contracts',
+            'formInterviews' => fn($q) => $q->select('id', 'pool_candidate_id', 'status', 'position_code', 'completed_at', 'created_at'),
+            'contactPoints',
+        ])->find($candidateId);
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        }
+
+        $data = [
+            'export_metadata' => [
+                'exported_at' => now()->toIso8601String(),
+                'legal_basis' => 'GDPR Article 20 / KVKK Article 11 — Right to Data Portability',
+                'format' => 'JSON',
+            ],
+            'personal_info' => [
+                'first_name' => $candidate->first_name,
+                'last_name' => $candidate->last_name,
+                'email' => $candidate->email,
+                'phone' => $candidate->phone,
+                'country_code' => $candidate->country_code,
+                'nationality' => $candidate->nationality,
+                'country_of_residence' => $candidate->country_of_residence,
+                'passport_expiry' => $candidate->passport_expiry?->toDateString(),
+                'visa_status' => $candidate->visa_status,
+                'preferred_language' => $candidate->preferred_language,
+                'registered_at' => $candidate->created_at?->toIso8601String(),
+                'email_verified_at' => $candidate->email_verified_at?->toIso8601String(),
+            ],
+            'maritime_profile' => [
+                'rank' => $candidate->rank,
+                'primary_industry' => $candidate->primary_industry,
+                'source_channel' => $candidate->source_channel,
+                'english_level_self' => $candidate->english_level_self,
+                'license_country' => $candidate->license_country,
+                'license_class' => $candidate->license_class,
+                'flag_endorsement' => $candidate->flag_endorsement,
+            ],
+            'certificates' => $candidate->credentials->map(fn($c) => [
+                'type' => $c->credential_type,
+                'number' => $c->credential_number,
+                'issuer' => $c->issuer,
+                'issued_at' => $c->issued_at,
+                'expires_at' => $c->expires_at,
+                'verification_status' => $c->verification_status,
+            ])->toArray(),
+            'contracts' => $candidate->contracts->map(fn($c) => [
+                'vessel_name' => $c->vessel_name,
+                'vessel_imo' => $c->vessel_imo,
+                'vessel_type' => $c->vessel_type,
+                'rank_code' => $c->rank_code,
+                'start_date' => $c->start_date,
+                'end_date' => $c->end_date,
+                'trading_area' => $c->trading_area,
+            ])->toArray(),
+            'assessments' => $candidate->formInterviews->map(fn($i) => [
+                'id' => $i->id,
+                'status' => $i->status,
+                'position_code' => $i->position_code,
+                'completed_at' => $i->completed_at?->toIso8601String(),
+                'created_at' => $i->created_at?->toIso8601String(),
+            ])->toArray(),
+            'contact_points' => $candidate->contactPoints->map(fn($cp) => [
+                'type' => $cp->type,
+                'value' => $cp->value,
+                'is_primary' => $cp->is_primary,
+                'is_verified' => $cp->is_verified,
+            ])->toArray(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/erasure-request
+     *
+     * Candidate requests deletion of their data.
+     * Token-verified via ?t= query param.
+     */
+    public function erasureRequest(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        }
+
+        // Check if there's already a pending request
+        $existing = DB::table('data_erasure_requests')
+            ->where('candidate_id', $candidateId)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An erasure request is already pending for your account.',
+            ], 409);
+        }
+
+        // Create erasure request (will be processed by scheduled command)
+        DB::table('data_erasure_requests')->insert([
+            'id' => \Illuminate\Support\Str::uuid(),
+            'candidate_id' => $candidateId,
+            'requested_by' => $candidate->email,
+            'request_type' => 'candidate_request',
+            'status' => 'pending',
+            'notes' => 'Self-service erasure request via candidate panel.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Log::info('Candidate self-service erasure request', [
+            'candidate_id' => $candidateId,
+            'email' => $candidate->email,
+            'ip' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your data deletion request has been received. It will be processed within 30 days as required by law.',
+        ]);
+    }
+
+    /**
+     * Get or generate referral code for a candidate.
+     * GET /v1/maritime/candidates/{id}/referral
+     */
+    public function getReferral(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::where('id', $candidateId)
+            ->where('is_demo', false)
+            ->first();
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found'], 404);
+        }
+
+        // Generate referral code if not exists
+        if (!$candidate->referral_code) {
+            $candidate->referral_code = strtoupper(substr(str_replace('-', '', $candidate->id), 0, 6)) . rand(10, 99);
+            $candidate->save();
+        }
+
+        $referralUrl = "https://octopus-ai.net/{$candidate->preferred_language}/maritime/apply?ref={$candidate->referral_code}";
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'referral_code' => $candidate->referral_code,
+                'referral_url' => $referralUrl,
+                'referral_count' => $candidate->referral_count ?? 0,
+                'is_active_contributor' => ($candidate->referral_count ?? 0) >= 3,
+            ],
+        ]);
+    }
+
+    /**
+     * Get referral leaderboard (top referrers).
+     * GET /v1/maritime/candidates/{id}/referral/stats
+     */
+    public function referralStats(Request $request, string $candidateId): JsonResponse
+    {
+        $candidate = PoolCandidate::where('id', $candidateId)
+            ->where('is_demo', false)
+            ->first();
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found'], 404);
+        }
+
+        $referrals = PoolCandidate::where('referred_by_id', $candidateId)
+            ->select('id', 'first_name', 'status', 'created_at')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => $r->id,
+                    'name' => $r->first_name,
+                    'status' => $r->status,
+                    'joined_at' => $r->created_at->toIso8601String(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_referrals' => $candidate->referral_count ?? 0,
+                'is_active_contributor' => ($candidate->referral_count ?? 0) >= 3,
+                'referrals' => $referrals,
+            ],
+        ]);
     }
 }

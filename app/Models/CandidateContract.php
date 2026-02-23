@@ -30,6 +30,9 @@ class CandidateContract extends Model
         'verified_by_user_id',
         'verified_at',
         'notes',
+        'early_termination',
+        'termination_reason',
+        'original_end_date',
     ];
 
     protected $casts = [
@@ -37,7 +40,17 @@ class CandidateContract extends Model
         'end_date' => 'date',
         'verified' => 'boolean',
         'verified_at' => 'datetime',
+        'early_termination' => 'boolean',
+        'original_end_date' => 'date',
     ];
+
+    // Termination reasons
+    const TERM_MUTUAL_AGREEMENT = 'mutual_agreement';
+    const TERM_DISCIPLINARY = 'disciplinary';
+    const TERM_MEDICAL = 'medical';
+    const TERM_PERSONAL = 'personal';
+    const TERM_COMPANY_DECISION = 'company_decision';
+    const TERM_OTHER = 'other';
 
     // Sources
     const SOURCE_SELF_DECLARED = 'self_declared';
@@ -86,6 +99,16 @@ class CandidateContract extends Model
     public function vessel(): BelongsTo
     {
         return $this->belongsTo(Vessel::class, 'vessel_imo', 'imo');
+    }
+
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(CrewFeedback::class, 'candidate_contract_id');
+    }
+
+    public function wasEarlyTermination(): bool
+    {
+        return (bool) $this->early_termination;
     }
 
     public function durationMonths(): float

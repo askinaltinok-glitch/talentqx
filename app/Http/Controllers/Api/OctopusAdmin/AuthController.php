@@ -90,7 +90,9 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user()->load('company');
+
+        $company = $user->company;
 
         return response()->json([
             'success' => true,
@@ -99,7 +101,19 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
+                'avatar_url' => $user->avatar_url,
                 'is_octopus_admin' => $user->isOctopusAdmin(),
+                'company' => $company ? [
+                    'name' => $company->name,
+                    'plan' => $company->subscription_plan,
+                    'plan_code' => $company->subscription_plan,
+                    'plan_name' => ucfirst($company->subscription_plan),
+                ] : null,
+                'credits' => $company ? [
+                    'remaining' => $company->getRemainingCredits(),
+                    'total' => $company->getTotalCredits(),
+                    'used' => (int) $company->credits_used,
+                ] : null,
             ],
         ]);
     }

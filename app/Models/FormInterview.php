@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\ImmutableRecordException;
+use App\Models\Traits\BelongsToTenant;
 use App\Models\Traits\IsDemoScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,11 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FormInterview extends Model
 {
-    use HasUuids, IsDemoScoped;
+    use HasUuids, IsDemoScoped, BelongsToTenant;
 
     protected $fillable = [
         // Candidate Supply Engine link
         'pool_candidate_id',
+        'interview_invitation_id',
         'company_id',
         'acquisition_source_snapshot',
         'acquisition_campaign_snapshot',

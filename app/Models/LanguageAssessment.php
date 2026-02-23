@@ -12,6 +12,8 @@ class LanguageAssessment extends Model
 
     protected $fillable = [
         'candidate_id',
+        'attempt_id',
+        'attempt_started_at',
         'assessment_language',
         'declared_level',
         'declared_confidence',
@@ -35,6 +37,10 @@ class LanguageAssessment extends Model
         'last_test_at',
     ];
 
+    protected $hidden = [
+        'writing_text',
+    ];
+
     protected $casts = [
         'writing_rubric' => 'array',
         'interview_evidence' => 'array',
@@ -51,6 +57,7 @@ class LanguageAssessment extends Model
         'retake_count' => 'integer',
         'locked_at' => 'datetime',
         'last_test_at' => 'datetime',
+        'attempt_started_at' => 'datetime',
     ];
 
     public function candidate(): BelongsTo

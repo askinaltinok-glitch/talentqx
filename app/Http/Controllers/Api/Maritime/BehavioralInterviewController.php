@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Maritime;
 
+use App\Http\Controllers\Api\Maritime\Concerns\VerifiesCandidateToken;
 use App\Http\Controllers\Controller;
 use App\Models\BehavioralProfile;
 use App\Models\FormInterview;
 use App\Models\InterviewTemplate;
 use App\Models\PoolCandidate;
 use App\Services\Behavioral\BehavioralScoringService;
+use App\Services\Maritime\CareerFeedbackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
 
 class BehavioralInterviewController extends Controller
 {
+    use VerifiesCandidateToken;
+
     public function __construct(
         private BehavioralScoringService $scoringService,
     ) {}
@@ -25,11 +29,11 @@ class BehavioralInterviewController extends Controller
      *
      * Returns the 12 behavioral questions in the candidate's locale.
      */
-    public function template(string $id): JsonResponse
+    public function template(string $id, Request $request): JsonResponse
     {
-        $candidate = PoolCandidate::find($id);
-        if (!$candidate) {
-            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        [$candidate, $error] = $this->resolveAndVerifyCandidate($id, $request);
+        if ($error) {
+            return $error;
         }
 
         $locale = $candidate->preferred_language ?? 'en';
@@ -82,9 +86,9 @@ class BehavioralInterviewController extends Controller
      */
     public function answers(string $id, Request $request): JsonResponse
     {
-        $candidate = PoolCandidate::find($id);
-        if (!$candidate) {
-            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        [$candidate, $error] = $this->resolveAndVerifyCandidate($id, $request);
+        if ($error) {
+            return $error;
         }
 
         $validator = Validator::make($request->all(), [
@@ -130,11 +134,11 @@ class BehavioralInterviewController extends Controller
      *
      * Finalize the behavioral interview and trigger scoring.
      */
-    public function complete(string $id): JsonResponse
+    public function complete(string $id, Request $request): JsonResponse
     {
-        $candidate = PoolCandidate::find($id);
-        if (!$candidate) {
-            return response()->json(['success' => false, 'message' => 'Candidate not found.'], 404);
+        [$candidate, $error] = $this->resolveAndVerifyCandidate($id, $request);
+        if ($error) {
+            return $error;
         }
 
         $interview = FormInterview::where('pool_candidate_id', $candidate->id)
@@ -175,13 +179,19 @@ class BehavioralInterviewController extends Controller
                 } catch (\Throwable) {}
             }
 
+            // Return career feedback (no raw scores for candidates)
+            $feedback = $profile?->dimensions_json
+                ? app(CareerFeedbackService::class)->fromDimensionScores(
+                    collect($profile->dimensions_json)->mapWithKeys(fn($v, $k) => [$k => (float) ($v['score'] ?? $v)])->toArray(),
+                    $profile->confidence ?? null,
+                )
+                : ['strengths' => [], 'development_areas' => [], 'role_fit_suggestions' => []];
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'status' => 'completed',
-                    'profile_id' => $profile?->id,
-                    'dimensions' => $profile?->dimensions_json,
-                    'confidence' => $profile?->confidence,
+                    'career_feedback' => $feedback,
                 ],
             ]);
         } catch (\Throwable $e) {

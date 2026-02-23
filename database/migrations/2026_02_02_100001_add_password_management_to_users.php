@@ -10,8 +10,12 @@ return new class extends Migration
     {
         // Add must_change_password to users table
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('must_change_password')->default(false)->after('is_active');
-            $table->timestamp('password_changed_at')->nullable()->after('must_change_password');
+            if (!Schema::hasColumn('users', 'must_change_password')) {
+                $table->boolean('must_change_password')->default(false)->after('is_active');
+            }
+            if (!Schema::hasColumn('users', 'password_changed_at')) {
+                $table->timestamp('password_changed_at')->nullable()->after('must_change_password');
+            }
         });
 
         // Create password_reset_tokens table (Laravel standard)

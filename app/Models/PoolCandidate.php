@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\IsDemoScoped;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -18,6 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * - Candidates enter via self-assessment (form interviews)
  * - After assessment, qualified candidates enter the pool
  * - Pool candidates can be presented to companies
+ *
+ * VISIBILITY MODEL: PoolCandidate is intentionally a GLOBAL pool — no company_id,
+ * no BelongsToTenant trait. Companies access pool candidates only through
+ * presentation/marketplace layers. The source_company_id column is for attribution
+ * (which company's apply link brought this candidate in), NOT ownership.
  */
 class PoolCandidate extends Model
 {
@@ -31,19 +37,78 @@ class PoolCandidate extends Model
         'email',
         'phone',
         'country_code',
+        'nationality',
+        'country_of_residence',
+        'passport_expiry',
+        'visa_status',
+        'license_country',
+        'license_class',
+        'flag_endorsement',
         'preferred_language',
         'english_level_self',
         'source_channel',
         'source_meta',
+        'source_type',
+        'source_company_id',
+        'source_label',
         'candidate_source',
         'status',
+        'public_token',
+        'public_token_hash',
         'primary_industry',
         'seafarer',
         'english_assessment_required',
         'video_assessment_required',
         'last_assessed_at',
         'is_demo',
+        'logbook_activated_at',
+        'last_seen_at',
+        'availability_status',
+        'availability_updated_at',
+        'contract_end_estimate',
+        'application_completed_at',
     ];
+
+    protected $hidden = [
+        'public_token',
+        'public_token_hash',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $candidate) {
+            if (empty($candidate->public_token)) {
+                $candidate->public_token = bin2hex(random_bytes(32));
+            }
+            $candidate->public_token_hash = hash('sha256', $candidate->public_token);
+        });
+
+        static::updating(function (self $candidate) {
+            if ($candidate->isDirty('availability_status')) {
+                $previous = $candidate->getOriginal('availability_status');
+                $new = $candidate->availability_status;
+                $candidate->_pendingAvailabilityChange = [$previous, $new];
+            }
+            if ($candidate->isDirty('contract_end_estimate')) {
+                $previous = $candidate->getOriginal('contract_end_estimate');
+                $new = $candidate->contract_end_estimate;
+                $candidate->_pendingContractChange = [$previous?->toDateString(), $new?->toDateString()];
+            }
+        });
+
+        static::updated(function (self $candidate) {
+            if (isset($candidate->_pendingAvailabilityChange)) {
+                [$previous, $new] = $candidate->_pendingAvailabilityChange;
+                unset($candidate->_pendingAvailabilityChange);
+                event(new \App\Events\CandidateAvailabilityChanged($candidate, $previous, $new));
+            }
+            if (isset($candidate->_pendingContractChange)) {
+                [$previous, $new] = $candidate->_pendingContractChange;
+                unset($candidate->_pendingContractChange);
+                event(new \App\Events\CandidateContractUpdated($candidate, $previous, $new));
+            }
+        });
+    }
 
     protected $casts = [
         'source_meta' => 'array',
@@ -52,6 +117,25 @@ class PoolCandidate extends Model
         'english_assessment_required' => 'boolean',
         'video_assessment_required' => 'boolean',
         'last_assessed_at' => 'datetime',
+        'passport_expiry' => 'date',
+        'logbook_activated_at' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'availability_updated_at' => 'datetime',
+        'contract_end_estimate' => 'date',
+        'application_completed_at' => 'datetime',
+    ];
+
+    // Visa status constants
+    public const VISA_NONE = 'none';
+    public const VISA_VALID = 'valid';
+    public const VISA_EXPIRED = 'expired';
+    public const VISA_PENDING = 'pending';
+
+    public const VISA_STATUSES = [
+        self::VISA_NONE,
+        self::VISA_VALID,
+        self::VISA_EXPIRED,
+        self::VISA_PENDING,
     ];
 
     // Status constants
@@ -79,6 +163,19 @@ class PoolCandidate extends Model
         self::SOURCE_COMPANY_INVITE,
     ];
 
+    // Source type constants (attribution tracking)
+    public const SOURCE_TYPE_ORGANIC = 'organic';
+    public const SOURCE_TYPE_COMPANY_INVITE = 'company_invite';
+    public const SOURCE_TYPE_REFERRAL = 'referral';
+    public const SOURCE_TYPE_BULK_IMPORT = 'bulk_import';
+
+    public const SOURCE_TYPES = [
+        self::SOURCE_TYPE_ORGANIC,
+        self::SOURCE_TYPE_COMPANY_INVITE,
+        self::SOURCE_TYPE_REFERRAL,
+        self::SOURCE_TYPE_BULK_IMPORT,
+    ];
+
     // Industry constants
     public const INDUSTRY_GENERAL = 'general';
     public const INDUSTRY_MARITIME = 'maritime';
@@ -102,6 +199,14 @@ class PoolCandidate extends Model
     public const CANDIDATE_SOURCE_COMPANY = 'company_upload';
     public const CANDIDATE_SOURCE_ADMIN = 'octo_admin';
     public const CANDIDATE_SOURCE_IMPORT = 'import';
+
+    /**
+     * Get the company that sourced this candidate (via apply link).
+     */
+    public function sourceCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'source_company_id');
+    }
 
     /**
      * Get candidate profile (master profile with consents).

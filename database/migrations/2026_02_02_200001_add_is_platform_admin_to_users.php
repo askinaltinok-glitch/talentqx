@@ -14,9 +14,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_platform_admin')->default(false)->after('is_active');
-        });
+        if (!Schema::hasColumn('users', 'is_platform_admin')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->boolean('is_platform_admin')->default(false)->after('is_active');
+            });
+        }
     }
 
     /**

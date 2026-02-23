@@ -65,7 +65,10 @@
     <thead><tr><th colspan="4">Candidate Identity</th></tr></thead>
     <tbody>
         <tr><td style="width:15%;font-weight:bold;">Name</td><td style="width:35%;">{{ $candidate->first_name }} {{ $candidate->last_name }}</td><td style="width:15%;font-weight:bold;">Country</td><td>{{ $candidate->country_code ?? 'N/A' }}</td></tr>
+        <tr><td style="font-weight:bold;">Nationality</td><td>{{ strtoupper($candidate->nationality ?? 'N/A') }}</td><td style="font-weight:bold;">License Country</td><td>{{ strtoupper($candidate->license_country ?? 'N/A') }}</td></tr>
+        <tr><td style="font-weight:bold;">Flag Endors.</td><td>{{ $candidate->flag_endorsement ?? 'N/A' }}</td><td style="font-weight:bold;">Passport Exp.</td><td>@if($candidate->passport_expiry){{ \Carbon\Carbon::parse($candidate->passport_expiry)->format('d M Y') }}@else N/A @endif</td></tr>
         <tr><td style="font-weight:bold;">Status</td><td>{{ ucfirst(str_replace('_',' ',$candidate->status ?? 'N/A')) }}</td><td style="font-weight:bold;">Seafarer</td><td>{{ $candidate->seafarer ? 'Yes' : 'No' }}</td></tr>
+        <tr><td style="font-weight:bold;">Source</td><td>{{ $candidate->source_label ?: ($candidate->source_channel ?? 'N/A') }}</td><td style="font-weight:bold;">Source Type</td><td>@if($candidate->source_type === 'company_invite')<span style="color:#2563eb;font-weight:bold;">Company Invite</span>@else{{ ucfirst(str_replace('_',' ',$candidate->source_type ?? 'N/A')) }}@endif</td></tr>
     </tbody>
 </table>
 
@@ -224,6 +227,138 @@
 <p style="font-size:9px;padding:4px 0;">Score: <strong>{{ $compliancePack['score'] ?? 0 }}/100</strong> ({{ ucfirst(str_replace('_',' ',$compliancePack['status'] ?? 'N/A')) }}). Based on {{ $compliancePack['available_sections'] ?? 0 }}/5 sections.</p>
 @else
 <p style="font-size:9px;color:#94a3b8;padding:4px 0;">Not available.</p>
+@endif
+
+{{-- Assessment Evidence: question_code + competency + evidence extract --}}
+@if(isset($interview) && $interview->answers && $interview->answers->count() > 0)
+<div class="section-title">Assessment Evidence</div>
+<table>
+    <thead><tr><th style="width:8%;">Code</th><th style="width:22%;">Competency</th><th style="width:10%;text-align:center;">Score</th><th>Evidence Extract</th></tr></thead>
+    <tbody>
+        @foreach($interview->answers->sortBy('slot') as $answer)
+        @php
+            $evidenceWords = array_slice(explode(' ', trim($answer->answer_text)), 0, 25);
+            $evidence = implode(' ', $evidenceWords);
+            if (count(explode(' ', trim($answer->answer_text))) > 25) $evidence .= '...';
+            $compScores = $interview->competency_scores ?? [];
+            $aScore = $compScores[$answer->competency] ?? $answer->score ?? null;
+        @endphp
+        <tr>
+            <td style="font-weight:bold;color:#0f4c81;">Q{{ $answer->slot }}</td>
+            <td>{{ ucfirst(str_replace('_', ' ', $answer->competency)) }}</td>
+            <td style="text-align:center;font-weight:bold;color:{{ ($aScore ?? 0) >= 85 ? '#15803d' : (($aScore ?? 0) >= 70 ? '#b45309' : '#dc2626') }};">{{ $aScore ?? '—' }}</td>
+            <td style="font-size:8px;color:#475569;">{{ $evidence }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+<p style="font-size:7px;color:#94a3b8;margin-top:2px;">Evidence: first 25 words of candidate response. Full text redacted. Question text not shown for IP protection.</p>
+@endif
+
+@if(!empty($certificateRisks) && count($certificateRisks) > 0)
+<div class="section-title">Certificate Lifecycle Status</div>
+<table>
+    <thead><tr><th>Certificate</th><th>Code</th><th>Issued</th><th>Expires</th><th>Source</th><th>Risk</th><th>Days</th></tr></thead>
+    <tbody>
+        @foreach($certificateRisks as $cert)
+        @php
+            $sourceLabel = match($cert['expiry_source'] ?? 'unknown') {
+                'uploaded' => 'Uploaded',
+                'estimated_company' => 'Est. (company)',
+                'estimated_country' => 'Est. (country)',
+                'estimated_default' => 'Est. (default)',
+                default => '—',
+            };
+        @endphp
+        <tr>
+            <td style="font-weight:bold;">{{ strtoupper($cert['certificate_type']) }}</td>
+            <td>{{ $cert['certificate_code'] ?? '—' }}</td>
+            <td>{{ $cert['issued_at'] ?? '—' }}</td>
+            <td>{{ $cert['expires_at'] ?? '—' }}</td>
+            <td style="font-size:8px;color:{{ str_starts_with($cert['expiry_source'] ?? '', 'estimated') ? '#b45309' : '#64748b' }};">{{ $sourceLabel }}</td>
+            <td><span style="font-weight:bold;color:{{ $cert['risk_color'] === 'green' ? '#15803d' : ($cert['risk_color'] === 'yellow' ? '#b45309' : ($cert['risk_color'] === 'red' ? '#dc2626' : '#64748b')) }};">{{ strtoupper($cert['risk_level']) }}</span></td>
+            <td style="text-align:center;">{{ $cert['days_remaining'] !== null ? $cert['days_remaining'] : '—' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+@if(!empty($vesselFitEvidence))
+@php
+    $renderedFit = array_filter($vesselFitEvidence, fn($e) => $e['guards']['rendered'] ?? false);
+    usort($renderedFit, fn($a, $b) => $b['fit_pct'] <=> $a['fit_pct']);
+@endphp
+@if(count($renderedFit) > 0)
+<div class="section-title">Vessel Type Fit</div>
+<table>
+    <thead><tr><th>Vessel Type</th><th>Fit %</th><th>Confidence</th><th>Source</th><th>Evidence</th></tr></thead>
+    <tbody>
+        @foreach($renderedFit as $entry)
+        @php
+            $fitColor = $entry['fit_pct'] >= 70 ? '#15803d' : ($entry['fit_pct'] >= 50 ? '#b45309' : '#dc2626');
+            $confColor = match($entry['confidence']) {
+                'high' => '#15803d',
+                'medium' => '#b45309',
+                default => '#64748b',
+            };
+            $sourceLabel = match($entry['primary_source']) {
+                'contract_history' => 'Contract',
+                'certificates' => 'Certificate',
+                'experience_form' => 'Form',
+                'interview_keywords' => 'Behavioral',
+                'demo_seed' => 'Demo',
+                default => '—',
+            };
+            $evidenceText = '';
+            foreach (array_slice($entry['evidence'] ?? [], 0, 2) as $ev) {
+                $evidenceText .= ($evidenceText ? '; ' : '') . mb_substr($ev['label'] . ': ' . $ev['detail'], 0, 80);
+            }
+        @endphp
+        <tr>
+            <td style="font-weight:bold;">{{ $entry['vessel_type'] }}</td>
+            <td style="font-weight:bold;color:{{ $fitColor }};text-align:center;">{{ $entry['fit_pct'] }}%</td>
+            <td style="color:{{ $confColor }};text-align:center;">{{ strtoupper($entry['confidence']) }}</td>
+            <td style="font-size:8px;">{{ $sourceLabel }}</td>
+            <td style="font-size:7px;color:#64748b;">{{ $evidenceText ?: '—' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+@endif
+
+@if(!empty($compatibilityData))
+<div class="section-title">Crew Compatibility Analysis</div>
+<div style="display:flex; gap:10px; margin-bottom:10px;">
+    <div class="tile" style="flex:1; text-align:center; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <div style="font-size:22px; font-weight:bold; color:{{ $compatibilityData['compatibility_score'] >= 65 ? '#16a34a' : ($compatibilityData['compatibility_score'] >= 45 ? '#d97706' : '#dc2626') }};">
+            {{ $compatibilityData['compatibility_score'] }}
+        </div>
+        <div style="font-size:10px; color:#666;">Compatibility Score</div>
+    </div>
+    <div class="tile" style="flex:1; text-align:center; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <div style="font-size:16px; font-weight:bold;">{{ $compatibilityData['pillars']['captain_fit']['score'] }}</div>
+        <div style="font-size:10px; color:#666;">Captain Fit</div>
+        <div style="font-size:9px; color:#888;">Style: {{ ucfirst($compatibilityData['pillars']['captain_fit']['captain_style'] ?? 'unknown') }}</div>
+    </div>
+    <div class="tile" style="flex:1; text-align:center; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <div style="font-size:16px; font-weight:bold;">{{ $compatibilityData['pillars']['team_balance']['score'] }}</div>
+        <div style="font-size:10px; color:#666;">Team Balance</div>
+    </div>
+    <div class="tile" style="flex:1; text-align:center; padding:8px; border:1px solid #ddd; border-radius:6px;">
+        <div style="font-size:16px; font-weight:bold;">{{ $compatibilityData['pillars']['operational_risk']['score'] }}</div>
+        <div style="font-size:10px; color:#666;">Op. Risk</div>
+        <div style="font-size:9px; color:#888;">{{ ucfirst($compatibilityData['pillars']['operational_risk']['risk_level'] ?? 'unknown') }}</div>
+    </div>
+</div>
+@if(!empty($compatibilityData['evidence']))
+<div style="margin-top:6px;">
+    @foreach(array_slice($compatibilityData['evidence'], 0, 6) as $ev)
+    <div style="font-size:10px; color:#555; padding:2px 0;">• <strong>{{ $ev['label'] }}</strong>{{ !empty($ev['detail']) ? ' — '.$ev['detail'] : '' }}</div>
+    @endforeach
+</div>
+@endif
 @endif
 
 @if($candidate->credentials && $candidate->credentials->count() > 0)

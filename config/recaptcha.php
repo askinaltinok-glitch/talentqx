@@ -17,12 +17,13 @@ return [
     'secret_key' => env('RECAPTCHA_SECRET_KEY'),
 
     // Minimum score threshold (0.0-1.0, reject below this)
-    'min_score' => env('RECAPTCHA_MIN_SCORE', 0.3),
+    'min_score' => env('RECAPTCHA_MIN_SCORE', 0.5),
 
     // Actions to verify
     'actions' => [
         'demo_form' => 'submit_demo',
         'contact_form' => 'submit_contact',
         'newsletter' => 'subscribe_newsletter',
+        'maritime_apply' => 'maritime_apply',
     ],
 ];

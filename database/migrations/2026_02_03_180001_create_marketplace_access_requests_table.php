@@ -35,7 +35,7 @@ return new class extends Migration
             // Indexes
             $table->index(['requesting_company_id', 'status']);
             $table->index(['owning_company_id', 'status']);
-            $table->index(['candidate_id', 'requesting_company_id']);
+            $table->index(['candidate_id', 'requesting_company_id'], 'mar_cand_req_company_idx');
             $table->index('access_token');
         });
     }

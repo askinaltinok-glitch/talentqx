@@ -105,6 +105,8 @@ class AuthController extends Controller
     {
         $user = $request->user()->load(['company', 'role']);
 
+        $company = $user->company;
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -119,10 +121,23 @@ class AuthController extends Controller
                 'permissions' => $user->role?->permissions ?? [],
                 'is_platform_admin' => $user->isPlatformAdmin(),
                 'must_change_password' => $user->mustChangePassword(),
-                'company' => $user->company ? [
-                    'id' => $user->company->id,
-                    'name' => $user->company->name,
-                    'logo_url' => $user->company->logo_url,
+                'company' => $company ? [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'logo_url' => $company->logo_url,
+                ] : null,
+                'credits' => $company ? [
+                    'remaining' => $company->getRemainingCredits(),
+                    'total' => $company->getTotalCredits(),
+                    'used' => (int) $company->credits_used,
+                    'plan' => $company->subscription_plan,
+                ] : null,
+                'subscription' => $company ? [
+                    'next_renewal_at' => $company->subscription_ends_at?->toIso8601String(),
+                    'quota_resets_at' => $company->credits_period_start
+                        ? $company->credits_period_start->copy()->addMonth()->toIso8601String()
+                        : null,
+                    'status' => $company->getSubscriptionStatus(),
                 ] : null,
             ],
         ]);

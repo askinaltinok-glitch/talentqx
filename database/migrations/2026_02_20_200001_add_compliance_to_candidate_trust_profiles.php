@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('candidate_trust_profiles', function (Blueprint $table) {
-            $table->unsignedTinyInteger('compliance_score')->nullable()->after('risk_tier');
-            $table->string('compliance_status', 20)->nullable()->after('compliance_score');
-            $table->timestamp('compliance_computed_at')->nullable()->after('compliance_status');
+            $table->unsignedTinyInteger('compliance_score')->nullable();
+            $table->string('compliance_status', 20)->nullable();
+            $table->timestamp('compliance_computed_at')->nullable();
 
             $table->index('compliance_status');
         });

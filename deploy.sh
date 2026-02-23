@@ -1,140 +1,76 @@
 #!/bin/bash
+# CPX62 Deploy / Post-Rebuild Script
+# Usage: bash /www/wwwroot/talentqx.com/api/deploy.sh
 #
-# TalentQX Deploy Script (Safe Version)
-# Usage: ./deploy.sh [--skip-frontend] [--skip-backend]
-#
-# IMPORTANT: This script NEVER deletes files from production.
-# It only adds/updates files from git source.
-#
+# Covers: MySQL socket, Composer, Laravel cache, migrations,
+#         queue workers, all PHP-FPM versions, nginx, PM2
 
 set -e
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+API_DIR="/www/wwwroot/talentqx.com/api"
+FRONTEND_DIR="/www/wwwroot/talentqx-frontend"
+PHP="/www/server/php/82/bin/php"
 
-# Paths
-SRC_DIR="/www/wwwroot/talentqx-src"
-PROD_DIR="/www/wwwroot/talentqx.com"
-BACKEND_SRC="$SRC_DIR/backend"
-FRONTEND_SRC="$SRC_DIR/frontend"
-BACKEND_PROD="$PROD_DIR/api"
-PHP_BIN="/www/server/php/82/bin/php"
-BACKUP_DIR="/www/wwwroot/backups"
+echo "=== CPX62 Deploy ==="
+echo "$(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
 
-# Flags
-SKIP_FRONTEND=false
-SKIP_BACKEND=false
+# 1. MySQL socket symlink (needed by all PHP versions)
+echo "[1/8] MySQL socket symlink..."
+ln -sf /run/mysqld/mysqld.sock /tmp/mysql.sock
+echo "  OK"
 
-# Parse arguments
-for arg in "$@"; do
-    case $arg in
-        --skip-frontend) SKIP_FRONTEND=true ;;
-        --skip-backend) SKIP_BACKEND=true ;;
-    esac
+# 2. Composer
+echo "[2/8] Composer install..."
+cd "$API_DIR"
+$PHP /usr/bin/composer install --no-dev --optimize-autoloader --quiet
+echo "  OK"
+
+# 3. Laravel cache
+echo "[3/8] Laravel optimize..."
+$PHP artisan optimize:clear --quiet
+$PHP artisan config:cache --quiet
+$PHP artisan route:cache --quiet
+$PHP artisan view:cache --quiet
+echo "  OK"
+
+# 4. Migrations
+echo "[4/8] Migrations..."
+$PHP artisan migrate --force --quiet
+echo "  OK"
+
+# 5. Queue restart
+echo "[5/8] Queue restart..."
+$PHP artisan queue:restart --quiet
+supervisorctl restart all
+echo "  OK"
+
+# 6. All PHP-FPM versions restart
+echo "[6/8] PHP-FPM restart (all versions)..."
+for ver in 73 74 80 81 82 83 84; do
+    systemctl restart php-fpm-$ver 2>/dev/null && echo "  php-fpm-$ver restarted" || true
 done
+echo "  OK"
 
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}   TalentQX Deploy Script (Safe)${NC}"
-echo -e "${GREEN}========================================${NC}"
+# 7. nginx reload (not restart — safer)
+echo "[7/8] nginx reload..."
+nginx -t -q && nginx -s reload
+echo "  OK"
+
+# 8. PM2
+echo "[8/8] PM2 restart..."
+pm2 restart all
+pm2 save --force
+echo "  OK"
+
 echo ""
-
-# 0. Pre-deploy backup
-echo -e "${YELLOW}[0/6] Creating backup...${NC}"
-mkdir -p "$BACKUP_DIR"
-BACKUP_FILE="$BACKUP_DIR/api_$(date +%Y%m%d_%H%M%S).tar.gz"
-tar -czf "$BACKUP_FILE" -C /www/wwwroot talentqx.com/api 2>/dev/null || true
-echo -e "Backup: $BACKUP_FILE"
-echo -e "${GREEN}OK${NC}"
+echo "=== Deploy complete ==="
 echo ""
-
-# 1. Git Pull
-echo -e "${YELLOW}[1/6] Git pull...${NC}"
-cd "$SRC_DIR"
-git pull origin main
-echo -e "${GREEN}OK${NC}"
+echo "--- Supervisor ---"
+supervisorctl status
 echo ""
-
-# 2. Backend Deploy
-if [ "$SKIP_BACKEND" = false ]; then
-    echo -e "${YELLOW}[2/6] Backend deploy...${NC}"
-
-    # Sync backend files (NO --delete flag!)
-    rsync -av \
-        --exclude='vendor' \
-        --exclude='storage' \
-        --exclude='.env' \
-        --exclude='bootstrap/cache/*.php' \
-        "$BACKEND_SRC/" "$BACKEND_PROD/"
-
-    # Composer install
-    cd "$BACKEND_PROD"
-    if [ -f "composer.phar" ]; then
-        $PHP_BIN composer.phar install --no-dev --optimize-autoloader --no-interaction --ignore-platform-req=ext-fileinfo
-    fi
-
-    # Laravel cache
-    $PHP_BIN artisan config:cache
-    $PHP_BIN artisan route:cache
-    $PHP_BIN artisan view:cache
-
-    # Run migrations
-    $PHP_BIN artisan migrate --force
-
-    echo -e "${GREEN}Backend OK${NC}"
-else
-    echo -e "${YELLOW}[2/6] Backend skipped${NC}"
-fi
+echo "--- PM2 ---"
+pm2 list
 echo ""
-
-# 3. Frontend Build
-if [ "$SKIP_FRONTEND" = false ]; then
-    echo -e "${YELLOW}[3/6] Frontend build...${NC}"
-    cd "$FRONTEND_SRC"
-    npm ci --silent
-    npm run build
-    echo -e "${GREEN}Frontend build OK${NC}"
-else
-    echo -e "${YELLOW}[3/6] Frontend skipped${NC}"
-fi
-echo ""
-
-# 4. Frontend Deploy
-if [ "$SKIP_FRONTEND" = false ]; then
-    echo -e "${YELLOW}[4/6] Frontend deploy...${NC}"
-    # NO --delete flag!
-    rsync -av "$FRONTEND_SRC/dist/" "$PROD_DIR/"
-    echo -e "${GREEN}Frontend deploy OK${NC}"
-else
-    echo -e "${YELLOW}[4/6] Frontend skipped${NC}"
-fi
-echo ""
-
-# 5. Permissions
-echo -e "${YELLOW}[5/6] Fixing permissions...${NC}"
-chown -R www:www "$PROD_DIR"
-chmod -R 755 "$PROD_DIR"
-chmod -R 775 "$BACKEND_PROD/storage"
-chmod -R 775 "$BACKEND_PROD/bootstrap/cache"
-echo -e "${GREEN}OK${NC}"
-echo ""
-
-# 6. Health Check
-echo -e "${YELLOW}[6/6] Health check...${NC}"
-HEALTH=$(curl -s https://talentqx.com/api/v1/health 2>/dev/null | grep -o '"status":"ok"' || echo "FAILED")
-if [ "$HEALTH" = '"status":"ok"' ]; then
-    echo -e "${GREEN}API: OK${NC}"
-else
-    echo -e "${RED}API: FAILED - Check logs!${NC}"
-fi
-echo ""
-
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}   Deploy Complete!${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo "Site: https://talentqx.com"
-echo "Backup: $BACKUP_FILE"
-echo ""
+echo "--- Memory ---"
+free -h

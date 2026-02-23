@@ -13,7 +13,7 @@ return new class extends Migration
                 $table->uuid('interview_session_id')->nullable()->after('id');
             }
             if (!Schema::hasColumn('privacy_consents', 'recording_accepted')) {
-                $table->boolean('recording_accepted')->default(false)->after('privacy_accepted');
+                $table->boolean('recording_accepted')->default(false);
             }
         });
     }

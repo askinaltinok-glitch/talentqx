@@ -200,6 +200,17 @@ class BehavioralScoringService
                 ]
             );
 
+            // Guard: never overwrite a FINAL profile from a different interview
+            if ($profile->status === BehavioralProfile::STATUS_FINAL && $profile->interview_id !== $interview->id) {
+                Log::warning('BehavioralScoringService::finalize: refusing to overwrite FINAL profile', [
+                    'candidate_id' => $candidateId,
+                    'interview_id' => $interview->id,
+                    'existing_profile_id' => $profile->id,
+                    'existing_interview_id' => $profile->interview_id,
+                ]);
+                return $profile;
+            }
+
             // Collect all answer texts
             $answers = $interview->answers()->orderBy('slot')->get();
             $allTexts = $answers->pluck('answer_text')->filter()->toArray();
@@ -306,6 +317,17 @@ class BehavioralScoringService
                     'dimensions_json' => BehavioralProfile::emptyDimensions(),
                 ]
             );
+
+            // Guard: never overwrite a FINAL profile from a different interview
+            if ($profile->status === BehavioralProfile::STATUS_FINAL && $profile->interview_id !== $interview->id) {
+                Log::warning('BehavioralScoringService::scoreStructuredInterview: refusing to overwrite FINAL profile', [
+                    'candidate_id' => $candidateId,
+                    'interview_id' => $interview->id,
+                    'existing_profile_id' => $profile->id,
+                    'existing_interview_id' => $profile->interview_id,
+                ]);
+                return $profile;
+            }
 
             // Compute category averages (1-5 scale)
             $categoryAvgs = [];

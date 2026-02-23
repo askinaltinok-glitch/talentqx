@@ -119,4 +119,6 @@ return [
         'api_token' => env('TALENTQX_API_TOKEN'),
     ],
 
+    'demo_request_to' => env('DEMO_REQUEST_TO'),
+
 ];

@@ -63,6 +63,15 @@ class CertificationService
             throw new \Symfony\Component\HttpKernel\Exception\HttpException(429, 'Too many certificate uploads. Please try again later.');
         }
 
+        // Validate: expiry_date must be after issue_date
+        if (!empty($data['issued_at']) && !empty($data['expires_at'])) {
+            $issuedAt = \Carbon\Carbon::parse($data['issued_at']);
+            $expiresAt = \Carbon\Carbon::parse($data['expires_at']);
+            if ($expiresAt->lte($issuedAt)) {
+                throw new \InvalidArgumentException('Expiry date must be after issue date.');
+            }
+        }
+
         // Hash document if URL provided
         $documentHash = null;
         if (!empty($data['document_url'])) {
@@ -77,6 +86,10 @@ class CertificationService
             'issuing_country' => $data['issuing_country'] ?? null,
             'issued_at' => $data['issued_at'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
+            'expiry_source' => !empty($data['expires_at'])
+                ? SeafarerCertificate::EXPIRY_SOURCE_UPLOADED
+                : SeafarerCertificate::EXPIRY_SOURCE_UNKNOWN,
+            'self_declared' => $data['self_declared'] ?? false,
             'document_url' => $data['document_url'] ?? null,
             'document_hash' => $documentHash,
             'verification_status' => SeafarerCertificate::STATUS_PENDING,

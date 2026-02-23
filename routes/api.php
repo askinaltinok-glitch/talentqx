@@ -7,13 +7,17 @@ use App\Http\Controllers\Api\AdminInterviewTemplateController;
 use App\Http\Controllers\Api\AdminOutcomesController;
 use App\Http\Controllers\Api\AdminPackageController;
 use App\Http\Controllers\Api\ApplyController;
+use App\Http\Controllers\Api\CompanyApplyLinkController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyOnboardController;
+use App\Http\Controllers\Api\CompanyVesselController;
 use App\Http\Controllers\Api\I18nController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PasswordController;
 use App\Http\Controllers\Api\CandidateController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\PublicStatsController;
 use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
@@ -45,7 +49,9 @@ use App\Http\Controllers\Api\Admin\ML\DatasetController;
 use App\Http\Controllers\Api\Admin\ML\HealthController as MlHealthController;
 use App\Http\Controllers\Api\Admin\ML\LearningController as MlLearningController;
 use App\Http\Controllers\Api\Admin\Analytics\SupplyAnalyticsController;
+use App\Http\Controllers\Api\Maritime\CompanyApplyResolverController;
 use App\Http\Controllers\Api\Maritime\MaritimeCandidateController;
+use App\Http\Controllers\Api\Maritime\CandidateLifecycleController;
 use App\Http\Controllers\Api\Maritime\CandidateNotificationController;
 use App\Http\Controllers\Api\Maritime\VesselReviewController;
 use App\Http\Controllers\Api\Maritime\ProfileActivityController;
@@ -77,6 +83,7 @@ use App\Http\Controllers\Api\Admin\JobListingController;
 use App\Http\Controllers\Api\Admin\JobApplicantsController;
 use App\Http\Controllers\Api\Public\JobListingController as PublicJobListingController;
 use App\Http\Controllers\Api\Public\JobApplyController;
+use App\Http\Controllers\Api\Public\DemoRequestController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -89,6 +96,11 @@ Route::prefix('v1')->group(function () {
 
     // Health check
     Route::get('/health', fn() => response()->json(['status' => 'ok', 'timestamp' => now()]));
+
+    // Public platform stats (cached, no auth)
+    Route::get('/stats', PublicStatsController::class)
+        ->middleware('throttle:60,1')
+        ->name('public.stats');
 
     // Translations (public, cached)
     Route::get('/i18n', [I18nController::class, 'index'])
@@ -166,6 +178,9 @@ Route::prefix('v1')->group(function () {
     Route::post('public/jobs/{jobListing}/apply', [JobApplyController::class, 'store'])
         ->middleware('throttle:20,1');
 
+    Route::post('public/demo-requests', [DemoRequestController::class, 'store'])
+        ->middleware('throttle:20,1');
+
     // ===========================================
     // PASSIVE CANDIDATE REGISTRATION (Public, no auth)
     // ===========================================
@@ -178,6 +193,11 @@ Route::prefix('v1')->group(function () {
     // Self-registration for maritime candidates
     // ===========================================
     Route::prefix('maritime')->group(function () {
+        // Company apply link resolver (public, no auth)
+        Route::get('/apply/resolve', [CompanyApplyResolverController::class, 'resolve'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.apply.resolve');
+
         // Registration and application
         Route::post('/apply', [MaritimeCandidateController::class, 'apply'])
             ->middleware('throttle:10,1')
@@ -192,6 +212,35 @@ Route::prefix('v1')->group(function () {
         Route::get('/candidates/{id}/status', [MaritimeCandidateController::class, 'status'])
             ->middleware('throttle:60,1')
             ->name('maritime.status');
+
+        // Update candidate preferred language (public, token-verified)
+        Route::post('/candidates/{id}/locale', [MaritimeCandidateController::class, 'updateLocale'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.locale');
+
+        // Email verification (public, token in URL)
+        Route::get('/candidates/verify-email', [MaritimeCandidateController::class, 'verifyEmail'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.verify-email');
+
+        // Resend verification email
+        Route::post('/candidates/{id}/resend-verification', [MaritimeCandidateController::class, 'resendVerification'])
+            ->middleware('throttle:5,1')
+            ->name('maritime.resend-verification');
+
+        // GDPR/KVKK — Candidate self-service data rights
+        Route::get('/candidates/{id}/data-export', [MaritimeCandidateController::class, 'dataExport'])
+            ->middleware('throttle:3,60')
+            ->name('maritime.data-export');
+        Route::post('/candidates/{id}/erasure-request', [MaritimeCandidateController::class, 'erasureRequest'])
+            ->middleware('throttle:2,1440')
+            ->name('maritime.erasure-request');
+
+        // Referral system
+        Route::get('/candidates/{id}/referral', [MaritimeCandidateController::class, 'getReferral'])
+            ->name('maritime.referral');
+        Route::get('/candidates/{id}/referral/stats', [MaritimeCandidateController::class, 'referralStats'])
+            ->name('maritime.referral.stats');
 
         // Candidate-facing assessment attach (public, after interview completion)
         Route::post('/candidates/{id}/english/attach', [MaritimeCandidateController::class, 'attachEnglish'])
@@ -214,6 +263,17 @@ Route::prefix('v1')->group(function () {
         Route::get('/candidates/{id}/views', [CandidateNotificationController::class, 'viewStats'])
             ->middleware('throttle:60,1')
             ->name('maritime.views');
+
+        // Candidate lifecycle dashboard
+        Route::get('/candidates/{id}/lifecycle', [CandidateLifecycleController::class, 'status'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.lifecycle');
+        Route::post('/candidates/{id}/availability', [CandidateLifecycleController::class, 'updateAvailability'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.availability');
+        Route::post('/candidates/{id}/logbook-activate', [CandidateLifecycleController::class, 'logbookActivate'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.logbook-activate');
 
         // Vessel reviews (public)
         Route::post('/reviews', [VesselReviewController::class, 'store'])
@@ -273,17 +333,67 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:30,1')
             ->name('maritime.apply-events');
 
-        // Behavioral interview (public, candidate-facing)
-        Route::prefix('candidates/{id}/behavioral')->group(function () {
+        // Behavioral interview (public, candidate-facing, token-verified)
+        Route::prefix('candidates/{id}/behavioral')->whereUuid('id')->group(function () {
             Route::get('template', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'template'])
-                ->middleware('throttle:30,1')
+                ->middleware('throttle:behavioral')
                 ->name('maritime.behavioral.template');
             Route::post('answers', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'answers'])
-                ->middleware('throttle:30,1')
+                ->middleware('throttle:behavioral')
                 ->name('maritime.behavioral.answers');
             Route::post('complete', [\App\Http\Controllers\Api\Maritime\BehavioralInterviewController::class, 'complete'])
-                ->middleware('throttle:10,1')
+                ->middleware('throttle:behavioral-complete')
                 ->name('maritime.behavioral.complete');
+        });
+
+        // Interview Engine v2 (public, candidate-facing, token-verified)
+        Route::prefix('candidates/{id}/interview-v2')->whereUuid('id')->group(function () {
+            Route::post('start', [\App\Http\Controllers\Api\Maritime\InterviewV2Controller::class, 'start'])
+                ->middleware('throttle:behavioral')
+                ->name('maritime.interview-v2.start');
+            Route::post('answer', [\App\Http\Controllers\Api\Maritime\InterviewV2Controller::class, 'answer'])
+                ->middleware('throttle:behavioral')
+                ->name('maritime.interview-v2.answer');
+            Route::post('complete', [\App\Http\Controllers\Api\Maritime\InterviewV2Controller::class, 'complete'])
+                ->middleware('throttle:behavioral-complete')
+                ->name('maritime.interview-v2.complete');
+        });
+
+        // Voice token for interview dictation (public, invitation-token verified)
+        Route::post('voice/token', [\App\Http\Controllers\Api\Maritime\VoiceTokenController::class, 'issue'])
+            ->middleware('throttle:30,1')
+            ->name('maritime.voice.token');
+        Route::post('voice/log', [\App\Http\Controllers\Api\Maritime\VoiceTokenController::class, 'log'])
+            ->middleware('throttle:60,1')
+            ->name('maritime.voice.log');
+
+        // Clean Interview Workflow v1 (public, invitation-token verified)
+        Route::prefix('interview')->group(function () {
+            Route::post('start', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'start'])
+                ->middleware('throttle:10,1')
+                ->name('maritime.clean-interview.start');
+            Route::post('answer', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'answer'])
+                ->middleware('throttle:behavioral')
+                ->name('maritime.clean-interview.answer');
+            Route::post('complete', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'complete'])
+                ->middleware('throttle:behavioral-complete')
+                ->name('maritime.clean-interview.complete');
+        });
+
+        // Crew Feedback (public, seafarer submits after contract ends)
+        Route::post('/candidates/{id}/crew-feedback', [\App\Http\Controllers\Api\Maritime\CrewFeedbackPublicController::class, 'store'])
+            ->whereUuid('id')
+            ->middleware('throttle:30,1')
+            ->name('maritime.crew-feedback');
+
+        // English test (public, candidate-facing, token-verified + attempt_id)
+        Route::prefix('candidates/{id}/english-test')->whereUuid('id')->group(function () {
+            Route::post('start', [\App\Http\Controllers\Api\Maritime\EnglishTestController::class, 'start'])
+                ->middleware('throttle:english-test-start')
+                ->name('maritime.english-test.start');
+            Route::post('submit', [\App\Http\Controllers\Api\Maritime\EnglishTestController::class, 'submit'])
+                ->middleware('throttle:english-test-submit')
+                ->name('maritime.english-test.submit');
         });
 
         // Form dropdown data
@@ -508,6 +618,93 @@ Route::prefix('v1')->group(function () {
 
         // Company subscription status (needed before customer.scope check)
         Route::get('/company/subscription-status', [CompanyController::class, 'subscriptionStatus']);
+
+        // Company onboarding flow
+        Route::prefix('company/onboard')->group(function () {
+            Route::post('/vessel', [CompanyOnboardController::class, 'addVessel']);
+            Route::post('/vessel/{vesselId}/ranks', [CompanyOnboardController::class, 'setRankRequirements']);
+            Route::post('/vessel/{vesselId}/compliance', [CompanyOnboardController::class, 'activateCompliance']);
+            Route::post('/vessel/{vesselId}/crew-analysis', [CompanyOnboardController::class, 'runCrewAnalysis']);
+        });
+
+        // Company vessel management (tenant-scoped)
+        Route::apiResource('company/vessels', CompanyVesselController::class)
+            ->only(['index', 'store', 'destroy']);
+
+        // Company apply links (tenant-scoped)
+        Route::apiResource('company/apply-links', CompanyApplyLinkController::class)
+            ->only(['index', 'store', 'show', 'destroy']);
+
+        // Company certificate rules (tenant-scoped validity overrides)
+        Route::get('company/certificate-rules', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'index']);
+        Route::post('company/certificate-rules', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'store']);
+        Route::delete('company/certificate-rules/{id}', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'destroy']);
+
+        // ===================================================
+        // PORTAL — Fleet, Manning, Roster, Crew Planning
+        // ===================================================
+        Route::prefix('portal')->group(function () {
+            // Onboarding finalize
+            Route::get('/onboarding', [\App\Http\Controllers\Api\Portal\OnboardingFinalizeController::class, 'show']);
+            Route::put('/onboarding', [\App\Http\Controllers\Api\Portal\OnboardingFinalizeController::class, 'update']);
+
+            // Fleet vessels CRUD
+            Route::apiResource('vessels', \App\Http\Controllers\Api\Portal\FleetVesselController::class);
+
+            // Vessel registry IMO lookup (local cache)
+            Route::get('/vessel-registry/lookup', [\App\Http\Controllers\Api\Portal\FleetVesselController::class, 'registryLookup']);
+
+            // Manning plan per vessel
+            Route::get('/vessels/{vesselId}/manning', [\App\Http\Controllers\Api\Portal\VesselManningController::class, 'show']);
+            Route::put('/vessels/{vesselId}/manning', [\App\Http\Controllers\Api\Portal\VesselManningController::class, 'update']);
+
+            // Roster / assignments per vessel
+            Route::get('/vessels/{vesselId}/roster', [\App\Http\Controllers\Api\Portal\VesselRosterController::class, 'index']);
+            Route::post('/vessels/{vesselId}/roster', [\App\Http\Controllers\Api\Portal\VesselRosterController::class, 'store']);
+            Route::put('/roster/{assignmentId}', [\App\Http\Controllers\Api\Portal\VesselRosterController::class, 'update']);
+            Route::delete('/roster/{assignmentId}', [\App\Http\Controllers\Api\Portal\VesselRosterController::class, 'destroy']);
+
+            // Crew analysis (gap + recommendations)
+            Route::get('/vessels/{vesselId}/crew-analysis', [\App\Http\Controllers\Api\Portal\CrewAnalysisController::class, 'show']);
+            Route::get('/vessels/{vesselId}/future-pool', [\App\Http\Controllers\Api\Portal\CrewAnalysisController::class, 'futurePool']);
+
+            // Crew planning KPIs
+            Route::get('/crew-kpis', [\App\Http\Controllers\Api\Portal\CrewAnalysisController::class, 'kpis']);
+
+            // Candidate search for roster
+            Route::get('/candidates/search', [\App\Http\Controllers\Api\Portal\VesselRosterController::class, 'searchCandidates']);
+
+            // Decision Room
+            Route::prefix('vessels/{vesselId}/decision-room')->group(function () {
+                Route::get('/snapshot', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'vesselSnapshot']);
+                Route::get('/shortlist', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'shortlist']);
+                Route::get('/compatibility/{candidateId}', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'compatibility']);
+                Route::post('/simulate', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'simulate']);
+                Route::post('/decide', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'decide']);
+                Route::get('/history', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'history']);
+                Route::get('/packet/{candidateId}', [\App\Http\Controllers\Api\Portal\DecisionRoomController::class, 'downloadDecisionPacket']);
+            });
+
+            // Captain Profiles
+            Route::get('/captains/{candidateId}/profile', [\App\Http\Controllers\Api\Portal\CaptainProfileController::class, 'show']);
+
+            // Crew Outcomes (company logs outcome per vessel)
+            Route::get('/vessels/{vesselId}/outcomes', [\App\Http\Controllers\Api\Portal\CrewOutcomeController::class, 'index']);
+            Route::post('/vessels/{vesselId}/outcomes', [\App\Http\Controllers\Api\Portal\CrewOutcomeController::class, 'store']);
+
+            // Crew Conflict Reports
+            Route::post('/vessels/{vesselId}/conflicts', [\App\Http\Controllers\Api\Portal\CrewConflictController::class, 'store']);
+
+            // Synergy Weights (learning status)
+            Route::get('/synergy/weights', [\App\Http\Controllers\Api\Portal\SynergyWeightsController::class, 'show']);
+            Route::post('/synergy/retrain', [\App\Http\Controllers\Api\Portal\SynergyWeightsController::class, 'retrain']);
+
+            // Vessel Requirement Templates (company overrides)
+            Route::get('/vessel-requirements', [\App\Http\Controllers\Api\Portal\VesselRequirementController::class, 'index']);
+            Route::get('/vessel-requirements/{typeKey}', [\App\Http\Controllers\Api\Portal\VesselRequirementController::class, 'show']);
+            Route::put('/vessel-requirements/{typeKey}', [\App\Http\Controllers\Api\Portal\VesselRequirementController::class, 'update']);
+            Route::delete('/vessel-requirements/{typeKey}', [\App\Http\Controllers\Api\Portal\VesselRequirementController::class, 'destroy']);
+        });
 
         // Routes that require password to be changed first
         Route::middleware('force.password.change')->group(function () {
@@ -1415,6 +1612,7 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/analytics/dashboard', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'dashboard']);
         Route::get('/analytics/country-map', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'countryMap']);
         Route::get('/analytics/trends', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'trends']);
+        Route::get('/analytics/kpi', [\App\Http\Controllers\Api\OctopusAdmin\AnalyticsController::class, 'kpi']);
 
         // Company Credits
         Route::get('/credits', [\App\Http\Controllers\Api\OctopusAdmin\CompanyCreditController::class, 'index']);
@@ -1442,6 +1640,30 @@ Route::prefix('v1/octopus/admin')->group(function () {
         // Crew Synergy
         Route::get('/candidates/{id}/crew-synergy', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'crewSynergy'])->whereUuid('id');
 
+        // Crew Planning
+        Route::get('/fleet/crew-gaps', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'crewGaps']);
+        Route::get('/fleet/vessels/{id}/gaps', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'vesselGaps'])->whereUuid('id');
+        Route::get('/fleet/vessels/{id}/recommend', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'recommendCandidates'])->whereUuid('id');
+
+        // Crew Synergy Engine V2
+        Route::get('/fleet/vessels/{id}/compatibility/{candidateId}', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'candidateCompatibility'])->whereUuid('id')->whereUuid('candidateId');
+        Route::get('/fleet/vessels/{id}/shortlist', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'shortlistCandidates'])->whereUuid('id');
+        Route::get('/fleet/vessels/{id}/gaps-v2', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'vesselGapsV2'])->whereUuid('id');
+        Route::get('/fleet/vessels/{id}/crew-history', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'vesselCrewHistory'])->whereUuid('id');
+
+        // Crew Availability Insights (Admin)
+        Route::get('/fleet/availability-insights', [\App\Http\Controllers\Api\OctopusAdmin\FleetController::class, 'availabilityInsights']);
+
+        // Crew Feedback (Admin)
+        Route::get('/fleet/crew-feedback', [\App\Http\Controllers\Api\OctopusAdmin\CrewFeedbackController::class, 'index']);
+        Route::get('/candidates/{id}/crew-feedback', [\App\Http\Controllers\Api\OctopusAdmin\CrewFeedbackController::class, 'forCandidate'])->whereUuid('id');
+        Route::patch('/fleet/crew-feedback/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CrewFeedbackController::class, 'moderate'])->whereUuid('id');
+
+        // Captain Learning (Admin)
+        Route::get('/learning/suspicious-feedback', [\App\Http\Controllers\Api\OctopusAdmin\CaptainLearningAdminController::class, 'suspiciousFeedback']);
+        Route::get('/learning/metrics', [\App\Http\Controllers\Api\OctopusAdmin\CaptainLearningAdminController::class, 'metrics']);
+        Route::post('/learning/retrain-global', [\App\Http\Controllers\Api\OctopusAdmin\CaptainLearningAdminController::class, 'retrainGlobal']);
+
         // Language Assessment
         Route::get('/candidates/{id}/language-assessment', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'show'])->whereUuid('id');
         Route::post('/candidates/{id}/language-assessment/start', [\App\Http\Controllers\Api\OctopusAdmin\LanguageAssessmentController::class, 'start'])->whereUuid('id');
@@ -1453,6 +1675,54 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/candidates/{id}/decision-panel', \App\Http\Controllers\Api\OctopusAdmin\CandidateDecisionPanelController::class)->whereUuid('id');
         Route::post('/candidates/{id}/qualifications/{qualificationKey}', [\App\Http\Controllers\Api\OctopusAdmin\QualificationCheckController::class, 'upsert'])->whereUuid('id');
         Route::post('/candidates/{id}/phases/{phaseKey}/review', [\App\Http\Controllers\Api\OctopusAdmin\PhaseReviewController::class, 'review'])->whereUuid('id');
+
+        // Maritime Insights (Phase D)
+        Route::get('/maritime/insights', [\App\Http\Controllers\Api\OctopusAdmin\MaritimeInsightsController::class, 'insights']);
+        Route::get('/maritime/invite-runs', [\App\Http\Controllers\Api\OctopusAdmin\MaritimeInsightsController::class, 'inviteRuns']);
+        Route::get('/candidates/{id}/signals', [\App\Http\Controllers\Api\OctopusAdmin\MaritimeInsightsController::class, 'candidateSignals'])->whereUuid('id');
+
+        // Demo Requests Admin (Phase D)
+        Route::get('/demo-requests', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'index']);
+        Route::get('/demo-requests/stats', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'stats']);
+
+        // Country Certificate Rules (Validity Map)
+        Route::get('/country-certificate-rules', [\App\Http\Controllers\Api\OctopusAdmin\CountryCertificateRuleController::class, 'index']);
+        Route::post('/country-certificate-rules', [\App\Http\Controllers\Api\OctopusAdmin\CountryCertificateRuleController::class, 'store']);
+        Route::delete('/country-certificate-rules/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CountryCertificateRuleController::class, 'destroy']);
+
+        // Interview Engine v2 Admin — question set management
+        Route::get('/interview-v2/question-sets', [\App\Http\Controllers\Api\OctopusAdmin\InterviewV2AdminController::class, 'index']);
+        Route::post('/interview-v2/question-sets/{id}/activate', [\App\Http\Controllers\Api\OctopusAdmin\InterviewV2AdminController::class, 'activate'])->whereUuid('id');
+        Route::post('/interview-v2/question-sets/{id}/deactivate', [\App\Http\Controllers\Api\OctopusAdmin\InterviewV2AdminController::class, 'deactivate'])->whereUuid('id');
+
+        // Tenant Feature Flags (admin toggle + audit)
+        Route::get('/tenants/{tenantId}/features', [\App\Http\Controllers\Api\OctopusAdmin\TenantFeatureFlagController::class, 'index']);
+        Route::put('/tenants/{tenantId}/features/{featureKey}', [\App\Http\Controllers\Api\OctopusAdmin\TenantFeatureFlagController::class, 'upsert']);
+
+        // System Status (lightweight health summary for status pill)
+        Route::get('/system/status', \App\Http\Controllers\Api\OctopusAdmin\SystemStatusController::class);
+
+        // Vessel Requirement Templates (draft/publish workflow with validation)
+        Route::get('/vessel-requirement-templates', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'index']);
+        Route::get('/vessel-requirement-templates/{id}', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'show']);
+        Route::post('/vessel-requirement-templates', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'store']);
+        Route::put('/vessel-requirement-templates/{id}', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'update']);
+        Route::post('/vessel-requirement-templates/{id}/publish', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'publish']);
+        Route::post('/vessel-requirement-templates/{id}/revert', [\App\Http\Controllers\Api\OctopusAdmin\VesselRequirementTemplateController::class, 'revert']);
+
+        // Company Vessel Requirement Overrides
+        Route::get('/company-vessel-overrides', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'index']);
+        Route::post('/company-vessel-overrides', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'store']);
+        Route::delete('/company-vessel-overrides/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'destroy']);
+
+        // Crew Roster Import (Excel)
+        Route::prefix('imports/crew-roster')->group(function () {
+            Route::post('/preview', [\App\Http\Controllers\Api\OctopusAdmin\CrewRosterImportController::class, 'preview'])
+                ->middleware('throttle:30,1');
+            Route::post('/', [\App\Http\Controllers\Api\OctopusAdmin\CrewRosterImportController::class, 'import'])
+                ->middleware('throttle:30,1');
+            Route::get('/history', [\App\Http\Controllers\Api\OctopusAdmin\CrewRosterImportController::class, 'history']);
+        });
     });
 });
 

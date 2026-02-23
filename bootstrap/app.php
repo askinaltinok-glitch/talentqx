@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TenantMiddleware::class,
         ]);
 
+        $middleware->api(append: [
+            \App\Http\Middleware\ApiPerformanceLogger::class,
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'tenant' => \App\Http\Middleware\TenantMiddleware::class,
@@ -36,5 +40,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // PII hygiene: strip sensitive fields from exception context/reports
+        $exceptions->dontReport([
+            \Illuminate\Validation\ValidationException::class,
+        ]);
+
+        $exceptions->context(function () {
+            // Do NOT include request body in exception context
+            // to prevent PII (writing_text, answer_text, etc.) from leaking to logs
+            return [
+                'url' => request()->url(),
+                'method' => request()->method(),
+                'ip' => request()->ip(),
+            ];
+        });
     })->create();
