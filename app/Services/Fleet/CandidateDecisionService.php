@@ -6,6 +6,7 @@ use App\Models\CandidateTrustProfile;
 use App\Models\FleetVessel;
 use App\Models\PoolCandidate;
 use App\Services\Fleet\VesselRequirementProfileService;
+use App\Services\Maritime\RoleFitEngine;
 use App\Services\Maritime\RoleWeightMap;
 use App\Services\Maritime\SynergyEngineResolver;
 use Illuminate\Support\Facades\Log;
@@ -45,11 +46,13 @@ class CandidateDecisionService
 
     private RoleWeightMap $roleWeights;
     private VesselRequirementProfileService $profileService;
+    private RoleFitEngine $roleFitEngine;
 
     public function __construct()
     {
         $this->roleWeights = new RoleWeightMap();
         $this->profileService = new VesselRequirementProfileService();
+        $this->roleFitEngine = new RoleFitEngine();
     }
 
     /**
@@ -116,11 +119,21 @@ class CandidateDecisionService
 
         $typeKey = $this->profileService->resolveTypeKey($vessel->vessel_type ?? '');
 
+        // Role-fit evaluation
+        $roleFit = $this->computeRoleFit($candidate, $rankCode);
+        $isRoleMismatch = $roleFit['mismatch_level'] === 'strong';
+
+        // Label priority: 1) blocked  2) role_mismatch  3) score-based
+        $label = $isBlocked
+            ? 'blocked'
+            : ($isRoleMismatch ? 'role_mismatch' : $this->scoreLabel($finalScore));
+
         return [
             'final_score' => round($finalScore, 4),
             'final_score_pct' => (int) round($finalScore * 100),
-            'label' => $isBlocked ? 'blocked' : $this->scoreLabel($finalScore),
+            'label' => $label,
             'is_blocked' => $isBlocked,
+            'is_role_mismatch' => $isRoleMismatch,
             'blockers' => $hardBlocked,
             'pillars' => [
                 'cert_fit' => [
@@ -152,6 +165,13 @@ class CandidateDecisionService
                     'status' => $availFit['status'],
                     'days_to_available' => $availFit['days_to_available'],
                 ],
+            ],
+            'role_fit' => [
+                'score' => $roleFit['role_fit_score'],
+                'mismatch_level' => $roleFit['mismatch_level'],
+                'flags' => $roleFit['mismatch_flags'],
+                'inferred_role_key' => $roleFit['inferred_role_key'],
+                'suggestions' => $roleFit['suggestions'],
             ],
             'meta' => [
                 'scoring_mode' => 'vessel_profile',
@@ -189,11 +209,19 @@ class CandidateDecisionService
 
         $finalScore = max(0.0, min(1.0, $finalScore));
 
+        // Role-fit evaluation
+        $roleFit = $this->computeRoleFit($candidate, $rankCode);
+        $isRoleMismatch = $roleFit['mismatch_level'] === 'strong';
+
+        // Label priority: 1) blocked (none in legacy)  2) role_mismatch  3) score-based
+        $label = $isRoleMismatch ? 'role_mismatch' : $this->scoreLabel($finalScore);
+
         return [
             'final_score' => round($finalScore, 4),
             'final_score_pct' => (int) round($finalScore * 100),
-            'label' => $this->scoreLabel($finalScore),
+            'label' => $label,
             'is_blocked' => false,
+            'is_role_mismatch' => $isRoleMismatch,
             'blockers' => [],
             'pillars' => [
                 'availability' => [
@@ -218,6 +246,13 @@ class CandidateDecisionService
                     'weight' => self::W_COMPLIANCE,
                     'cert_status' => $complianceFit['cert_status'],
                 ],
+            ],
+            'role_fit' => [
+                'score' => $roleFit['role_fit_score'],
+                'mismatch_level' => $roleFit['mismatch_level'],
+                'flags' => $roleFit['mismatch_flags'],
+                'inferred_role_key' => $roleFit['inferred_role_key'],
+                'suggestions' => $roleFit['suggestions'],
             ],
             'meta' => [
                 'scoring_mode' => 'legacy',
@@ -717,6 +752,65 @@ class CandidateDecisionService
         }
 
         return $traits;
+    }
+
+    /**
+     * Role-fit evaluation: checks if candidate's behavioral profile matches their applied role.
+     */
+    private function computeRoleFit(PoolCandidate $candidate, string $rankCode): array
+    {
+        try {
+            $trust = CandidateTrustProfile::where('pool_candidate_id', $candidate->id)->first();
+            $traitScores = $this->extractTraitScores01($trust);
+
+            // Need at least some trait data to run evaluation
+            if (empty($traitScores)) {
+                return [
+                    'role_fit_score' => 0.5,
+                    'mismatch_level' => 'none',
+                    'mismatch_flags' => [],
+                    'inferred_role_key' => null,
+                    'suggestions' => [],
+                ];
+            }
+
+            $latestInterview = $candidate->latestCompletedInterview();
+            $formInterviewId = $latestInterview?->id;
+
+            $result = $this->roleFitEngine->evaluate(
+                $rankCode,
+                $traitScores,
+                $candidate->id,
+                $formInterviewId,
+            );
+
+            // Defense-in-depth: filter out any cross-department suggestions
+            // even though the engine already prevents them
+            $normalizedRole = \App\Config\MaritimeRole::normalize($rankCode) ?? $rankCode;
+            $appliedDept = \App\Config\MaritimeRole::departmentFor($normalizedRole);
+            if ($appliedDept && !empty($result['suggestions'])) {
+                $result['suggestions'] = array_values(array_filter(
+                    $result['suggestions'],
+                    fn($s) => \App\Config\MaritimeRole::departmentFor($s['role_key']) === $appliedDept,
+                ));
+            }
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::warning('CandidateDecisionService: role-fit evaluation failed', [
+                'candidate_id' => $candidate->id,
+                'rank_code' => $rankCode,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'role_fit_score' => 0.5,
+                'mismatch_level' => 'none',
+                'mismatch_flags' => [],
+                'inferred_role_key' => null,
+                'suggestions' => [],
+            ];
+        }
     }
 
     private function scoreLabel(float $score): string

@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('companies', function (Blueprint $table) {
-            $table->boolean('is_premium')->default(false)->after('subscription_ends_at');
-            $table->timestamp('grace_period_ends_at')->nullable()->after('is_premium');
+            if (!Schema::hasColumn('companies', 'is_premium')) {
+                $table->boolean('is_premium')->default(false)->after('subscription_ends_at');
+            }
+            if (!Schema::hasColumn('companies', 'grace_period_ends_at')) {
+                $table->timestamp('grace_period_ends_at')->nullable()->after('is_premium');
+            }
         });
     }
 

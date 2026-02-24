@@ -806,6 +806,91 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Role Question Bank v1
+    |--------------------------------------------------------------------------
+    | 25-question per role interview bank: 12 CORE + 6 ROLE + 4 DEPT + 3 ENGLISH.
+    | Feature-flagged for gradual rollout.
+    */
+    'question_bank_v1' => (bool) env('MARITIME_QUESTION_BANK_V1', false),
+
+    'question_bank' => [
+        'source_path'   => storage_path('app/question_bank'),
+        'cache_ttl'     => (int) env('QUESTION_BANK_CACHE_TTL', 3600),
+        'default_locales' => ['en', 'tr'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | English Speaking Gate
+    |--------------------------------------------------------------------------
+    | Voice-based English assessment (3 prompts, 4 criteria each scored 0-5).
+    | CEFR mapping and role minimums loaded from ENGLISH_GATE_v1.json.
+    */
+    'english_gate' => [
+        'enabled' => (bool) env('MARITIME_ENGLISH_GATE_ENABLED', false),
+        'max_prompts' => 3,
+        'criteria' => ['fluency', 'clarity', 'accuracy', 'safety_vocabulary'],
+        'max_score_per_criterion' => 5,
+        'confidence_base' => 0.85,
+        'confidence_floor' => 0.30,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role Fit Engine v1 — Configurable Thresholds
+    |--------------------------------------------------------------------------
+    | All values previously hardcoded in RoleFitEngine.
+    | No magic numbers remain in engine code.
+    */
+    /*
+    |--------------------------------------------------------------------------
+    | Role-Fit Alerting
+    |--------------------------------------------------------------------------
+    | Fires a Slack/Telegram webhook when mismatch% crosses threshold.
+    | Cooldown prevents alert storms.
+    */
+    'role_fit_alerts' => [
+        'enabled'                  => (bool) env('ROLE_FIT_ALERTS_ENABLED', false),
+        'window_hours'             => (int) env('ROLE_FIT_ALERTS_WINDOW_HOURS', 24),
+        'mismatch_pct_threshold'   => (float) env('ROLE_FIT_ALERTS_MISMATCH_PCT', 30.0),
+        'min_total_evaluations'    => (int) env('ROLE_FIT_ALERTS_MIN_TOTAL', 20),
+        'cooldown_minutes'         => (int) env('ROLE_FIT_ALERTS_COOLDOWN_MIN', 120),
+        'channel'                  => env('ROLE_FIT_ALERTS_CHANNEL', 'slack'),
+        'webhook_url'              => env('ROLE_FIT_ALERTS_WEBHOOK_URL', ''),
+    ],
+
+    'role_fit' => [
+        // Mismatch level thresholds
+        'mismatch_strong_min_flags' => 3,       // flag count >= this → strong mismatch
+        'cross_dept_gap_strong'     => 0.15,    // cross-dept score gap > this → strong mismatch
+        'fit_score_strong_below'    => 0.25,    // fit score < this → strong mismatch
+        'fit_score_weak_below'      => 0.40,    // fit score < this → weak mismatch
+
+        // Suggestion limits
+        'max_suggestions'           => 3,       // max adjacent role suggestions returned
+
+        // Cache settings
+        'cache_ttl_seconds'         => 600,     // 10 minutes for roles + DNA lookups
+
+        // Relevance weights (behavioral dimension importance)
+        'relevance_weight' => [
+            'critical' => 1.0,
+            'high'     => 0.75,
+            'moderate' => 0.50,
+            'low'      => 0.25,
+        ],
+
+        // Relevance thresholds (below = mismatch signal)
+        'relevance_threshold' => [
+            'critical' => 0.40,
+            'high'     => 0.30,
+            'moderate' => 0.20,
+            'low'      => 0.10,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Voice Gateway (Deepgram streaming dictation)
     |--------------------------------------------------------------------------
     | Shared HMAC secret with AiModelsPanel voice gateway.

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\MarketplaceAccessRespondedMail;
 use App\Models\MarketplaceAccessRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Marketplace Access Controller (Public)
@@ -136,7 +138,11 @@ class MarketplaceAccessController extends Controller
             'candidate_id' => $accessRequest->candidate_id,
         ]);
 
-        // TODO: Send notification email to requesting company
+        // Notify requesting company about approval
+        $requesterEmail = $accessRequest->requestingUser?->email;
+        if ($requesterEmail) {
+            Mail::to($requesterEmail)->queue(new MarketplaceAccessRespondedMail($accessRequest, 'approved'));
+        }
 
         return response()->json([
             'success' => true,
@@ -199,7 +205,11 @@ class MarketplaceAccessController extends Controller
             'candidate_id' => $accessRequest->candidate_id,
         ]);
 
-        // TODO: Send notification email to requesting company
+        // Notify requesting company about rejection
+        $requesterEmail = $accessRequest->requestingUser?->email;
+        if ($requesterEmail) {
+            Mail::to($requesterEmail)->queue(new MarketplaceAccessRespondedMail($accessRequest, 'rejected'));
+        }
 
         return response()->json([
             'success' => true,

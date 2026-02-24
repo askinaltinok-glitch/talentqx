@@ -1,0 +1,1965 @@
+{
+  "version": "1.0",
+  "block": "role",
+  "description": "Role-specific questions — 6 per role, 22 roles",
+  "roles": {
+    "master_captain": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-mc-1",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "When you encounter resistance while implementing ISM/Company SMS procedures, how do you manage it?",
+            "tr": "ISM/Company SMS uygulatırken direnç görürsen nasıl yönetirsin?"
+          },
+          "rubric": {
+            "high": "Demonstrates structured change-management approach: identifies root cause of resistance, engages crew through explanation and training, escalates documentation gaps, and follows up with audits to confirm compliance.",
+            "mid": "Acknowledges resistance and attempts to address it through meetings or reminders but lacks a systematic follow-up or root-cause approach.",
+            "low": "Ignores resistance, relies solely on authority, or shows no understanding of SMS implementation challenges."
+          }
+        },
+        {
+          "id": "role-mc-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Bridge team management: how do you work with an underperforming officer?",
+            "tr": "Bridge team management: zayıf performanslı officer ile nasıl çalışırsın?"
+          },
+          "rubric": {
+            "high": "Uses structured performance assessment, provides clear feedback with specific examples, creates an improvement plan with mentoring, adjusts bridge watch allocation if safety is at risk, and documents the process.",
+            "mid": "Identifies the issue and speaks to the officer but lacks a formal development plan or documentation trail.",
+            "low": "Avoids the issue, compensates by doing the officer's work, or uses only punitive measures without development."
+          }
+        },
+        {
+          "id": "role-mc-3",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Charterer/owner pressure vs safety: describe your decision with a real example.",
+            "tr": "Charterer/owner baskısı vs safety: gerçek örnekle kararını anlat."
+          },
+          "rubric": {
+            "high": "Provides a concrete example where safety was prioritized over commercial pressure, explains clear communication with all parties, references regulatory backing, and shows outcome awareness.",
+            "mid": "Gives a general answer about prioritizing safety but lacks a specific example or detailed communication approach.",
+            "low": "Shows willingness to compromise safety under commercial pressure or cannot articulate how to handle such conflicts."
+          }
+        },
+        {
+          "id": "role-mc-4",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you manage post-incident investigation, evidence preservation, and reporting?",
+            "tr": "Incident sonrası investigation + evidence + reporting sürecini yönetme."
+          },
+          "rubric": {
+            "high": "Describes a step-by-step process: immediate scene preservation, witness statements, photographic/documentary evidence, root-cause analysis, reporting to flag state/P&I/company, corrective actions, and crew debrief.",
+            "mid": "Knows the general reporting chain and evidence basics but misses key steps like root-cause analysis or corrective action follow-up.",
+            "low": "Shows little understanding of investigation methodology, evidence preservation, or regulatory reporting obligations."
+          }
+        },
+        {
+          "id": "role-mc-5",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Crew discipline: how do you establish fair but firm authority?",
+            "tr": "Crew discipline: adil ama net otoriteyi nasıl kurarsın?"
+          },
+          "rubric": {
+            "high": "Explains consistent rule application, transparent communication of expectations, leading by example, proportionate responses to violations, documentation, and balancing approachability with authority.",
+            "mid": "Understands the concept of fair discipline but lacks concrete methods or relies too heavily on either leniency or strictness.",
+            "low": "Shows authoritarian-only approach, inconsistency in rule application, or inability to maintain discipline."
+          }
+        },
+        {
+          "id": "role-mc-6",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "What is your preparation plan for port state control/inspections (checklist + drill + docs)?",
+            "tr": "Port state control/inspection'e hazırlık planın (checklist + drill + docs)."
+          },
+          "rubric": {
+            "high": "Describes comprehensive preparation: pre-arrival checklist, crew briefing on common deficiency areas, document review, equipment functionality checks, drill readiness, and delegation of responsibilities.",
+            "mid": "Knows that preparation is important and mentions some steps but lacks a structured or comprehensive approach.",
+            "low": "Shows reactive attitude to inspections, minimal preparation, or unfamiliarity with PSC focus areas."
+          }
+        }
+      ]
+    },
+    "chief_officer": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-co-1",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you identify risks in cargo/ballast planning and brief the team?",
+            "tr": "Cargo/ballast planında riskleri nasıl belirler ve brief edersin?"
+          },
+          "rubric": {
+            "high": "Demonstrates systematic risk assessment: reviews stability calculations, identifies critical loading sequences, conducts pre-operation briefings with specific risk mitigation measures, and ensures all involved crew understand contingencies.",
+            "mid": "Performs basic planning and holds briefings but may miss nuanced risks or lack detailed contingency communication.",
+            "low": "Plans cargo/ballast operations without structured risk assessment or fails to brief the team adequately."
+          }
+        },
+        {
+          "id": "role-co-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you plan deck operations (mooring, lifting, painting) and manage permit-to-work?",
+            "tr": "Deck operations (mooring, lifting, painting) planlama + permit-to-work."
+          },
+          "rubric": {
+            "high": "Explains detailed job planning with risk assessment, toolbox talk, PTW issuance with all controls verified, supervision during execution, and close-out verification. Shows integration of multiple concurrent operations safely.",
+            "mid": "Understands PTW basics and plans operations but may lack detail on concurrent risk management or close-out procedures.",
+            "low": "Plans operations informally, shows poor understanding of PTW requirements, or treats permits as paperwork rather than safety tools."
+          }
+        },
+        {
+          "id": "role-co-3",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you make safety meetings and toolbox talks genuinely effective?",
+            "tr": "Safety meeting ve toolbox talk'u nasıl \"gerçek\" kılarsın?"
+          },
+          "rubric": {
+            "high": "Uses real incidents/near-misses as discussion topics, encourages crew participation, adapts language for multilingual crews, follows up on action items, and measures engagement beyond attendance.",
+            "mid": "Conducts meetings regularly and covers relevant topics but struggles to generate genuine crew engagement.",
+            "low": "Treats safety meetings as checkbox exercises with no meaningful crew interaction or follow-up."
+          }
+        },
+        {
+          "id": "role-co-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your onboarding plan for new joiners (including deck cadets)?",
+            "tr": "New joiner onboarding planın (deck cadet dahil)."
+          },
+          "rubric": {
+            "high": "Describes a structured onboarding program: safety familiarization within timeframe, mentor assignment, progressive task introduction, regular check-ins, documentation in training records, and specific cadet training plan.",
+            "mid": "Has a basic onboarding approach but lacks structure, mentoring, or differentiated plans for different experience levels.",
+            "low": "No structured onboarding; expects new joiners to learn by observation or relies entirely on others."
+          }
+        },
+        {
+          "id": "role-co-5",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you manage and prioritize a maintenance backlog?",
+            "tr": "Maintenance backlog yönetimi (prioritization)."
+          },
+          "rubric": {
+            "high": "Uses risk-based prioritization (safety-critical first), coordinates with PMS schedule, communicates status to Master and company, tracks completion rates, and manages resources (crew, spares, time) effectively.",
+            "mid": "Prioritizes maintenance tasks but lacks systematic tracking or communication of backlog status.",
+            "low": "Reacts to breakdowns rather than managing backlog proactively, or shows no prioritization methodology."
+          }
+        },
+        {
+          "id": "role-co-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you approach a conflict between the bosun and an AB?",
+            "tr": "Conflict: bosun vs AB tartışmasında yaklaşımın."
+          },
+          "rubric": {
+            "high": "Listens to both sides separately first, identifies root cause, mediates fairly, reinforces chain of command while ensuring respect, documents if necessary, and follows up to prevent recurrence.",
+            "mid": "Intervenes and tries to resolve the issue but may side with one party or lack follow-up.",
+            "low": "Ignores the conflict, immediately punishes one side, or escalates unnecessarily without attempting resolution."
+          }
+        }
+      ]
+    },
+    "second_officer": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-2o-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Passage planning: what is your responsibility in the appraisal-to-execution flow?",
+            "tr": "Passage planning: appraisal→execution akışında sorumluluğun."
+          },
+          "rubric": {
+            "high": "Clearly articulates all four stages (appraisal, planning, execution, monitoring), describes own role in each, mentions UKC, weather routing, no-go areas, contingency waypoints, and Master approval process.",
+            "mid": "Understands the general passage planning process but may miss some stages or lack detail on personal responsibilities.",
+            "low": "Shows superficial understanding of passage planning or confuses responsibilities with other officers."
+          }
+        },
+        {
+          "id": "role-2o-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "ECDIS / navigation equipment failure scenario: what do you do?",
+            "tr": "ECDIS / nav equipment hata senaryosu: ne yaparsın?"
+          },
+          "rubric": {
+            "high": "Describes immediate actions: switch to backup system, inform Master, revert to paper charts if needed, log the failure, report to company, and verify position using independent means. Knows equipment redundancy setup.",
+            "mid": "Knows to switch to backup and inform Master but lacks detail on degraded-mode navigation or reporting.",
+            "low": "Panics, has no fallback plan, or shows unfamiliarity with backup navigation procedures."
+          }
+        },
+        {
+          "id": "role-2o-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "GMDSS/SSAS/EPIRB testing and record-keeping discipline.",
+            "tr": "GMDSS/SSAS/EPIRB test ve kayıt disiplini."
+          },
+          "rubric": {
+            "high": "Describes regular test schedules per SOLAS/company requirements, knows test procedures without triggering false alerts, maintains accurate logs, and understands survey/audit requirements for equipment.",
+            "mid": "Performs tests as scheduled but may lack detail on record-keeping or awareness of all equipment test requirements.",
+            "low": "Inconsistent testing, poor record-keeping, or unfamiliarity with GMDSS equipment responsibilities."
+          }
+        },
+        {
+          "id": "role-2o-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you manage fatigue during watchkeeping (your personal plan)?",
+            "tr": "Watchkeeping'de fatigue yönetimi (kendi planın)."
+          },
+          "rubric": {
+            "high": "Has a personal fatigue management plan: structured rest schedule, pre-watch preparation, environmental controls on bridge, awareness of MLC rest-hour requirements, and willingness to report fatigue to Master.",
+            "mid": "Acknowledges fatigue as a risk and takes some measures but lacks a comprehensive personal strategy.",
+            "low": "Dismisses fatigue as a concern, relies on caffeine alone, or shows no awareness of rest-hour regulations."
+          }
+        },
+        {
+          "id": "role-2o-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you encourage near-miss reporting within the team?",
+            "tr": "Near miss raporlamayı ekipte nasıl teşvik edersin?"
+          },
+          "rubric": {
+            "high": "Promotes a no-blame culture, leads by example by reporting own near-misses, discusses near-misses in safety meetings as learning opportunities, and shows how reporting improves safety for everyone.",
+            "mid": "Encourages reporting verbally but doesn't actively lead by example or create systematic encouragement.",
+            "low": "Doesn't see the value in near-miss reporting or creates an environment where crew fear consequences for reporting."
+          }
+        },
+        {
+          "id": "role-2o-6",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "When pressured like 'the captain doesn't want it,' how do you defend safety?",
+            "tr": "\"Kaptan istemiyor\" gibi bir baskıda safety'yi nasıl savunursun?"
+          },
+          "rubric": {
+            "high": "Respectfully but firmly communicates safety concerns with evidence, uses regulatory references, documents the exchange, and knows the escalation path (company DPA) if overruled on a safety-critical matter.",
+            "mid": "Would raise the concern but might back down under pressure or lack knowledge of formal escalation channels.",
+            "low": "Complies silently with unsafe instructions or cannot articulate how to challenge authority respectfully."
+          }
+        }
+      ]
+    },
+    "third_officer": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-3o-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your maintenance plan and inspection routine for safety equipment (LSA/FFA)?",
+            "tr": "Safety equipment (LSA/FFA) bakım planı ve kontrol rutini."
+          },
+          "rubric": {
+            "high": "Describes weekly/monthly/annual inspection schedules per SOLAS, maintains detailed checklists, knows expiry dates and servicing requirements, coordinates with company for shore-based servicing, and keeps records audit-ready.",
+            "mid": "Performs regular inspections but may miss some schedule details or record-keeping requirements.",
+            "low": "Inconsistent inspections, poor knowledge of LSA/FFA maintenance requirements, or relies on others to manage safety equipment."
+          }
+        },
+        {
+          "id": "role-3o-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your role in muster list/drill preparation and reporting?",
+            "tr": "Muster list/drill hazırlığında rolün ve raporlama."
+          },
+          "rubric": {
+            "high": "Takes ownership of drill preparation, ensures muster list is current, briefs crew on roles, conducts realistic drills, evaluates performance, reports deficiencies, and implements improvements for next drill.",
+            "mid": "Participates actively in drills and handles basic preparation but lacks initiative in improving drill quality.",
+            "low": "Treats drills as formalities, poor preparation, or unable to articulate own role clearly."
+          }
+        },
+        {
+          "id": "role-3o-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Permit-to-work for enclosed space entry: what do you check step by step?",
+            "tr": "Permit-to-work for enclosed space: adım adım ne kontrol edersin?"
+          },
+          "rubric": {
+            "high": "Lists complete procedure: atmosphere testing (O2, LEL, H2S, CO), ventilation confirmation, rescue team standby, communication plan, entry log, responsible officer authorization, continuous monitoring, and emergency extraction plan.",
+            "mid": "Knows key steps like atmosphere testing and ventilation but may miss elements like rescue team or continuous monitoring.",
+            "low": "Incomplete knowledge of enclosed space entry procedures or treats PTW as paperwork rather than life-critical control."
+          }
+        },
+        {
+          "id": "role-3o-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you assess collision risk during watchkeeping (CPA/TCPA)?",
+            "tr": "Watchkeeping'de collision risk değerlendirmesi (CPA/TCPA)."
+          },
+          "rubric": {
+            "high": "Explains systematic use of radar/ARPA for CPA/TCPA monitoring, applies COLREGS correctly, sets appropriate guard zones, uses visual bearings to confirm, and knows when to call the Master.",
+            "mid": "Uses radar and understands CPA/TCPA concepts but may lack systematic approach or COLREGS application confidence.",
+            "low": "Poor understanding of collision avoidance principles, over-reliance on AIS alone, or failure to monitor CPA/TCPA."
+          }
+        },
+        {
+          "id": "role-3o-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you intervene when an AB breaks procedure?",
+            "tr": "Bir AB prosedürü delerse nasıl müdahale edersin?"
+          },
+          "rubric": {
+            "high": "Stops the unsafe act immediately, explains why the procedure exists, re-briefs the correct method, reports if necessary, and follows up to ensure the behavior change is sustained.",
+            "mid": "Would stop the act and correct it but may hesitate due to seniority dynamics or lack follow-up.",
+            "low": "Ignores the violation, defers entirely to the bosun, or confronts aggressively without teaching."
+          }
+        },
+        {
+          "id": "role-3o-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What are your recommendations for deck safety during bad weather/rough seas?",
+            "tr": "Kötü hava/rough sea'da deck safety için önerilerin."
+          },
+          "rubric": {
+            "high": "Covers deck access restriction, lashing checks, securing loose items, adjusted watch schedules, communication protocols, monitoring weather updates, and clear criteria for when to stop all deck work.",
+            "mid": "Mentions some precautions but lacks a comprehensive approach or clear stop-work criteria.",
+            "low": "Minimal awareness of heavy weather precautions or willingness to continue risky deck operations in bad weather."
+          }
+        }
+      ]
+    },
+    "deck_cadet": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-dc-1",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "What do you want to learn in your first two weeks (plan)?",
+            "tr": "İlk 2 haftada ne öğrenmek istersin (plan)?"
+          },
+          "rubric": {
+            "high": "Shows a structured learning plan: ship familiarization, safety equipment locations, emergency duties, basic watchkeeping routines, key crew introductions, and daily learning goals.",
+            "mid": "Has some learning objectives but lacks structure or prioritization.",
+            "low": "No plan, passive attitude toward learning, or unrealistic expectations."
+          }
+        },
+        {
+          "id": "role-dc-2",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "When given a task you don't know, how do you ask and confirm?",
+            "tr": "Bilmediğin görev verilince nasıl sorarsın/confirm edersin?"
+          },
+          "rubric": {
+            "high": "Asks clarifying questions respectfully, repeats back instructions to confirm understanding, observes first if possible, and isn't afraid to say 'I don't know' while showing eagerness to learn.",
+            "mid": "Asks some questions but may hesitate or try to figure things out alone when they shouldn't.",
+            "low": "Pretends to understand, doesn't ask questions, or shows no initiative to learn."
+          }
+        },
+        {
+          "id": "role-dc-3",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Basic seamanship: your knot-tying, mooring safety, and PPE habits.",
+            "tr": "Basic seamanship: knot, mooring safety, PPE alışkanlığın."
+          },
+          "rubric": {
+            "high": "Demonstrates knowledge of basic knots (bowline, clove hitch, etc.), understands snap-back zones during mooring, and consistently uses correct PPE without reminders.",
+            "mid": "Knows some knots and PPE requirements but may have gaps in mooring safety awareness.",
+            "low": "Poor basic seamanship knowledge, inconsistent PPE use, or unaware of mooring hazards."
+          }
+        },
+        {
+          "id": "role-dc-4",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Focus and discipline during bridge watch: example of phone-free concentration.",
+            "tr": "Bridge watch'ta dikkat/disiplin: telefonsuz odak örneği."
+          },
+          "rubric": {
+            "high": "Describes concrete habits for maintaining focus: no phone policy, active lookout scanning, log entries, engaging with OOW, and understanding why distraction on bridge is a safety risk.",
+            "mid": "Understands the importance of focus but may lack specific strategies or give a vague example.",
+            "low": "Doesn't see phone use on bridge as a serious issue or lacks discipline examples."
+          }
+        },
+        {
+          "id": "role-dc-5",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Your discipline in daily logs and record keeping.",
+            "tr": "Günlük/record keeping disiplinin."
+          },
+          "rubric": {
+            "high": "Maintains training record book diligently, logs daily activities, understands that records are legal documents, and takes pride in accuracy and completeness.",
+            "mid": "Keeps records but may fall behind or lack consistency in detail.",
+            "low": "Poor record-keeping habits, treats logs as unimportant, or frequently needs reminders."
+          }
+        },
+        {
+          "id": "role-dc-6",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "In a culture of 'wrong but fast,' how do you stand up for doing things right?",
+            "tr": "\"Yanlış ama hızlı\" kültüründe doğruyu nasıl savunursun?"
+          },
+          "rubric": {
+            "high": "Shows moral courage to speak up respectfully, references training and procedures, seeks support from senior officers when needed, and understands that shortcuts endanger lives at sea.",
+            "mid": "Recognizes the problem but may struggle with how to raise concerns effectively given their junior position.",
+            "low": "Goes along with unsafe shortcuts, doesn't see the issue, or cannot articulate a response."
+          }
+        }
+      ]
+    },
+    "chief_engineer": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-ce-1",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you set up PMS, spare parts, and budget management?",
+            "tr": "PMS + spare + budget yönetimini nasıl kurarsın?"
+          },
+          "rubric": {
+            "high": "Describes integrated approach: PMS scheduling aligned with voyage plans, critical spare inventory management, budget forecasting with contingency, vendor coordination, and crew involvement in maintenance planning.",
+            "mid": "Manages PMS and spares but may lack integration between systems or proactive budget planning.",
+            "low": "Reactive maintenance approach, poor spare management, or no budget awareness."
+          }
+        },
+        {
+          "id": "role-ce-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Major breakdown scenario: isolation, plan, and communication.",
+            "tr": "Major breakdown senaryosu: izolasyon, plan, iletişim."
+          },
+          "rubric": {
+            "high": "Provides structured response: immediate isolation of affected system, safety assessment, inform Master/company, diagnose root cause, develop repair plan with timeline, coordinate shore support if needed, maintain propulsion/power alternatives.",
+            "mid": "Handles the basics of isolation and communication but may lack systematic planning or shore coordination.",
+            "low": "Panics under pressure, poor communication, or attempts repairs without proper isolation and planning."
+          }
+        },
+        {
+          "id": "role-ce-3",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you build engine team discipline (2/E, 3/E, oiler)?",
+            "tr": "Engine team disiplinini nasıl kurarsın (2/E–3/E–oiler)?"
+          },
+          "rubric": {
+            "high": "Sets clear expectations, delegates with accountability, conducts regular toolbox talks, mentors junior engineers, maintains fair but firm standards, and creates an environment where safety concerns can be raised freely.",
+            "mid": "Maintains basic discipline and delegates tasks but may lack structured mentoring or consistent standards.",
+            "low": "Micro-manages everything, creates fear-based discipline, or fails to maintain order in the engine department."
+          }
+        },
+        {
+          "id": "role-ce-4",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you distribute responsibilities during bunkering/transfer operations?",
+            "tr": "Bunkering/transfer operasyonunda sorumluluk dağılımın."
+          },
+          "rubric": {
+            "high": "Assigns clear roles (monitoring, communication, valve operation, emergency stop), conducts pre-operation briefing, establishes communication protocol with bridge and shore, monitors throughout, and has SOPEP response ready.",
+            "mid": "Assigns roles and monitors but may lack detailed pre-operation briefing or emergency preparedness.",
+            "low": "Unclear role assignment, poor communication during operations, or inadequate spill preparedness."
+          }
+        },
+        {
+          "id": "role-ce-5",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Audit/inspection preparation: which records are critical?",
+            "tr": "Audit/inspection'e hazırlık: hangi kayıtlar kritik?"
+          },
+          "rubric": {
+            "high": "Identifies all critical records: PMS logs, oil record book, machinery logs, safety equipment certificates, spare parts inventory, ISM records, training records, and ensures they are up-to-date, accurate, and accessible.",
+            "mid": "Knows the main records required but may miss some or not verify their accuracy before inspection.",
+            "low": "Poor awareness of which records are inspected, or records are frequently incomplete or inaccurate."
+          }
+        },
+        {
+          "id": "role-ce-6",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Safety vs operational pressure (ETA pressure): describe a decision example.",
+            "tr": "Safety vs operational pressure (ETA baskısı) karar örneği."
+          },
+          "rubric": {
+            "high": "Provides a specific example where safety was prioritized, explains risk assessment process, communicates clearly with Master and company, documents the decision, and shows understanding of legal/professional responsibility.",
+            "mid": "Understands the principle of safety first but gives a generic answer without a concrete example or decision process.",
+            "low": "Shows willingness to compromise safety for ETA or cannot articulate decision-making under pressure."
+          }
+        }
+      ]
+    },
+    "second_engineer": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-2e-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you create a daily/weekly maintenance plan?",
+            "tr": "Daily/weekly maintenance planını nasıl yaparsın?"
+          },
+          "rubric": {
+            "high": "Integrates PMS schedule with operational requirements, prioritizes safety-critical systems, allocates tasks based on team skills, accounts for voyage conditions, and maintains flexibility for emergencies while tracking completion.",
+            "mid": "Creates basic plans following PMS schedule but may lack integration with operations or flexible prioritization.",
+            "low": "No structured planning approach, reactive maintenance only, or poor task allocation."
+          }
+        },
+        {
+          "id": "role-2e-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you see a fuel/oil system abnormality, what steps do you follow?",
+            "tr": "Fuel/oil system abnormality görürsen hangi adımlarla ilerlersin?"
+          },
+          "rubric": {
+            "high": "Describes systematic troubleshooting: verify alarm/reading, check parameters against baseline, isolate if necessary, investigate root cause, inform C/E, implement corrective action, log findings, and monitor after fix.",
+            "mid": "Investigates and takes action but may skip steps like baseline comparison or post-fix monitoring.",
+            "low": "Reacts without systematic approach, doesn't inform superiors, or lacks troubleshooting methodology."
+          }
+        },
+        {
+          "id": "role-2e-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Describe your hot work permit control checklist.",
+            "tr": "Hot work permit: kontrol listeni anlat."
+          },
+          "rubric": {
+            "high": "Covers all elements: fire risk assessment, gas-free certification if needed, fire watch assignment, extinguisher placement, boundary insulation, ventilation, notification to bridge, duration limits, and post-work monitoring period.",
+            "mid": "Knows main elements but may miss boundary checks, post-work monitoring, or notification requirements.",
+            "low": "Incomplete understanding of hot work controls or treats the permit as routine paperwork."
+          }
+        },
+        {
+          "id": "role-2e-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you develop junior engineers (4/E, cadet, wiper)?",
+            "tr": "Junior'ları (4/E, cadet, wiper) nasıl yetiştirirsin?"
+          },
+          "rubric": {
+            "high": "Creates progressive training plans, supervises hands-on work, explains the 'why' behind tasks, gives constructive feedback, allows increasing autonomy as competence grows, and maintains training records.",
+            "mid": "Teaches when asked and gives tasks but lacks a structured development approach.",
+            "low": "No interest in training juniors, gives tasks without explanation, or is unapproachable."
+          }
+        },
+        {
+          "id": "role-2e-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Alarm management: how do you prioritize during an alarm flood?",
+            "tr": "Alarm management: alarm flood'da önceliklendirme."
+          },
+          "rubric": {
+            "high": "Describes prioritization by safety criticality (fire/flooding first), systematically silences non-critical alarms, delegates investigation of secondary alarms, maintains situational awareness, and uses training/experience to distinguish genuine from spurious alarms.",
+            "mid": "Attempts to prioritize but may become overwhelmed or lack a systematic approach during alarm floods.",
+            "low": "Panics during alarm floods, silences alarms without investigation, or cannot prioritize effectively."
+          }
+        },
+        {
+          "id": "role-2e-6",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Record integrity: what is your response to pressure to falsify records?",
+            "tr": "Record integrity: \"kayıtları uyduralım\" baskısına yanıtın."
+          },
+          "rubric": {
+            "high": "Firmly refuses falsification, explains legal and safety consequences, documents the request, uses company reporting channels if pressure persists, and understands personal criminal liability for false records.",
+            "mid": "Would refuse but may not know how to handle persistent pressure or formal reporting channels.",
+            "low": "Complies with falsification pressure or doesn't see it as a serious issue."
+          }
+        }
+      ]
+    },
+    "third_engineer": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-3e-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your role in auxiliary engine/generator maintenance?",
+            "tr": "Auxiliary engines / generators bakımında rolün."
+          },
+          "rubric": {
+            "high": "Describes comprehensive maintenance regime: daily checks (oil, coolant, exhaust temps), scheduled PMS tasks, load testing, fuel system maintenance, and coordination with 2/E for scheduling around operational needs.",
+            "mid": "Performs assigned maintenance tasks competently but may lack initiative in identifying issues or coordinating schedules.",
+            "low": "Only does what is told, poor understanding of auxiliary systems, or neglects routine checks."
+          }
+        },
+        {
+          "id": "role-3e-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your approach to a purifier/FO system malfunction?",
+            "tr": "Purifier/FO system arızasında yaklaşımın."
+          },
+          "rubric": {
+            "high": "Diagnoses systematically: checks temperature, flow, back pressure, sludge output; isolates the issue; switches to standby if available; informs 2/E; implements repair with proper procedures; and verifies operation post-fix.",
+            "mid": "Can troubleshoot basic issues but may struggle with complex faults or lack systematic diagnostic approach.",
+            "low": "Limited understanding of purifier systems or unable to troubleshoot without direct supervision."
+          }
+        },
+        {
+          "id": "role-3e-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Cooling system issue: give a troubleshooting example.",
+            "tr": "Cooling system issue: troubleshooting örneği."
+          },
+          "rubric": {
+            "high": "Provides a structured example: symptom identification, parameter checks (temperature, pressure, flow), systematic elimination of causes, repair action, testing, and documentation. Shows understanding of system interdependencies.",
+            "mid": "Can describe basic troubleshooting but may lack systematic approach or struggle with complex scenarios.",
+            "low": "Cannot provide a coherent troubleshooting example or relies entirely on senior guidance."
+          }
+        },
+        {
+          "id": "role-3e-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you conduct a toolbox talk for a risky job?",
+            "tr": "Risky job için toolbox talk nasıl yaparsın?"
+          },
+          "rubric": {
+            "high": "Covers job scope, specific hazards, control measures, PPE requirements, emergency procedures, ensures all participants understand and can ask questions, documents attendance and topics, and verifies competence for the task.",
+            "mid": "Conducts toolbox talks covering main hazards but may miss interactive elements or documentation.",
+            "low": "Skips toolbox talks, treats them as formalities, or cannot identify job-specific hazards."
+          }
+        },
+        {
+          "id": "role-3e-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your spare parts control and discipline?",
+            "tr": "Spare parts kontrol/disiplinin."
+          },
+          "rubric": {
+            "high": "Maintains accurate inventory, tracks consumption against PMS, identifies critical spares, reports shortages proactively, stores parts correctly, and coordinates with 2/E and C/E for ordering priorities.",
+            "mid": "Keeps basic track of spares used but may lack proactive management or accurate inventory.",
+            "low": "Poor spare parts awareness, doesn't track usage, or frequently discovers shortages too late."
+          }
+        },
+        {
+          "id": "role-3e-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you notice a fuel consumption anomaly, what data do you look at?",
+            "tr": "Yakıt sarfiyatı anomalisinde hangi veriye bakarsın?"
+          },
+          "rubric": {
+            "high": "Checks flow meter readings, compares against baseline/voyage report, reviews engine parameters (load, RPM, exhaust temps), checks fuel quality records, verifies no leaks or overflow, and correlates with weather/sea conditions.",
+            "mid": "Looks at basic consumption data but may miss correlating factors or systematic comparison.",
+            "low": "Cannot identify relevant data sources for fuel anomaly investigation."
+          }
+        }
+      ]
+    },
+    "fourth_engineer": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-4e-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Routine checks: which parameters are critical?",
+            "tr": "Routine checks: hangi parametreler kritik?"
+          },
+          "rubric": {
+            "high": "Lists critical parameters comprehensively: pressures (oil, fuel, cooling water), temperatures (exhaust, bearings, coolant), levels (oil sumps, expansion tanks), and understands alarm setpoints and normal operating ranges.",
+            "mid": "Knows main parameters but may miss some or lack understanding of acceptable ranges.",
+            "low": "Cannot identify critical parameters or performs checks without understanding what they indicate."
+          }
+        },
+        {
+          "id": "role-4e-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you encounter a fault you don't understand, how does escalation work?",
+            "tr": "Bilmediğin arıza durumunda escalation nasıl olur?"
+          },
+          "rubric": {
+            "high": "Describes clear escalation: gather available data (parameters, symptoms, timeline), inform 3/E or 2/E with specific observations, don't attempt unfamiliar repairs alone, document everything, and remain available to assist senior engineers.",
+            "mid": "Would inform a senior engineer but may not gather sufficient information first or may attempt unsafe repairs.",
+            "low": "Tries to fix everything alone, delays escalation, or escalates without useful information."
+          }
+        },
+        {
+          "id": "role-4e-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Safety: what is your role in confined space entry?",
+            "tr": "Safety: confined space girişinde görev/rolün."
+          },
+          "rubric": {
+            "high": "Knows potential roles (attendant, standby, entrant) and responsibilities for each, understands atmosphere testing, communication requirements, rescue procedures, and permit requirements. Never enters without proper authorization.",
+            "mid": "Understands basic confined space safety but may be unclear on specific role responsibilities.",
+            "low": "Poor knowledge of confined space procedures or willingness to enter without proper controls."
+          }
+        },
+        {
+          "id": "role-4e-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "If you see a lube oil leak, what are your first three actions?",
+            "tr": "Lube oil leak görürsen ilk 3 aksiyonun."
+          },
+          "rubric": {
+            "high": "1) Contain the leak (drip tray, rags, absorbent), 2) Identify source and assess severity (can it be isolated safely?), 3) Inform the duty engineer immediately. Also mentions slip hazard and environmental considerations.",
+            "mid": "Takes action to contain and report but may miss one step or not assess severity properly.",
+            "low": "Ignores the leak, only cleans up without investigating source, or doesn't report."
+          }
+        },
+        {
+          "id": "role-4e-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How are planned maintenance records properly kept?",
+            "tr": "Planned maintenance kaydı nasıl tutulur?"
+          },
+          "rubric": {
+            "high": "Records work done accurately with date, running hours, findings, parts used, and next due date. Understands records serve as legal documents and audit evidence. Updates PMS system promptly and flags anomalies found during maintenance.",
+            "mid": "Completes records but may lack detail or timeliness in updating the PMS system.",
+            "low": "Poor record-keeping, delayed entries, or doesn't understand the importance of accurate maintenance records."
+          }
+        },
+        {
+          "id": "role-4e-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What do you pay attention to during watch handover?",
+            "tr": "Vardiya devrinde (handover) nelere dikkat edersin?"
+          },
+          "rubric": {
+            "high": "Covers all elements: ongoing work, equipment status, abnormalities, alarms, pending tasks, machinery in standby, tank levels, and ensures face-to-face verbal handover with walkthrough before accepting the watch.",
+            "mid": "Handles basic handover but may miss less obvious items like pending tasks or standby equipment status.",
+            "low": "Minimal handover, doesn't ask questions, or accepts watch without proper briefing."
+          }
+        }
+      ]
+    },
+    "engine_cadet": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-ec-1",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "What is your learning plan for the first month (daily routine)?",
+            "tr": "İlk ay öğrenme planın (günlük rutin)."
+          },
+          "rubric": {
+            "high": "Describes a structured daily routine: engine room familiarization, safety walkthrough, observing senior engineers, taking notes, maintaining training record book, and setting specific weekly learning goals.",
+            "mid": "Has general learning goals but lacks daily structure or specific milestones.",
+            "low": "No learning plan, passive approach, or unrealistic expectations."
+          }
+        },
+        {
+          "id": "role-ec-2",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Tool safety: correct equipment usage and PPE.",
+            "tr": "Tool safety: doğru ekipman + PPE."
+          },
+          "rubric": {
+            "high": "Understands tool-specific hazards, always checks tool condition before use, uses correct PPE for each task (hearing protection, gloves, eye protection), and returns tools clean and stored properly.",
+            "mid": "Uses PPE and tools correctly most of the time but may need reminders for specific tasks.",
+            "low": "Inconsistent PPE use, careless with tools, or doesn't understand tool-specific hazards."
+          }
+        },
+        {
+          "id": "role-ec-3",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Check rounds: what and how do you take notes?",
+            "tr": "Check rounds: neyi nasıl not alırsın?"
+          },
+          "rubric": {
+            "high": "Records parameters systematically (pressures, temperatures, levels, running hours), notes any deviations from normal, uses senses (sight, sound, smell, touch) for abnormality detection, and reports findings to duty engineer.",
+            "mid": "Takes notes on main parameters but may miss subtle observations or lack systematic approach.",
+            "low": "Doesn't take notes during rounds, records randomly, or doesn't understand what to observe."
+          }
+        },
+        {
+          "id": "role-ec-4",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Are you someone who hesitates to ask questions? Give an example.",
+            "tr": "\"Soru sormaya çekinen\" biri misin? Örnekle."
+          },
+          "rubric": {
+            "high": "Shows self-awareness and gives a genuine example of overcoming hesitation to ask, understands that asking questions prevents mistakes and accidents, and demonstrates willingness to learn from anyone.",
+            "mid": "Claims to ask questions but the example is weak or they acknowledge struggling with it.",
+            "low": "Avoids asking questions, sees it as weakness, or cannot give a relevant example."
+          }
+        },
+        {
+          "id": "role-ec-5",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Pollution/waste management: your knowledge and discipline.",
+            "tr": "Kirlilik/atık yönetimi (bilgin + disiplin)."
+          },
+          "rubric": {
+            "high": "Understands MARPOL basics (oily water, garbage segregation, sewage), knows correct disposal procedures, uses drip trays, reports spills immediately, and shows genuine environmental awareness.",
+            "mid": "Has basic knowledge of waste management but may lack detail on procedures or MARPOL requirements.",
+            "low": "Poor awareness of environmental regulations or careless with waste disposal."
+          }
+        },
+        {
+          "id": "role-ec-6",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Basic troubleshooting: describe your approach to a simple scenario.",
+            "tr": "Basic troubleshooting: basit senaryo üzerinden yaklaşım."
+          },
+          "rubric": {
+            "high": "Demonstrates logical approach: observe symptoms, gather data, consider possible causes, apply basic checks safely, and escalate if beyond own competence. Shows willingness to learn the diagnostic process.",
+            "mid": "Attempts troubleshooting but may jump to conclusions or lack systematic thinking.",
+            "low": "No troubleshooting approach, either freezes or acts randomly without thinking."
+          }
+        }
+      ]
+    },
+    "bosun": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-b-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you distribute daily work plans to the deck crew?",
+            "tr": "Deck crew günlük iş planını nasıl dağıtırsın?"
+          },
+          "rubric": {
+            "high": "Plans work based on priorities from C/O, considers crew skills and conditions (weather, port operations), briefs clearly with safety points, distributes fairly, and follows up on progress throughout the day.",
+            "mid": "Distributes work but may lack consideration of conditions, crew skills, or follow-up.",
+            "low": "Assigns work randomly, gives unclear instructions, or doesn't follow up on completion."
+          }
+        },
+        {
+          "id": "role-b-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you manage safety during mooring operations?",
+            "tr": "Mooring operasyonunda güvenliği nasıl yönetirsin?"
+          },
+          "rubric": {
+            "high": "Ensures crew briefing before each operation, enforces snap-back zone awareness, checks equipment condition, maintains communication with bridge, ensures proper PPE, and stops operation if safety is compromised.",
+            "mid": "Manages basic mooring safety but may not conduct thorough pre-operation briefings or equipment checks.",
+            "low": "Treats mooring as routine without safety focus, poor communication, or allows unsafe practices."
+          }
+        },
+        {
+          "id": "role-b-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you enforce permit-to-work discipline with the crew?",
+            "tr": "Permit-to-work disiplinini ekibe nasıl uygulatırsın?"
+          },
+          "rubric": {
+            "high": "Leads by example, never starts work without proper PTW, explains the purpose behind each control measure, corrects violations immediately, and creates a culture where crew understand PTW protects them.",
+            "mid": "Follows PTW procedures but may not actively teach the crew the reasoning or correct violations consistently.",
+            "low": "Treats PTW as paperwork, sometimes starts work without permits, or doesn't enforce compliance."
+          }
+        },
+        {
+          "id": "role-b-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What is your approach to training new AB/OS crew members?",
+            "tr": "Yeni AB/OS yetiştirme yaklaşımın."
+          },
+          "rubric": {
+            "high": "Pairs new joiners with experienced crew, provides progressive task assignment, teaches safety fundamentals first, gives patient but clear feedback, and monitors their development over weeks.",
+            "mid": "Shows willingness to train but lacks a structured approach or patience for different learning speeds.",
+            "low": "Expects new crew to learn on their own, shows no interest in training, or is overly critical."
+          }
+        },
+        {
+          "id": "role-b-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Conflict management: how do you handle tension/fights between ABs?",
+            "tr": "Conflict management: AB'ler arası kavga/gerilim."
+          },
+          "rubric": {
+            "high": "Separates the parties, listens to both sides, addresses the issue privately, reports to C/O if serious, maintains fairness regardless of personal relationships, and follows up to prevent escalation.",
+            "mid": "Intervenes to stop conflicts but may take sides or not follow up adequately.",
+            "low": "Ignores conflicts, takes sides, or handles them with aggression."
+          }
+        },
+        {
+          "id": "role-b-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Maintenance quality standard: how do you balance speed vs quality?",
+            "tr": "Maintenance kalite standardı: \"hız mı kalite mi\" dengesin."
+          },
+          "rubric": {
+            "high": "Prioritizes quality for safety-critical items, plans work to allow proper execution, pushes back on unrealistic timelines when quality would suffer, and takes pride in workmanship.",
+            "mid": "Tries to balance both but sometimes sacrifices quality under time pressure.",
+            "low": "Always prioritizes speed, does minimum-quality work, or doesn't understand the safety implications of poor maintenance."
+          }
+        }
+      ]
+    },
+    "able_seaman": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-ab-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "What are your responsibilities during watchkeeping (lookout, rounds)?",
+            "tr": "Watchkeeping'de sorumlulukların (lookout, rounds)."
+          },
+          "rubric": {
+            "high": "Clearly describes lookout duties, deck security rounds, weather observation reporting, helm duties when required, communication with OOW, and understands the legal importance of proper lookout under COLREGS.",
+            "mid": "Knows basic watchkeeping duties but may lack detail on reporting requirements or COLREGS awareness.",
+            "low": "Vague understanding of watchkeeping responsibilities or treats the role passively."
+          }
+        },
+        {
+          "id": "role-ab-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Mooring safety: risk, communication, and PPE.",
+            "tr": "Mooring safety: risk + iletişim + PPE."
+          },
+          "rubric": {
+            "high": "Identifies specific mooring risks (snap-back, crush, entanglement), describes proper communication with bridge and shore, lists required PPE, and knows when to stop and raise a safety concern.",
+            "mid": "Understands basic mooring risks and wears PPE but may lack detail on communication protocols.",
+            "low": "Poor awareness of mooring hazards, inconsistent PPE use, or doesn't communicate during operations."
+          }
+        },
+        {
+          "id": "role-ab-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Working aloft / enclosed space: what are the basic rules?",
+            "tr": "Working aloft / enclosed space: temel kurallar."
+          },
+          "rubric": {
+            "high": "Knows permit requirements for both, describes fall protection for working aloft, atmosphere testing for enclosed spaces, buddy system, communication plan, and never enters/ascends without proper authorization and safety measures.",
+            "mid": "Knows permits are required and some safety measures but may miss critical elements.",
+            "low": "Would work aloft or enter enclosed spaces without proper permits or safety measures."
+          }
+        },
+        {
+          "id": "role-ab-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you decide on deck work during bad weather conditions?",
+            "tr": "Kötü hava koşullarında deck işleri kararın."
+          },
+          "rubric": {
+            "high": "Understands that safety overrides schedule, checks with officer before proceeding, identifies specific weather-related risks, knows when deck access should be restricted, and secures equipment preemptively.",
+            "mid": "Would be cautious in bad weather but may not proactively assess risks or secure equipment.",
+            "low": "Continues working regardless of weather conditions or doesn't understand the risks."
+          }
+        },
+        {
+          "id": "role-ab-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Discipline: your attitude within the chain of command.",
+            "tr": "Disiplin: emir-komuta zincirinde tutum."
+          },
+          "rubric": {
+            "high": "Respects the chain of command while maintaining the right to raise safety concerns, follows orders professionally, provides feedback through proper channels, and supports team cohesion.",
+            "mid": "Generally follows orders but may occasionally bypass the chain or struggle with disagreements.",
+            "low": "Disrespects authority, frequently bypasses chain of command, or blindly follows orders without thinking."
+          }
+        },
+        {
+          "id": "role-ab-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Do you report near misses? Give an example.",
+            "tr": "Near miss raporlar mısın? Örnek."
+          },
+          "rubric": {
+            "high": "Shows a genuine commitment to reporting near-misses, gives a specific example with details, understands that reporting prevents future incidents, and is not deterred by potential criticism.",
+            "mid": "Would report but hasn't done so or gives a vague example.",
+            "low": "Doesn't see the value in near-miss reporting or avoids reporting to stay out of trouble."
+          }
+        }
+      ]
+    },
+    "ordinary_seaman": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-os-1",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Basic duties: cleaning, painting, simple seamanship tasks.",
+            "tr": "Temel görevler: temizlik, boyama, basit seamanship."
+          },
+          "rubric": {
+            "high": "Describes duties with pride and attention to detail, understands how their work contributes to ship safety and appearance, follows procedures for paint/chemical handling, and shows willingness to learn more complex tasks.",
+            "mid": "Performs duties adequately but lacks enthusiasm or understanding of how they fit into the bigger picture.",
+            "low": "Sees basic duties as beneath them, careless execution, or poor understanding of task requirements."
+          }
+        },
+        {
+          "id": "role-os-2",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Learning and applying safety rules: give an example.",
+            "tr": "Güvenlik kurallarını öğrenme ve uygulama örneği."
+          },
+          "rubric": {
+            "high": "Gives a concrete example of learning a safety rule and applying it correctly, shows understanding of why rules exist (not just compliance), and demonstrates continuous learning attitude.",
+            "mid": "Follows safety rules but gives a weak example or shows compliance without understanding.",
+            "low": "Cannot give an example, sees safety rules as obstacles, or shows poor safety awareness."
+          }
+        },
+        {
+          "id": "role-os-3",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Fatigue/sleep management: your readiness for watch duty.",
+            "tr": "Yorgunluk/uyku düzeni: vardiyaya uygunluk."
+          },
+          "rubric": {
+            "high": "Has a personal rest routine, understands the importance of arriving on watch alert, manages sleep schedule around watch times, and would report if genuinely too fatigued to stand watch safely.",
+            "mid": "Tries to rest before watches but may not have a consistent routine or may not report fatigue.",
+            "low": "Poor sleep management, arrives on watch tired, or doesn't see fatigue as a safety issue."
+          }
+        },
+        {
+          "id": "role-os-4",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Tool handling: risks of incorrect use.",
+            "tr": "Tool handling: yanlış kullanım riskleri."
+          },
+          "rubric": {
+            "high": "Identifies specific risks (cuts, crushing, eye injury), describes correct handling techniques for common tools, always inspects tools before use, and uses appropriate PPE.",
+            "mid": "Handles tools safely most of the time but may lack knowledge of specific risks or inspection habits.",
+            "low": "Careless with tools, doesn't inspect before use, or doesn't understand associated risks."
+          }
+        },
+        {
+          "id": "role-os-5",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "When you receive corrective feedback from a superior, how do you adjust?",
+            "tr": "Amir geri bildirimi alınca nasıl düzeltirsin?"
+          },
+          "rubric": {
+            "high": "Accepts feedback without defensiveness, asks clarifying questions, applies corrections immediately, and views feedback as a learning opportunity rather than criticism.",
+            "mid": "Accepts feedback and tries to improve but may become defensive or need the same correction repeated.",
+            "low": "Takes feedback personally, becomes argumentative, or doesn't change behavior."
+          }
+        },
+        {
+          "id": "role-os-6",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Respect and discipline within the team: give an example.",
+            "tr": "Ekip içinde saygı/disiplin örneği."
+          },
+          "rubric": {
+            "high": "Demonstrates respect for all ranks, punctuality, willingness to help others, and maintaining a positive team attitude. Gives a genuine example of respectful teamwork.",
+            "mid": "Generally respectful but may struggle with certain situations or give a generic answer.",
+            "low": "Shows disrespect, poor punctuality, or inability to work within a team."
+          }
+        }
+      ]
+    },
+    "oiler": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-o-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Engine rounds: which specific points do you check?",
+            "tr": "Engine rounds: hangi noktaları kontrol edersin (somut)?"
+          },
+          "rubric": {
+            "high": "Lists specific check points: bearing temperatures, oil levels (sumps, sight glasses), cooling water levels, bilge levels, unusual noises/vibrations, leak checks, exhaust temperatures, and sounding tanks. Uses all senses systematically.",
+            "mid": "Checks main items but may miss some areas or lack a systematic route through the engine room.",
+            "low": "Does rounds superficially, misses key check points, or doesn't know what to look for."
+          }
+        },
+        {
+          "id": "role-o-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you notice a leak, abnormal noise, or temperature, what is your process?",
+            "tr": "Leak/abnormal noise/temperature fark edince akışın."
+          },
+          "rubric": {
+            "high": "Immediately assesses severity, takes safe containment action if possible, does NOT touch hot/pressurized systems without authorization, reports to duty engineer with specific details (location, type, severity), and monitors until acknowledged.",
+            "mid": "Reports the issue but may lack specific detail or attempt unsafe intervention.",
+            "low": "Ignores abnormalities, delays reporting, or attempts dangerous interventions alone."
+          }
+        },
+        {
+          "id": "role-o-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Lubrication tasks: correct procedures and record discipline.",
+            "tr": "Lubrication tasks: doğru prosedür + kayıt disiplini."
+          },
+          "rubric": {
+            "high": "Follows lubrication schedule precisely, uses correct oil types and quantities, records all tasks in the log, identifies contamination or abnormal consumption, and keeps lubrication points clean.",
+            "mid": "Performs lubrication tasks as directed but may lack consistency in recording or identifying abnormalities.",
+            "low": "Inconsistent lubrication, poor records, or uses incorrect lubricants without checking."
+          }
+        },
+        {
+          "id": "role-o-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "The safety impact of cleaning/housekeeping (example).",
+            "tr": "Temizlik/housekeeping'in safety etkisi (örnek)."
+          },
+          "rubric": {
+            "high": "Explains that clean engine room prevents slip hazards, allows leak detection, reduces fire risk, and gives a specific example. Shows pride in maintaining a clean working environment.",
+            "mid": "Understands housekeeping is important but gives a generic example without specific safety connections.",
+            "low": "Sees cleaning as menial work unrelated to safety, or doesn't maintain cleanliness standards."
+          }
+        },
+        {
+          "id": "role-o-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you don't fully understand an order, how do you confirm?",
+            "tr": "Emir gelince \"tam anlamadım\" durumunda nasıl confirm edersin?"
+          },
+          "rubric": {
+            "high": "Asks for clarification immediately and respectfully, repeats back the instruction in own words, doesn't proceed until sure of the task, and understands that unclear instructions can lead to accidents.",
+            "mid": "Would ask for clarification but may hesitate or feel embarrassed.",
+            "low": "Proceeds without understanding, doesn't ask questions, or pretends to understand."
+          }
+        },
+        {
+          "id": "role-o-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Communication within the engine team (with 2/E, 3/E): how should it work?",
+            "tr": "Engine team içinde iletişim (2/E–3/E) nasıl olmalı?"
+          },
+          "rubric": {
+            "high": "Describes clear, respectful communication chain, timely reporting of observations, confirming task completion, asking for guidance when needed, and maintaining professional relationships regardless of rank.",
+            "mid": "Communicates adequately but may not be proactive in reporting or maintaining consistent communication.",
+            "low": "Poor communication with officers, avoids interaction, or doesn't report issues promptly."
+          }
+        }
+      ]
+    },
+    "wiper": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-w-1",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "The relationship between housekeeping and safety.",
+            "tr": "Housekeeping ve güvenlik ilişkisi."
+          },
+          "rubric": {
+            "high": "Understands that proper housekeeping prevents slips, trips, and falls, enables early leak/fault detection, reduces fire hazards, and maintains safe access to emergency equipment. Shows pride in cleanliness.",
+            "mid": "Knows cleaning is related to safety but cannot give specific examples or reasons.",
+            "low": "Sees housekeeping as unrelated to safety or treats it as a chore without understanding."
+          }
+        },
+        {
+          "id": "role-w-2",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Basic tool usage and PPE discipline.",
+            "tr": "Temel alet kullanımı ve PPE disiplini."
+          },
+          "rubric": {
+            "high": "Always wears appropriate PPE for each task, inspects tools before use, uses tools for their intended purpose, maintains and stores tools properly, and reports damaged equipment.",
+            "mid": "Generally uses PPE and tools correctly but may need occasional reminders.",
+            "low": "Inconsistent PPE use, misuses tools, or doesn't inspect equipment before use."
+          }
+        },
+        {
+          "id": "role-w-3",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "If you see a spill or oil leak, what are your first actions?",
+            "tr": "Dökülme/yağ sızıntısı görürsen ilk aksiyonların."
+          },
+          "rubric": {
+            "high": "Immediately contains with absorbent materials, reports to duty engineer, avoids walking through the spill (slip hazard), knows location of spill kit, and understands environmental implications.",
+            "mid": "Would clean up and report but may lack urgency or miss containment steps.",
+            "low": "Ignores spills, cleans without reporting, or doesn't know where spill equipment is stored."
+          }
+        },
+        {
+          "id": "role-w-4",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Chain of command and desire to learn: give an example.",
+            "tr": "Emir-komuta + öğrenme isteği örneği."
+          },
+          "rubric": {
+            "high": "Shows respect for authority while demonstrating genuine curiosity to learn, gives a specific example of asking to observe or help with a more complex task, and understands their role in the team hierarchy.",
+            "mid": "Follows the chain of command but shows limited initiative in learning beyond assigned tasks.",
+            "low": "Doesn't respect authority, no interest in learning, or cannot give a relevant example."
+          }
+        },
+        {
+          "id": "role-w-5",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "How do you maintain focus and attention during your watch?",
+            "tr": "Vardiyada dikkat/odak nasıl sağlanır?"
+          },
+          "rubric": {
+            "high": "Describes specific focus strategies: staying active during rounds, resting properly before watch, staying hydrated, staying aware of surroundings, and reporting when feeling unable to maintain focus.",
+            "mid": "Tries to stay focused but lacks specific strategies or may not report fatigue.",
+            "low": "Frequently loses focus, sleeps during watch, or doesn't see concentration as important."
+          }
+        },
+        {
+          "id": "role-w-6",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "How do you escalate a task you cannot do?",
+            "tr": "\"Yapamam\" dediğin işi nasıl escalate edersin?"
+          },
+          "rubric": {
+            "high": "Honestly communicates inability (lack of knowledge, tools, or safety concern), explains what specifically they cannot do and why, asks for guidance or assistance, and doesn't attempt unsafe work beyond their competence.",
+            "mid": "Would tell someone but may hesitate or feel it reflects poorly on them.",
+            "low": "Attempts tasks they're not competent for, or refuses work without proper communication."
+          }
+        }
+      ]
+    },
+    "eto_electrician": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-eto-1",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Critical systems: which equipment is 'no-fail'?",
+            "tr": "Kritik sistemler: hangi ekipmanlar \"no-fail\"?"
+          },
+          "rubric": {
+            "high": "Identifies navigation systems (ECDIS, radar, GPS), communication (GMDSS, VDR), safety systems (fire detection, emergency lighting, steering gear), main switchboard, and emergency generator. Explains redundancy requirements and maintenance priorities for each.",
+            "mid": "Lists most critical systems but may miss some or lack understanding of redundancy requirements.",
+            "low": "Cannot identify critical electrical systems or doesn't understand the 'no-fail' concept."
+          }
+        },
+        {
+          "id": "role-eto-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Safe isolation steps during an electrical fault.",
+            "tr": "Elektrik arızasında güvenli izolasyon adımları."
+          },
+          "rubric": {
+            "high": "Describes complete isolation procedure: identify circuit, inform bridge/engine, lockout-tagout, verify dead (test instrument), earth if necessary, use insulated tools, barrier/signage, and test before re-energizing with controlled restoration.",
+            "mid": "Knows basic isolation steps but may miss LOTO details or verification steps.",
+            "low": "Poor isolation knowledge, works live without proper procedures, or doesn't follow LOTO."
+          }
+        },
+        {
+          "id": "role-eto-3",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Your approach to alarm/PLC troubleshooting.",
+            "tr": "Alarm/PLC sorununda yaklaşımın."
+          },
+          "rubric": {
+            "high": "Follows systematic approach: check alarm history, verify sensor/input, examine PLC logic, check wiring/connections, use diagnostic tools, test in controlled conditions, document findings, and involve manufacturer support when needed.",
+            "mid": "Can troubleshoot basic alarm issues but may struggle with PLC logic or systematic diagnosis.",
+            "low": "Relies on trial-and-error, cannot read PLC logic, or bypasses alarms without proper investigation."
+          }
+        },
+        {
+          "id": "role-eto-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Your planned maintenance record-keeping standard.",
+            "tr": "Planned maintenance kayıt standardı."
+          },
+          "rubric": {
+            "high": "Maintains detailed records: test results with values, calibration dates, insulation resistance trends, component replacements, and circuit modifications. Understands records are needed for class surveys and audits.",
+            "mid": "Keeps records but may lack detail or not track trends over time.",
+            "low": "Poor record-keeping, delayed entries, or doesn't understand the importance of electrical maintenance documentation."
+          }
+        },
+        {
+          "id": "role-eto-5",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "In an emergency (blackout), how do you prioritize?",
+            "tr": "Acil durumda (blackout) önceliklendirme."
+          },
+          "rubric": {
+            "high": "Describes clear priority sequence: emergency generator auto-start verification, emergency lighting, steering gear, navigation lights, communication systems, then systematic restoration of main power with load management to prevent repeat blackout.",
+            "mid": "Knows emergency generator should start and main systems need restoration but may lack proper sequencing.",
+            "low": "Panics during blackout, doesn't know restoration priorities, or attempts uncontrolled load reconnection."
+          }
+        },
+        {
+          "id": "role-eto-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Bridge/engine communication: how should fault reporting be done?",
+            "tr": "Bridge/engine communication: arıza bildirimi nasıl yapılır?"
+          },
+          "rubric": {
+            "high": "Reports include: what failed, impact on operations, estimated repair time, workaround if available, what assistance is needed, and keeps bridge/engine updated on progress. Uses clear, professional language.",
+            "mid": "Reports faults but may lack detail on impact or estimated timelines.",
+            "low": "Poor communication about faults, delays reporting, or provides unclear information."
+          }
+        }
+      ]
+    },
+    "fitter": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-f-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Describe the welding/hot work permit process.",
+            "tr": "Welding/hot work permit akışını anlat."
+          },
+          "rubric": {
+            "high": "Describes complete process: risk assessment, fire hazard checks, gas-free confirmation if applicable, PTW issuance, fire watch assignment, fire extinguisher placement, boundary protection, work execution, post-work 30-minute fire watch, and permit close-out.",
+            "mid": "Knows the basic PTW process but may miss elements like post-work fire watch or boundary protection.",
+            "low": "Would weld without proper permit process or shows poor understanding of hot work controls."
+          }
+        },
+        {
+          "id": "role-f-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Your approach to measurement, tolerances, and quality control.",
+            "tr": "Ölçüm, tolerans, kalite kontrol yaklaşımın."
+          },
+          "rubric": {
+            "high": "Uses appropriate measuring instruments, understands manufacturer tolerances, double-checks measurements before cutting/machining, maintains tool calibration, and doesn't accept 'close enough' on critical dimensions.",
+            "mid": "Makes measurements but may not always check tolerances or use calibrated instruments.",
+            "low": "Works by eye, poor understanding of tolerances, or doesn't use measuring instruments properly."
+          }
+        },
+        {
+          "id": "role-f-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Pipe repair/valve job: your risk assessment and test plan.",
+            "tr": "Pipe repair/valve job: risk ve test planın."
+          },
+          "rubric": {
+            "high": "Assesses system isolation requirements, checks for residual pressure/contents, uses correct materials and procedures, pressure tests after repair, checks for leaks at multiple points, and documents the work with test results.",
+            "mid": "Performs repairs competently but may skip pre-work risk assessment or post-work testing.",
+            "low": "Starts work without proper isolation, doesn't test after repair, or uses incorrect materials."
+          }
+        },
+        {
+          "id": "role-f-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "If pressured to use the wrong equipment for a job, what do you do?",
+            "tr": "Yanlış ekipmanla iş baskısı gelirse ne yaparsın?"
+          },
+          "rubric": {
+            "high": "Refuses to use incorrect equipment, explains the safety and quality risks clearly, suggests alternatives, escalates to C/E if pressure continues, and documents the concern. Understands that using wrong tools causes injury and poor work.",
+            "mid": "Would express concern but might comply under strong pressure.",
+            "low": "Uses whatever is available without questioning, doesn't see the risk, or cannot push back."
+          }
+        },
+        {
+          "id": "role-f-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Your approach to post-work testing and commissioning.",
+            "tr": "İş bitimi test/commissioning yaklaşımın."
+          },
+          "rubric": {
+            "high": "Performs systematic testing: visual inspection, pressure/leak test, functional test, monitoring period, documentation of results, and handover to operator with clear information about the work done.",
+            "mid": "Tests after repair but may not follow a complete testing protocol or document thoroughly.",
+            "low": "Considers the job done after physical repair without proper testing or commissioning."
+          }
+        },
+        {
+          "id": "role-f-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Tool discipline and housekeeping.",
+            "tr": "Tool discipline ve housekeeping."
+          },
+          "rubric": {
+            "high": "Maintains workshop in organized condition, cleans tools after use, stores properly, conducts regular inventory, reports damaged/missing tools, and keeps work area clean during jobs for safety.",
+            "mid": "Generally maintains tools but may let the workshop get disorganized during busy periods.",
+            "low": "Poor tool care, disorganized workshop, or leaves tools scattered in the engine room."
+          }
+        }
+      ]
+    },
+    "pumpman": {
+      "department": "engine",
+      "questions": [
+        {
+          "id": "role-p-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Basic risks of cargo/ballast/pump operations.",
+            "tr": "Cargo/ballast/pump operations temel riskleri."
+          },
+          "rubric": {
+            "high": "Identifies comprehensive risks: overpressure, cargo contamination, static electricity, toxic vapors, spills/pollution, line fracture, pump cavitation, and incorrect valve lineup. Explains mitigation for each.",
+            "mid": "Knows main risks but may miss some or lack detail on mitigation measures.",
+            "low": "Poor risk awareness for pump operations or cannot identify specific hazards."
+          }
+        },
+        {
+          "id": "role-p-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Line-up/checklist discipline (wrong valve = disaster scenario).",
+            "tr": "Line-up/checklist disiplinin (yanlış valve felaket senaryosu)."
+          },
+          "rubric": {
+            "high": "Follows checklist rigorously with independent verification, double-checks valve positions before starting, uses tagging system, understands that a single wrong valve can cause cargo contamination, spill, or structural damage. Never operates from memory alone.",
+            "mid": "Uses checklists but may not always verify independently or understand the catastrophic consequences of errors.",
+            "low": "Operates from memory, skips checklists, or doesn't appreciate the severity of valve lineup errors."
+          }
+        },
+        {
+          "id": "role-p-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Spill prevention and emergency response.",
+            "tr": "Spill prevention + emergency response."
+          },
+          "rubric": {
+            "high": "Describes preventive measures (scuppers closed, drip trays, tank ullage monitoring), knows SOPEP procedures, can identify emergency stops, containment actions, and reporting chain. Understands environmental and legal consequences.",
+            "mid": "Knows basic spill response but may lack detail on prevention or SOPEP procedures.",
+            "low": "Poor spill awareness, doesn't know SOPEP, or cannot describe emergency response."
+          }
+        },
+        {
+          "id": "role-p-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "When you see a pressure/temperature anomaly, what is your first action?",
+            "tr": "Pressure/temperature anomaly gördüğünde ilk aksiyon."
+          },
+          "rubric": {
+            "high": "Verifies the reading (instrument reliability), compares against normal operating range, assesses potential causes, adjusts operations if safe to do so, informs C/O and duty engineer, and monitors closely. Stops operations if safety threshold is reached.",
+            "mid": "Notices the anomaly and reports it but may not verify the reading or assess root causes.",
+            "low": "Ignores anomalies, doesn't know normal operating ranges, or continues without investigation."
+          }
+        },
+        {
+          "id": "role-p-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Your log-keeping and communication standards during watchkeeping.",
+            "tr": "Watchkeeping'de log ve iletişim standardı."
+          },
+          "rubric": {
+            "high": "Maintains accurate, timely logs (tank levels, pressures, temperatures, valve positions), communicates with bridge/engine at regular intervals and for any changes, and ensures clear handover information.",
+            "mid": "Keeps logs but may lack detail or regular communication with other departments.",
+            "low": "Poor log-keeping, sporadic communication, or delayed reporting of changes."
+          }
+        },
+        {
+          "id": "role-p-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Coordinating operations with permit-to-work requirements.",
+            "tr": "Permit-to-work ile operasyon koordinasyonu."
+          },
+          "rubric": {
+            "high": "Ensures PTW is in place before hazardous operations, coordinates with C/O and engine for simultaneous work, understands how pump operations affect other departments, and doesn't proceed without proper authorization.",
+            "mid": "Follows PTW requirements but may not proactively coordinate with other departments.",
+            "low": "Starts operations without proper permits or coordination."
+          }
+        }
+      ]
+    },
+    "dp_operator": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-dp-1",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "DP incident/alert levels and your reaction plan.",
+            "tr": "DP incident/alert seviyeleri ve reaksiyon planı."
+          },
+          "rubric": {
+            "high": "Describes alert levels (Advisory, Degraded, Emergency), specific response actions for each level, communication protocols, knows when to initiate manual override or emergency disconnect, and references IMCA/MTS guidelines.",
+            "mid": "Understands alert levels broadly but may lack specific response protocols for each level.",
+            "low": "Poor understanding of DP alert system or inappropriate responses to different alert levels."
+          }
+        },
+        {
+          "id": "role-dp-2",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Thruster/power management issue: describe your decision process.",
+            "tr": "Thruster/power management issue: decision process."
+          },
+          "rubric": {
+            "high": "Assesses remaining position-keeping capability, calculates available power margin, communicates with engine room and bridge, determines if operations can continue safely, knows when to advise stopping operations, and documents the event.",
+            "mid": "Would respond to the issue but may lack structured decision-making for different scenarios.",
+            "low": "Cannot assess position-keeping capability after thruster/power loss or makes poor risk decisions."
+          }
+        },
+        {
+          "id": "role-dp-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Checklists: pre-DP, post-DP, and record-keeping discipline.",
+            "tr": "Checklists: pre-DP, post-DP ve kayıt disiplini."
+          },
+          "rubric": {
+            "high": "Uses all checklists systematically (pre-operation capability plot, sensor verification, reference system checks), completes post-operation shutdown procedures, maintains detailed records for audit/class review, and never skips items.",
+            "mid": "Uses checklists but may not complete all items thoroughly or maintain comprehensive records.",
+            "low": "Skips checklists, poor record-keeping, or doesn't understand the importance of DP documentation."
+          }
+        },
+        {
+          "id": "role-dp-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Bridge team and engine team coordination (example).",
+            "tr": "Bridge team + engine team koordinasyonu (örnek)."
+          },
+          "rubric": {
+            "high": "Gives a concrete example of coordination during DP operations, shows understanding of how bridge and engine teams must work together for safe positioning, and describes communication protocols used.",
+            "mid": "Understands the need for coordination but gives a weak example or lacks specific communication protocols.",
+            "low": "Works in isolation, poor coordination, or cannot describe how teams interact during DP operations."
+          }
+        },
+        {
+          "id": "role-dp-5",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Human factors: how do you manage complacency risk?",
+            "tr": "Human factors: complacency riskini nasıl yönetirsin?"
+          },
+          "rubric": {
+            "high": "Recognizes that DP operations can become routine leading to complacency, uses active monitoring techniques, varies attention patterns, maintains awareness of environmental changes, and discusses human factors with team regularly.",
+            "mid": "Aware of complacency risk but lacks specific strategies to combat it.",
+            "low": "Doesn't recognize complacency as a risk in DP operations or has no mitigation strategies."
+          }
+        },
+        {
+          "id": "role-dp-6",
+          "dimension": "role_specific",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Client/operational pressure vs DP safety: give an example.",
+            "tr": "Client/operation pressure vs DP safety: örnek."
+          },
+          "rubric": {
+            "high": "Provides a specific example where DP safety limits were maintained despite client pressure, explains the communication process, references operational limits, and shows understanding of consequences of exceeding DP capabilities.",
+            "mid": "Understands that safety overrides client demands but lacks a specific example or detailed communication approach.",
+            "low": "Would compromise DP safety under client pressure or cannot articulate how to handle such situations."
+          }
+        }
+      ]
+    },
+    "crane_operator": {
+      "department": "deck",
+      "questions": [
+        {
+          "id": "role-cr-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Lifting plan: load chart, radius, limits, and signals.",
+            "tr": "Lifting plan: load chart, radius, limits, signals."
+          },
+          "rubric": {
+            "high": "Describes complete lifting plan process: verify load weight, check load chart for radius/capacity, account for dynamic factors (vessel motion, wind), confirm rigging, establish signal communication with banksman, and define exclusion zones.",
+            "mid": "Understands load charts and basic planning but may miss dynamic factors or detailed signal coordination.",
+            "low": "Poor understanding of load charts, doesn't plan lifts properly, or ignores operational limits."
+          }
+        },
+        {
+          "id": "role-cr-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Pre-use inspection: which control items are mandatory?",
+            "tr": "Pre-use inspection: hangi kontrol maddeleri şart?"
+          },
+          "rubric": {
+            "high": "Lists comprehensive checks: wire rope condition, hook/safety catch, limit switches, brakes, hydraulics/oil levels, structural integrity, operator controls function, load indicator, and certification validity. Documents findings.",
+            "mid": "Checks main items but may miss some elements like limit switches or load indicator.",
+            "low": "Minimal or no pre-use inspection, or doesn't know what to check."
+          }
+        },
+        {
+          "id": "role-cr-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Tag line and rigging coordination risks.",
+            "tr": "Tag line / rigging coordination riskleri."
+          },
+          "rubric": {
+            "high": "Identifies risks: swinging loads, entanglement, crushing, snatch loads, and communication failures. Describes safe tag line handling, proper rigging inspection, and coordination signals with deck crew.",
+            "mid": "Understands basic rigging risks but may lack detail on tag line coordination or communication.",
+            "low": "Poor awareness of rigging hazards, doesn't use tag lines properly, or has poor crew coordination."
+          }
+        },
+        {
+          "id": "role-cr-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Describe a scenario where you would use stop-work authority.",
+            "tr": "Stop-work kullanacağın bir senaryo anlat."
+          },
+          "rubric": {
+            "high": "Gives a realistic scenario (e.g., wind exceeding limits, rigging concern, personnel in danger zone), explains how they would stop operations clearly and firmly, communicate the reason, and not resume until the issue is resolved.",
+            "mid": "Can describe a scenario but may hesitate in execution or not know how to formally stop operations.",
+            "low": "Would not stop operations due to pressure, or cannot identify situations requiring stop-work."
+          }
+        },
+        {
+          "id": "role-cr-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Communication standard with deck supervisor.",
+            "tr": "Communication: deck supervisor ile standardın."
+          },
+          "rubric": {
+            "high": "Describes clear communication protocol: hand signals confirmed verbally by radio, pre-lift briefing, continuous communication during operations, clear acknowledgment of instructions, and immediate reporting of any concerns.",
+            "mid": "Communicates during operations but may lack structured protocols or consistent methods.",
+            "low": "Poor communication with supervisors, operates without confirmation, or uses unclear signals."
+          }
+        },
+        {
+          "id": "role-cr-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Your approach to near miss/overload events and reporting.",
+            "tr": "Near miss / overload yaklaşımın ve raporlama."
+          },
+          "rubric": {
+            "high": "Reports all near misses and overload events immediately, understands they indicate systemic issues, describes the event factually without hiding details, participates in investigation, and implements lessons learned.",
+            "mid": "Would report but may downplay the significance or not participate actively in follow-up.",
+            "low": "Hides near misses, doesn't see overloads as significant, or avoids reporting to escape blame."
+          }
+        }
+      ]
+    },
+    "cook": {
+      "department": "galley",
+      "questions": [
+        {
+          "id": "role-c-1",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Menu planning: balancing budget and crew morale.",
+            "tr": "Menü planlama: bütçe + ekip moralini dengelemek."
+          },
+          "rubric": {
+            "high": "Plans varied menus within budget, considers nutritional balance, accommodates cultural/dietary preferences of multinational crew, adjusts for voyage length and provision availability, and uses crew feedback to improve.",
+            "mid": "Plans adequate menus but may lack variety, cultural consideration, or budget optimization.",
+            "low": "Repetitive menus, ignores dietary needs, or cannot manage within budget."
+          }
+        },
+        {
+          "id": "role-c-2",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Allergen management: how do you prevent cross-contamination?",
+            "tr": "Alerjen yönetimi: cross-contamination nasıl önlersin?"
+          },
+          "rubric": {
+            "high": "Maintains allergen awareness for all crew, uses separate preparation areas/utensils, labels food clearly, communicates with crew about allergens, and has an emergency response awareness if allergic reaction occurs.",
+            "mid": "Aware of common allergens but may lack systematic prevention measures or labeling.",
+            "low": "Poor allergen awareness, no separation procedures, or dismissive of allergy concerns."
+          }
+        },
+        {
+          "id": "role-c-3",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Hygiene: how do you maintain standards during busy service?",
+            "tr": "Hijyen: yoğun serviste standardı nasıl korursun?"
+          },
+          "rubric": {
+            "high": "Maintains HACCP principles regardless of pressure, follows temperature control for hot/cold food, regular handwashing, clean-as-you-go practice, proper food storage, and surface sanitization. Never shortcuts hygiene for speed.",
+            "mid": "Generally maintains hygiene but may cut corners during very busy periods.",
+            "low": "Poor hygiene practices, especially under pressure, or doesn't understand food safety principles."
+          }
+        },
+        {
+          "id": "role-c-4",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Stock management: FEFO principle and waste reduction.",
+            "tr": "Stok/FEFO ve waste azaltma pratiğin."
+          },
+          "rubric": {
+            "high": "Implements FEFO (First Expired First Out) consistently, conducts regular stock checks, minimizes waste through portion control and creative use of ingredients, maintains proper storage conditions, and tracks consumption patterns.",
+            "mid": "Uses FEFO mostly but may have occasional waste issues or inconsistent stock checks.",
+            "low": "Poor stock management, significant waste, or doesn't follow FEFO principles."
+          }
+        },
+        {
+          "id": "role-c-5",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Galley safety: knife, burn, and steam risk management.",
+            "tr": "Galley safety: knife/burn/steam risk yönetimi."
+          },
+          "rubric": {
+            "high": "Maintains sharp knives properly (dull knives are more dangerous), uses correct cutting techniques, uses PPE when handling hot items, keeps galley floor dry, secures equipment at sea, and trains steward on safety practices.",
+            "mid": "Follows basic safety practices but may have gaps in technique or not actively train others.",
+            "low": "Frequent safety incidents, poor knife handling, or careless with hot equipment."
+          }
+        },
+        {
+          "id": "role-c-6",
+          "dimension": "role_specific",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Managing crew feedback (complaints and praise).",
+            "tr": "Crew feedback yönetimi (şikayet/övgü)."
+          },
+          "rubric": {
+            "high": "Receives complaints professionally without taking offense, uses feedback to improve, shares praise with galley team, creates channels for constructive feedback, and understands that food quality directly affects crew morale and retention.",
+            "mid": "Accepts feedback but may take criticism personally or not systematically improve based on it.",
+            "low": "Rejects all criticism, becomes hostile to feedback, or ignores crew preferences entirely."
+          }
+        }
+      ]
+    },
+    "steward": {
+      "department": "galley",
+      "questions": [
+        {
+          "id": "role-s-1",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Cabin and common area hygiene standards.",
+            "tr": "Kabin/ortak alan hijyen standardı."
+          },
+          "rubric": {
+            "high": "Maintains consistent cleaning schedules, uses correct cleaning products for different surfaces, pays attention to high-touch areas, maintains sanitary facilities properly, and takes pride in creating a comfortable living environment.",
+            "mid": "Cleans regularly but may lack attention to detail or consistent standards across areas.",
+            "low": "Inconsistent cleaning, poor standards, or doesn't understand the importance of hygiene in living spaces."
+          }
+        },
+        {
+          "id": "role-s-2",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Laundry and chemical safety (MSDS logic).",
+            "tr": "Laundry/kimyasal güvenliği (MSDS mantığı)."
+          },
+          "rubric": {
+            "high": "Understands MSDS/SDS for all chemicals used, uses correct dilutions, wears appropriate PPE, stores chemicals properly (never mixes incompatible products), and knows first aid measures for chemical exposure.",
+            "mid": "Uses chemicals mostly correctly but may not reference MSDS or fully understand risks.",
+            "low": "Mixes chemicals without checking compatibility, no PPE, or doesn't know what MSDS is."
+          }
+        },
+        {
+          "id": "role-s-3",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Guest/crew service: balancing respect and speed.",
+            "tr": "Misafir/crew service: saygı + hız dengesi."
+          },
+          "rubric": {
+            "high": "Treats all crew with equal respect regardless of rank, maintains professional demeanor, handles requests efficiently without cutting corners on quality, and understands that good service contributes to crew wellbeing.",
+            "mid": "Generally respectful and efficient but may struggle to balance both during busy times.",
+            "low": "Rude or dismissive, very slow without care for others' time, or shows favoritism based on rank."
+          }
+        },
+        {
+          "id": "role-s-4",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Stock and cleaning supplies tracking.",
+            "tr": "Stok/temizlik malzemesi takibi."
+          },
+          "rubric": {
+            "high": "Maintains inventory records, orders supplies in advance to avoid shortages, stores materials properly, tracks consumption to identify waste, and coordinates with cook for galley supplies.",
+            "mid": "Tracks supplies but may run low or not maintain accurate records.",
+            "low": "Poor inventory management, frequent shortages, or doesn't track supplies at all."
+          }
+        },
+        {
+          "id": "role-s-5",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Conflict: communication example with a difficult crew member.",
+            "tr": "Conflict: zor bir crew ile iletişim örneği."
+          },
+          "rubric": {
+            "high": "Stays calm and professional, listens to the issue, tries to find a solution, doesn't escalate unnecessarily, and reports to C/O if the behavior is persistent or disruptive. Gives a genuine example.",
+            "mid": "Tries to manage conflict but may become emotional or avoid the difficult person.",
+            "low": "Escalates conflicts, takes things personally, or avoids communication entirely."
+          }
+        },
+        {
+          "id": "role-s-6",
+          "dimension": "role_specific",
+          "difficulty": 1,
+          "prompts": {
+            "en": "Discipline: watch schedule and task handover.",
+            "tr": "Disiplin: vardiya düzeni ve görev teslimi."
+          },
+          "rubric": {
+            "high": "Maintains punctual watch schedule, provides thorough handover (what's done, what's pending, any issues), keeps the next person informed of special requirements, and maintains consistent standards regardless of supervision.",
+            "mid": "Generally punctual and hands over but may lack detail or consistency.",
+            "low": "Frequently late, no handover, or standards drop when not supervised."
+          }
+        }
+      ]
+    }
+  }
+}

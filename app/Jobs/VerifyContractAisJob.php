@@ -9,11 +9,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class VerifyContractAisJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public array $backoff = [30, 60];
@@ -25,10 +27,12 @@ class VerifyContractAisJob implements ShouldQueue
         private ?string $userId = null,
     ) {
         $this->onQueue('default');
+        $this->captureBrand();
     }
 
     public function handle(ContractAisVerificationService $service): void
     {
+        $this->setBrandDatabase();
         $contract = CandidateContract::find($this->contractId);
 
         if (!$contract) {

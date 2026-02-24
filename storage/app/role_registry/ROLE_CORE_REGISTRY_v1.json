@@ -1,0 +1,248 @@
+{
+  "version": "v1",
+  "source": "ROLE_CORE_REGISTRY_v1.md",
+  "roles": [
+    {
+      "role_code": "MASTER",
+      "canonical_code": "captain",
+      "label": "Captain / Master",
+      "department": "deck",
+      "category": "command",
+      "authority_level": 5,
+      "safety_criticality": "extreme",
+      "decision_scope": "vessel-wide",
+      "sort_order": 10
+    },
+    {
+      "role_code": "CHIEF_OFFICER",
+      "canonical_code": "chief_officer",
+      "label": "Chief Officer",
+      "department": "deck",
+      "category": "command",
+      "authority_level": 4,
+      "safety_criticality": "extreme",
+      "decision_scope": "cargo + deck operations",
+      "sort_order": 11
+    },
+    {
+      "role_code": "SECOND_OFFICER",
+      "canonical_code": "second_officer",
+      "label": "Second Officer",
+      "department": "deck",
+      "category": "operational",
+      "authority_level": 3,
+      "safety_criticality": "high",
+      "decision_scope": "navigation watch",
+      "sort_order": 20
+    },
+    {
+      "role_code": "THIRD_OFFICER",
+      "canonical_code": "third_officer",
+      "label": "Third Officer",
+      "department": "deck",
+      "category": "operational",
+      "authority_level": 3,
+      "safety_criticality": "high",
+      "decision_scope": "safety + watch",
+      "sort_order": 21
+    },
+    {
+      "role_code": "BOSUN",
+      "canonical_code": "bosun",
+      "label": "Bosun",
+      "department": "deck",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "high",
+      "decision_scope": null,
+      "sort_order": 30
+    },
+    {
+      "role_code": "AB_SEAMAN",
+      "canonical_code": "able_seaman",
+      "label": "Able Seaman (AB)",
+      "department": "deck",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 31
+    },
+    {
+      "role_code": "ORDINARY_SEAMAN",
+      "canonical_code": "ordinary_seaman",
+      "label": "Ordinary Seaman (OS)",
+      "department": "deck",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 32
+    },
+    {
+      "role_code": "DECK_CADET",
+      "canonical_code": "deck_cadet",
+      "label": "Deck Cadet",
+      "department": "deck",
+      "category": "trainee",
+      "authority_level": 1,
+      "safety_criticality": "low",
+      "decision_scope": null,
+      "sort_order": 40
+    },
+    {
+      "role_code": "CHIEF_ENGINEER",
+      "canonical_code": "chief_engineer",
+      "label": "Chief Engineer",
+      "department": "engine",
+      "category": "command",
+      "authority_level": 5,
+      "safety_criticality": "extreme",
+      "decision_scope": "propulsion + machinery",
+      "sort_order": 50
+    },
+    {
+      "role_code": "SECOND_ENGINEER",
+      "canonical_code": "second_engineer",
+      "label": "Second Engineer",
+      "department": "engine",
+      "category": "operational",
+      "authority_level": 4,
+      "safety_criticality": "extreme",
+      "decision_scope": null,
+      "sort_order": 51
+    },
+    {
+      "role_code": "THIRD_ENGINEER",
+      "canonical_code": "third_engineer",
+      "label": "Third Engineer",
+      "department": "engine",
+      "category": "operational",
+      "authority_level": 3,
+      "safety_criticality": "high",
+      "decision_scope": null,
+      "sort_order": 52
+    },
+    {
+      "role_code": "MOTOR_MAN",
+      "canonical_code": "motorman",
+      "label": "Motorman",
+      "department": "engine",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 60
+    },
+    {
+      "role_code": "OILER",
+      "canonical_code": "oiler",
+      "label": "Oiler",
+      "department": "engine",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 61
+    },
+    {
+      "role_code": "FITTER",
+      "canonical_code": "fitter",
+      "label": "Fitter",
+      "department": "engine",
+      "category": "execution",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 62
+    },
+    {
+      "role_code": "ETO",
+      "canonical_code": "electrician",
+      "label": "Electrician / ETO",
+      "department": "engine",
+      "category": "operational",
+      "authority_level": 3,
+      "safety_criticality": "high",
+      "decision_scope": null,
+      "sort_order": 63
+    },
+    {
+      "role_code": "ENGINE_CADET",
+      "canonical_code": "engine_cadet",
+      "label": "Engine Cadet",
+      "department": "engine",
+      "category": "trainee",
+      "authority_level": 1,
+      "safety_criticality": "low",
+      "decision_scope": null,
+      "sort_order": 70
+    },
+    {
+      "role_code": "COOK",
+      "canonical_code": "cook",
+      "label": "Cook",
+      "department": "service",
+      "category": "service",
+      "authority_level": 2,
+      "safety_criticality": "medium",
+      "decision_scope": null,
+      "sort_order": 80
+    },
+    {
+      "role_code": "STEWARD",
+      "canonical_code": "steward",
+      "label": "Steward",
+      "department": "service",
+      "category": "service",
+      "authority_level": 2,
+      "safety_criticality": "low",
+      "decision_scope": null,
+      "sort_order": 81
+    },
+    {
+      "role_code": "MESSMAN",
+      "canonical_code": "messman",
+      "label": "Messman",
+      "department": "service",
+      "category": "service",
+      "authority_level": 2,
+      "safety_criticality": "low",
+      "decision_scope": null,
+      "sort_order": 82
+    },
+    {
+      "role_code": "PUMPMAN",
+      "canonical_code": "pumpman",
+      "label": "Pumpman",
+      "department": "deck",
+      "category": "specialized",
+      "authority_level": 3,
+      "safety_criticality": "extreme",
+      "decision_scope": null,
+      "sort_order": 90
+    },
+    {
+      "role_code": "DP_OPERATOR",
+      "canonical_code": "dp_operator",
+      "label": "DP Operator",
+      "department": "deck",
+      "category": "specialized",
+      "authority_level": 3,
+      "safety_criticality": "extreme",
+      "decision_scope": null,
+      "sort_order": 91
+    },
+    {
+      "role_code": "CRANE_OPERATOR",
+      "canonical_code": "crane_operator",
+      "label": "Crane Operator",
+      "department": "deck",
+      "category": "specialized",
+      "authority_level": 3,
+      "safety_criticality": "high",
+      "decision_scope": null,
+      "sort_order": 92
+    }
+  ]
+}

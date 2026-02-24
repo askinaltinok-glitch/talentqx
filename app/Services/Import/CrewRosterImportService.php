@@ -474,7 +474,7 @@ class CrewRosterImportService
             'steward'          => 'steward',
             'messman'          => 'messman',
             'oiler'            => 'oiler',
-            'wiper'            => 'wiper',
+            'wiper'            => 'oiler',           // wiper aliased to oiler (canonical)
             'fitter'           => 'fitter',
             'electrician'      => 'electrician',
             'eto'              => 'electro_technical_officer',

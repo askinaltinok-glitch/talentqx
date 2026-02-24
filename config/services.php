@@ -121,4 +121,30 @@ return [
 
     'demo_request_to' => env('DEMO_REQUEST_TO'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Octopus AiModelsPanel (Self-hosted Whisper / voice services)
+    |--------------------------------------------------------------------------
+    */
+
+    'ai_models_panel' => [
+        'base_url'   => env('AI_MODELS_PANEL_BASE_URL', 'https://ekler.istanbul/AiModelsPanel'),
+        'api_key'    => env('AI_MODELS_PANEL_API_KEY'),
+        'timeout'    => (int) env('AI_MODELS_PANEL_TIMEOUT', 60),
+        'verify_ssl' => filter_var(env('AI_MODELS_PANEL_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+    ],
+
+    'whisper' => [
+        'model'           => env('WHISPER_MODEL', 'faster-whisper-large-v3'),
+        'language'        => env('WHISPER_LANGUAGE', 'en'),
+        'temperature'     => (int) env('WHISPER_TEMPERATURE', 0),
+        'response_format' => env('WHISPER_RESPONSE_FORMAT', 'json'),
+        'prompt'          => env('WHISPER_PROMPT', ''),
+    ],
+
+    'voice' => [
+        'max_upload_mb'       => (int) env('VOICE_MAX_UPLOAD_MB', 12),
+        'max_duration_seconds' => (int) env('VOICE_MAX_DURATION_SECONDS', 120),
+    ],
+
 ];

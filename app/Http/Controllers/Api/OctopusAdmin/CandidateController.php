@@ -10,7 +10,9 @@ use App\Models\CandidateTimelineEvent;
 use App\Models\LanguageAssessment;
 use App\Models\PoolCandidate;
 use App\Helpers\RadarChartGenerator;
+use App\Jobs\SendInterviewInvitationJob;
 use App\Models\CandidateDecisionOverride;
+use App\Models\InterviewInvitation;
 use App\Services\ExecutiveSummary\ExecutiveSummaryBuilder;
 use App\Services\Maritime\CertificateLifecycleService;
 use App\Services\Behavioral\VesselFitEvidenceService;
@@ -445,6 +447,67 @@ class CandidateController extends Controller
                 'expires_at' => $override->expires_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    /**
+     * POST /v1/octopus/admin/candidates/{id}/send-interview-invite
+     *
+     * Immediately dispatch interview invitation for a candidate (company-uploaded flow).
+     * No delay — used when admin manually triggers invite for company staff.
+     */
+    public function sendInterviewInvite(string $id, Request $request): JsonResponse
+    {
+        if (!config('maritime.clean_workflow_v1') && !config('maritime.question_bank_v1')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview invitation workflow is not enabled',
+            ], 403);
+        }
+
+        $candidate = PoolCandidate::where('primary_industry', 'maritime')->find($id);
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found'], 404);
+        }
+
+        if (!$candidate->email) {
+            return response()->json(['success' => false, 'message' => 'Candidate has no email address'], 422);
+        }
+
+        // Check for active invitation
+        $existing = InterviewInvitation::where('pool_candidate_id', $candidate->id)
+            ->whereIn('status', [InterviewInvitation::STATUS_INVITED, InterviewInvitation::STATUS_STARTED])
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Active invitation already exists',
+                'data' => [
+                    'invitation_id' => $existing->id,
+                    'status' => $existing->status,
+                    'expires_at' => $existing->expires_at?->toIso8601String(),
+                ],
+            ], 409);
+        }
+
+        // Dispatch immediately (no delay for company flow)
+        SendInterviewInvitationJob::dispatch($candidate->id);
+
+        CandidateTimelineEvent::record(
+            $candidate->id,
+            'interview_invite_manual',
+            CandidateTimelineEvent::SOURCE_ADMIN,
+            [
+                'triggered_by' => $request->user()?->id,
+                'reason' => 'admin_manual_dispatch',
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Interview invitation dispatched',
+        ]);
     }
 
     /**

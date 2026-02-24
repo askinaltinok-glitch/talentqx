@@ -8,11 +8,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class ComputeCompetencyAssessmentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public array $backoff = [30, 60];
@@ -22,10 +24,12 @@ class ComputeCompetencyAssessmentJob implements ShouldQueue
         private string $poolCandidateId,
     ) {
         $this->onQueue('default');
+        $this->captureBrand();
     }
 
     public function handle(CompetencyEngine $engine): void
     {
+        $this->setBrandDatabase();
         $result = $engine->compute($this->poolCandidateId);
 
         if ($result) {

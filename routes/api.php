@@ -367,6 +367,11 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:60,1')
             ->name('maritime.voice.log');
 
+        // Interview invite signed URL redirect (public, signature-verified)
+        Route::get('interview/invite/{invitationId}', [\App\Http\Controllers\Api\Maritime\InterviewInviteController::class, 'redirect'])
+            ->middleware(['signed', 'throttle:30,1'])
+            ->name('maritime.interview.invite');
+
         // Clean Interview Workflow v1 (public, invitation-token verified)
         Route::prefix('interview')->group(function () {
             Route::post('start', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'start'])
@@ -378,6 +383,9 @@ Route::prefix('v1')->group(function () {
             Route::post('complete', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'complete'])
                 ->middleware('throttle:behavioral-complete')
                 ->name('maritime.clean-interview.complete');
+            Route::post('voice', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'voice'])
+                ->middleware('throttle:30,60')
+                ->name('maritime.clean-interview.voice');
         });
 
         // Crew Feedback (public, seafarer submits after contract ends)
@@ -400,6 +408,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/ranks', [MaritimeCandidateController::class, 'ranks'])
             ->middleware('throttle:120,1')
             ->name('maritime.ranks');
+
+        Route::get('/roles', [MaritimeCandidateController::class, 'roles'])
+            ->middleware('throttle:120,1')
+            ->name('maritime.roles');
 
         Route::get('/certificates', [MaritimeCandidateController::class, 'certificates'])
             ->middleware('throttle:120,1')
@@ -1579,6 +1591,8 @@ Route::prefix('v1/octopus/admin')->group(function () {
             ->middleware('throttle:10,1');
         Route::post('/candidates/{id}/executive-decision-override', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'executiveDecisionOverride'])
             ->whereUuid('id');
+        Route::post('/candidates/{id}/send-interview-invite', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'sendInterviewInvite'])
+            ->whereUuid('id');
 
         // Contracts (Trust Core)
         Route::get('/candidates/{id}/contracts', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'index'])->whereUuid('id');
@@ -1681,6 +1695,9 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/maritime/invite-runs', [\App\Http\Controllers\Api\OctopusAdmin\MaritimeInsightsController::class, 'inviteRuns']);
         Route::get('/candidates/{id}/signals', [\App\Http\Controllers\Api\OctopusAdmin\MaritimeInsightsController::class, 'candidateSignals'])->whereUuid('id');
 
+        // Role-Fit Metrics (observability)
+        Route::get('/maritime/role-fit/metrics', \App\Http\Controllers\Api\OctopusAdmin\RoleFitMetricsController::class);
+
         // Demo Requests Admin (Phase D)
         Route::get('/demo-requests', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'index']);
         Route::get('/demo-requests/stats', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'stats']);
@@ -1714,6 +1731,14 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/company-vessel-overrides', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'index']);
         Route::post('/company-vessel-overrides', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'store']);
         Route::delete('/company-vessel-overrides/{id}', [\App\Http\Controllers\Api\OctopusAdmin\CompanyVesselRequirementOverrideController::class, 'destroy']);
+
+        // Marketplace Admin (access request management)
+        Route::prefix('marketplace')->group(function () {
+            Route::get('/requests', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'index']);
+            Route::get('/stats', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'stats']);
+            Route::post('/requests/{id}/approve', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'approve'])->whereUuid('id');
+            Route::post('/requests/{id}/reject', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'reject'])->whereUuid('id');
+        });
 
         // Crew Roster Import (Excel)
         Route::prefix('imports/crew-roster')->group(function () {

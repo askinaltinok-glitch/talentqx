@@ -139,7 +139,16 @@ class InterviewV2Controller extends Controller
             return response()->json(['success' => false, 'message' => 'Attempt not found or already completed.'], 404);
         }
 
-        // Append or update answer
+        // Guard: minimum answer length
+        if (mb_strlen(trim($request->answer_text)) < 10) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Answer is too short. Please provide a meaningful response.',
+                'code' => 'ANSWER_TOO_SHORT',
+            ], 422);
+        }
+
+        // Append or update answer (keyed by question_id — allows re-edit of same question)
         $answers = $attempt->answers_json ?? [];
         $found = false;
         foreach ($answers as &$a) {
@@ -202,6 +211,27 @@ class InterviewV2Controller extends Controller
 
         if (!$attempt) {
             return response()->json(['success' => false, 'message' => 'Attempt not found or already completed.'], 404);
+        }
+
+        // Guard: verify all 12 unique questions answered
+        $answers = $attempt->answers_json ?? [];
+        $uniqueIds = collect($answers)->pluck('question_id')->unique();
+        if ($uniqueIds->count() < 12) {
+            return response()->json([
+                'success' => false,
+                'message' => "All 12 questions must be answered. Unique answered: {$uniqueIds->count()}.",
+                'code' => 'INCOMPLETE_ANSWERS',
+            ], 422);
+        }
+
+        // Guard: reject if >= 30% short answers
+        $shortCount = collect($answers)->filter(fn($a) => mb_strlen(trim($a['answer_text'] ?? '')) < 10)->count();
+        if ($shortCount > 0 && ($shortCount / count($answers)) >= 0.3) {
+            return response()->json([
+                'success' => false,
+                'message' => "Too many short answers ({$shortCount}/" . count($answers) . "). Please provide meaningful responses.",
+                'code' => 'LOW_QUALITY_ANSWERS',
+            ], 422);
         }
 
         // Mark complete

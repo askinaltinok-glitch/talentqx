@@ -41,6 +41,7 @@ final class MaritimeRole
         'motorman'        => self::DEPT_ENGINE,
         'oiler'           => self::DEPT_ENGINE,
         'electrician'     => self::DEPT_ENGINE,
+        'fitter'          => self::DEPT_ENGINE,
 
         // Galley
         'cook'            => self::DEPT_GALLEY,
@@ -50,6 +51,11 @@ final class MaritimeRole
         // Cadet
         'deck_cadet'      => self::DEPT_CADET,
         'engine_cadet'    => self::DEPT_CADET,
+
+        // Specialized
+        'pumpman'         => self::DEPT_DECK,
+        'dp_operator'     => self::DEPT_DECK,
+        'crane_operator'  => self::DEPT_DECK,
     ];
 
     // ── Derived lists (auto-generated from map) ──────────────────
@@ -71,6 +77,7 @@ final class MaritimeRole
         'motorman',
         'oiler',
         'electrician',
+        'fitter',
         // Galley
         'cook',
         'steward',
@@ -78,6 +85,10 @@ final class MaritimeRole
         // Cadet
         'deck_cadet',
         'engine_cadet',
+        // Specialized
+        'pumpman',
+        'dp_operator',
+        'crane_operator',
     ];
 
     // ── Role aliases (for tolerant import / fuzzy matching) ──────
@@ -95,9 +106,7 @@ final class MaritimeRole
         'cadet_deck'    => 'deck_cadet',
         'cadet_engine'  => 'engine_cadet',
         'trainee'       => 'deck_cadet',
-        'fitter'        => 'motorman',
         'wiper'         => 'oiler',
-        'pumpman'       => 'oiler',
         'eto'           => 'electrician',
         'fourth_engineer' => 'third_engineer',
         'radio_officer' => 'electrician',
@@ -109,13 +118,17 @@ final class MaritimeRole
         'deck_rating'      => 'able_seaman',
         'engine_rating'    => 'motorman',
         'catering'         => 'cook',
+        // DNA registry aliases
+        'pump_man'         => 'pumpman',
+        'dynamic_positioning' => 'dp_operator',
     ];
 
     // ── Roles grouped by department ──────────────────────────────
-    public const DECK_ROLES   = ['captain', 'chief_officer', 'second_officer', 'third_officer', 'bosun', 'able_seaman', 'ordinary_seaman'];
-    public const ENGINE_ROLES = ['chief_engineer', 'second_engineer', 'third_engineer', 'motorman', 'oiler', 'electrician'];
-    public const GALLEY_ROLES = ['cook', 'steward', 'messman'];
-    public const CADET_ROLES  = ['deck_cadet', 'engine_cadet'];
+    public const DECK_ROLES       = ['captain', 'chief_officer', 'second_officer', 'third_officer', 'bosun', 'able_seaman', 'ordinary_seaman'];
+    public const ENGINE_ROLES     = ['chief_engineer', 'second_engineer', 'third_engineer', 'motorman', 'oiler', 'electrician', 'fitter'];
+    public const GALLEY_ROLES     = ['cook', 'steward', 'messman'];
+    public const CADET_ROLES      = ['deck_cadet', 'engine_cadet'];
+    public const SPECIALIZED_ROLES = ['pumpman', 'dp_operator', 'crane_operator'];
 
     // ── Human labels ─────────────────────────────────────────────
     public const ROLE_LABELS = [
@@ -132,11 +145,15 @@ final class MaritimeRole
         'motorman'        => 'Motorman',
         'oiler'           => 'Oiler',
         'electrician'     => 'Electrician / ETO',
+        'fitter'          => 'Fitter',
         'cook'            => 'Cook',
         'steward'         => 'Steward',
         'messman'         => 'Messman',
         'deck_cadet'      => 'Deck Cadet',
         'engine_cadet'    => 'Engine Cadet',
+        'pumpman'         => 'Pumpman',
+        'dp_operator'     => 'DP Operator',
+        'crane_operator'  => 'Crane Operator',
     ];
 
     public const DEPARTMENT_LABELS = [

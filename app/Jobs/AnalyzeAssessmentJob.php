@@ -10,21 +10,26 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeAssessmentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public $tries = 3;
     public $backoff = [30, 60, 120];
 
     public function __construct(
         public AssessmentSession $session
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(AssessmentAnalysisService $analysisService): void
     {
+        $this->setBrandDatabase();
         Log::info('Starting assessment analysis', [
             'session_id' => $this->session->id,
             'employee_id' => $this->session->employee_id,

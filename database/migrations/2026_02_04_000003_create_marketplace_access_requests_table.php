@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('marketplace_access_requests')) {
+            return;
+        }
         Schema::create('marketplace_access_requests', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('requesting_company_id');

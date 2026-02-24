@@ -777,6 +777,34 @@ class MaritimeCandidateController extends Controller
     {
         $this->resolveLocale($request);
 
+        $cacheTtl = (int) config('maritime.role_fit.cache_ttl_seconds', 600);
+
+        // Try DB first (maritime_roles table from role registry)
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('maritime_roles')) {
+                $dbRoles = \Illuminate\Support\Facades\Cache::remember(
+                    'maritime_roles_active_v1',
+                    $cacheTtl,
+                    fn() => \App\Models\MaritimeRoleRecord::active()->ordered()->get(),
+                );
+                if ($dbRoles->isNotEmpty()) {
+                    $ranks = $dbRoles->map(fn($r) => [
+                        'code' => $r->role_key,
+                        'label' => __("maritime.rank.{$r->role_key}") !== "maritime.rank.{$r->role_key}"
+                            ? __("maritime.rank.{$r->role_key}")
+                            : $r->label,
+                        'department' => $r->department,
+                        'is_selectable' => $r->is_selectable ?? true,
+                    ]);
+
+                    return response()->json(['success' => true, 'data' => $ranks]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall through to static config
+        }
+
+        // Fallback to static config
         $ranks = collect(MaritimeRole::ROLES)->map(fn($rank) => [
             'code' => $rank,
             'label' => __("maritime.rank.{$rank}") !== "maritime.rank.{$rank}"
@@ -788,6 +816,52 @@ class MaritimeCandidateController extends Controller
         return response()->json([
             'success' => true,
             'data' => $ranks,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/maritime/roles
+     *
+     * Canonical role list from registry (single source of truth).
+     */
+    public function roles(Request $request): JsonResponse
+    {
+        $this->resolveLocale($request);
+
+        $cacheTtl = (int) config('maritime.role_fit.cache_ttl_seconds', 600);
+
+        try {
+            $roles = \Illuminate\Support\Facades\Cache::remember(
+                'maritime_roles_active_v1',
+                $cacheTtl,
+                fn() => \App\Models\MaritimeRoleRecord::active()->ordered()->get(),
+            );
+        } catch (\Throwable $e) {
+            // DB not ready — fallback
+            $roles = collect(MaritimeRole::ROLES)->map(fn($rank) => (object) [
+                'role_key' => $rank,
+                'label' => MaritimeRole::ROLE_LABELS[$rank] ?? $rank,
+                'department' => MaritimeRole::departmentFor($rank),
+                'is_active' => true,
+                'sort_order' => 100,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'version' => 'v1',
+                'roles' => $roles->map(fn($r) => [
+                    'role_key' => $r->role_key,
+                    'label' => __("maritime.rank.{$r->role_key}") !== "maritime.rank.{$r->role_key}"
+                        ? __("maritime.rank.{$r->role_key}")
+                        : $r->label,
+                    'department' => $r->department,
+                    'is_active' => $r->is_active,
+                    'is_selectable' => $r->is_selectable ?? true,
+                    'sort_order' => $r->sort_order,
+                ]),
+            ],
         ]);
     }
 

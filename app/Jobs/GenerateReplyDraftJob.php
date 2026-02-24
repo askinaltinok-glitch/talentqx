@@ -9,11 +9,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class GenerateReplyDraftJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 2;
     public array $backoff = [60];
@@ -21,10 +23,13 @@ class GenerateReplyDraftJob implements ShouldQueue
 
     public function __construct(
         public CrmEmailThread $thread
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(ReplyDraftService $service): void
     {
+        $this->setBrandDatabase();
         // Only generate drafts in draft_only mode or when thread has a lead
         if (!$this->thread->lead_id) {
             Log::info('GenerateReplyDraftJob: Skipping, no lead', ['thread_id' => $this->thread->id]);

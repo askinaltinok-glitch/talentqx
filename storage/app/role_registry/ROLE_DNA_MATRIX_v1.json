@@ -1,0 +1,627 @@
+{
+  "version": "v1",
+  "source": "ROLE_DNA_MATRIX_v1.md",
+  "dna": [
+    {
+      "role_code": "MASTER",
+      "canonical_code": "captain",
+      "dimensions": {
+        "behavioral_weight": 0.45,
+        "technical_weight": 0.30,
+        "leadership_expectation": 1.00,
+        "decision_exposure": 1.00,
+        "safety_ownership": 1.00,
+        "supervision_dependency": 0.00
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "critical",
+        "communication": "critical",
+        "initiative": "critical",
+        "respect": "high",
+        "conflict_handling": "critical"
+      },
+      "mismatch_signals": [
+        "avoids_responsibility",
+        "defers_decisions_under_pressure",
+        "poor_conflict_ownership",
+        "blames_crew_for_outcomes",
+        "low_situational_awareness"
+      ]
+    },
+    {
+      "role_code": "CHIEF_OFFICER",
+      "canonical_code": "chief_officer",
+      "dimensions": {
+        "behavioral_weight": 0.40,
+        "technical_weight": 0.35,
+        "leadership_expectation": 0.85,
+        "decision_exposure": 0.80,
+        "safety_ownership": 0.90,
+        "supervision_dependency": 0.10
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "critical",
+        "stress_tolerance": "high",
+        "communication": "critical",
+        "initiative": "high",
+        "respect": "high",
+        "conflict_handling": "high"
+      },
+      "mismatch_signals": [
+        "cannot_coordinate_multiple_operations",
+        "poor_cargo_awareness",
+        "avoids_crew_confrontation",
+        "weak_organizational_discipline",
+        "passive_under_authority"
+      ]
+    },
+    {
+      "role_code": "SECOND_OFFICER",
+      "canonical_code": "second_officer",
+      "dimensions": {
+        "behavioral_weight": 0.35,
+        "technical_weight": 0.40,
+        "leadership_expectation": 0.55,
+        "decision_exposure": 0.55,
+        "safety_ownership": 0.65,
+        "supervision_dependency": 0.30
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "high",
+        "initiative": "moderate",
+        "respect": "moderate",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "navigation_procedural_gaps",
+        "poor_watchkeeping_focus",
+        "hesitant_in_course_correction",
+        "low_chart_discipline",
+        "over_reliance_on_automation"
+      ]
+    },
+    {
+      "role_code": "THIRD_OFFICER",
+      "canonical_code": "third_officer",
+      "dimensions": {
+        "behavioral_weight": 0.35,
+        "technical_weight": 0.40,
+        "leadership_expectation": 0.45,
+        "decision_exposure": 0.45,
+        "safety_ownership": 0.70,
+        "supervision_dependency": 0.35
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "moderate",
+        "initiative": "moderate",
+        "respect": "moderate",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "lsa_ffa_knowledge_gaps",
+        "poor_safety_drill_ownership",
+        "passive_during_emergencies",
+        "incomplete_documentation_habits",
+        "watch_handover_negligence"
+      ]
+    },
+    {
+      "role_code": "BOSUN",
+      "canonical_code": "bosun",
+      "dimensions": {
+        "behavioral_weight": 0.40,
+        "technical_weight": 0.35,
+        "leadership_expectation": 0.55,
+        "decision_exposure": 0.30,
+        "safety_ownership": 0.50,
+        "supervision_dependency": 0.40
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "critical",
+        "stress_tolerance": "high",
+        "communication": "high",
+        "initiative": "high",
+        "respect": "critical",
+        "conflict_handling": "high"
+      },
+      "mismatch_signals": [
+        "cannot_organize_deck_crew",
+        "poor_maintenance_planning",
+        "weak_authority_with_ratings",
+        "avoids_physical_task_leadership",
+        "inconsistent_safety_enforcement"
+      ]
+    },
+    {
+      "role_code": "AB_SEAMAN",
+      "canonical_code": "able_seaman",
+      "dimensions": {
+        "behavioral_weight": 0.30,
+        "technical_weight": 0.40,
+        "leadership_expectation": 0.15,
+        "decision_exposure": 0.15,
+        "safety_ownership": 0.30,
+        "supervision_dependency": 0.60
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "moderate",
+        "respect": "high",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_seamanship_fundamentals",
+        "unreliable_watch_performance",
+        "cannot_work_without_instruction",
+        "safety_shortcut_tendency",
+        "low_physical_task_endurance"
+      ]
+    },
+    {
+      "role_code": "ORDINARY_SEAMAN",
+      "canonical_code": "ordinary_seaman",
+      "dimensions": {
+        "behavioral_weight": 0.30,
+        "technical_weight": 0.30,
+        "leadership_expectation": 0.05,
+        "decision_exposure": 0.10,
+        "safety_ownership": 0.20,
+        "supervision_dependency": 0.75
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "low",
+        "respect": "high",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "unwilling_to_learn",
+        "poor_instruction_following",
+        "low_physical_capability",
+        "safety_awareness_gaps",
+        "attitude_problems_with_seniors"
+      ]
+    },
+    {
+      "role_code": "DECK_CADET",
+      "canonical_code": "deck_cadet",
+      "dimensions": {
+        "behavioral_weight": 0.35,
+        "technical_weight": 0.20,
+        "leadership_expectation": 0.00,
+        "decision_exposure": 0.05,
+        "safety_ownership": 0.10,
+        "supervision_dependency": 0.95
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "moderate",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "high",
+        "respect": "critical",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "no_learning_curiosity",
+        "poor_logbook_discipline",
+        "avoids_asking_questions",
+        "disrespectful_to_officers",
+        "cannot_follow_basic_procedures"
+      ]
+    },
+    {
+      "role_code": "CHIEF_ENGINEER",
+      "canonical_code": "chief_engineer",
+      "dimensions": {
+        "behavioral_weight": 0.40,
+        "technical_weight": 0.45,
+        "leadership_expectation": 0.95,
+        "decision_exposure": 0.90,
+        "safety_ownership": 0.95,
+        "supervision_dependency": 0.05
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "critical",
+        "communication": "high",
+        "initiative": "critical",
+        "respect": "high",
+        "conflict_handling": "high"
+      },
+      "mismatch_signals": [
+        "poor_machinery_diagnostic_depth",
+        "avoids_emergency_decisions",
+        "weak_spare_parts_management",
+        "cannot_coordinate_engine_team",
+        "defers_critical_maintenance"
+      ]
+    },
+    {
+      "role_code": "SECOND_ENGINEER",
+      "canonical_code": "second_engineer",
+      "dimensions": {
+        "behavioral_weight": 0.35,
+        "technical_weight": 0.45,
+        "leadership_expectation": 0.70,
+        "decision_exposure": 0.65,
+        "safety_ownership": 0.75,
+        "supervision_dependency": 0.20
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "high",
+        "initiative": "high",
+        "respect": "moderate",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "poor_planned_maintenance_execution",
+        "weak_engine_room_resource_management",
+        "hesitant_during_machinery_failure",
+        "cannot_supervise_ratings",
+        "incomplete_technical_documentation"
+      ]
+    },
+    {
+      "role_code": "THIRD_ENGINEER",
+      "canonical_code": "third_engineer",
+      "dimensions": {
+        "behavioral_weight": 0.30,
+        "technical_weight": 0.45,
+        "leadership_expectation": 0.40,
+        "decision_exposure": 0.40,
+        "safety_ownership": 0.55,
+        "supervision_dependency": 0.40
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "moderate",
+        "initiative": "moderate",
+        "respect": "moderate",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_watchkeeping_in_engine_room",
+        "weak_auxiliary_system_knowledge",
+        "slow_alarm_response",
+        "poor_fuel_oil_management",
+        "cannot_troubleshoot_independently"
+      ]
+    },
+    {
+      "role_code": "MOTOR_MAN",
+      "canonical_code": "motorman",
+      "dimensions": {
+        "behavioral_weight": 0.25,
+        "technical_weight": 0.45,
+        "leadership_expectation": 0.10,
+        "decision_exposure": 0.15,
+        "safety_ownership": 0.30,
+        "supervision_dependency": 0.65
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "moderate",
+        "respect": "high",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_machinery_operation_basics",
+        "cannot_identify_abnormal_sounds",
+        "weak_lubrication_procedures",
+        "low_engine_room_awareness",
+        "safety_gear_negligence"
+      ]
+    },
+    {
+      "role_code": "OILER",
+      "canonical_code": "oiler",
+      "dimensions": {
+        "behavioral_weight": 0.25,
+        "technical_weight": 0.40,
+        "leadership_expectation": 0.05,
+        "decision_exposure": 0.10,
+        "safety_ownership": 0.25,
+        "supervision_dependency": 0.70
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "low",
+        "initiative": "low",
+        "respect": "high",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_lubrication_knowledge",
+        "unreliable_routine_execution",
+        "cannot_read_gauges_properly",
+        "low_cleanliness_standards",
+        "weak_bilge_management"
+      ]
+    },
+    {
+      "role_code": "FITTER",
+      "canonical_code": "fitter",
+      "dimensions": {
+        "behavioral_weight": 0.25,
+        "technical_weight": 0.50,
+        "leadership_expectation": 0.10,
+        "decision_exposure": 0.15,
+        "safety_ownership": 0.30,
+        "supervision_dependency": 0.55
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "moderate",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "high",
+        "respect": "moderate",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_fabrication_quality",
+        "weak_pipe_fitting_skills",
+        "cannot_read_technical_drawings",
+        "improper_tool_usage",
+        "low_precision_in_measurements"
+      ]
+    },
+    {
+      "role_code": "ETO",
+      "canonical_code": "electrician",
+      "dimensions": {
+        "behavioral_weight": 0.25,
+        "technical_weight": 0.55,
+        "leadership_expectation": 0.30,
+        "decision_exposure": 0.40,
+        "safety_ownership": 0.50,
+        "supervision_dependency": 0.35
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "moderate",
+        "stress_tolerance": "high",
+        "communication": "high",
+        "initiative": "high",
+        "respect": "moderate",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_electrical_safety_awareness",
+        "cannot_troubleshoot_automation",
+        "weak_communication_system_knowledge",
+        "poor_ecdis_radar_maintenance",
+        "over_reliance_on_manufacturer_support"
+      ]
+    },
+    {
+      "role_code": "ENGINE_CADET",
+      "canonical_code": "engine_cadet",
+      "dimensions": {
+        "behavioral_weight": 0.35,
+        "technical_weight": 0.20,
+        "leadership_expectation": 0.00,
+        "decision_exposure": 0.05,
+        "safety_ownership": 0.10,
+        "supervision_dependency": 0.95
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "moderate",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "high",
+        "respect": "critical",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "no_learning_motivation",
+        "poor_engine_room_safety_habits",
+        "avoids_hands_on_work",
+        "cannot_follow_technical_instructions",
+        "disrespectful_to_engineers"
+      ]
+    },
+    {
+      "role_code": "COOK",
+      "canonical_code": "cook",
+      "dimensions": {
+        "behavioral_weight": 0.45,
+        "technical_weight": 0.30,
+        "leadership_expectation": 0.25,
+        "decision_exposure": 0.20,
+        "safety_ownership": 0.35,
+        "supervision_dependency": 0.45
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "moderate",
+        "initiative": "high",
+        "respect": "high",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "poor_hygiene_standards",
+        "cannot_manage_provisions",
+        "low_menu_variety_capability",
+        "galley_fire_safety_ignorance",
+        "crew_complaint_pattern",
+        "poor_time_management_for_meals"
+      ]
+    },
+    {
+      "role_code": "STEWARD",
+      "canonical_code": "steward",
+      "dimensions": {
+        "behavioral_weight": 0.50,
+        "technical_weight": 0.15,
+        "leadership_expectation": 0.10,
+        "decision_exposure": 0.10,
+        "safety_ownership": 0.15,
+        "supervision_dependency": 0.65
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "high",
+        "initiative": "moderate",
+        "respect": "critical",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "poor_cleanliness_standards",
+        "low_service_attitude",
+        "cannot_manage_cabin_supplies",
+        "weak_laundry_management",
+        "disrespectful_to_crew",
+        "poor_mess_room_organization"
+      ]
+    },
+    {
+      "role_code": "MESSMAN",
+      "canonical_code": "messman",
+      "dimensions": {
+        "behavioral_weight": 0.50,
+        "technical_weight": 0.15,
+        "leadership_expectation": 0.05,
+        "decision_exposure": 0.05,
+        "safety_ownership": 0.10,
+        "supervision_dependency": 0.80
+      },
+      "behavioral_profile": {
+        "discipline": "high",
+        "teamwork": "high",
+        "stress_tolerance": "moderate",
+        "communication": "moderate",
+        "initiative": "low",
+        "respect": "critical",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_cleanliness_standards",
+        "low_service_attitude",
+        "cannot_follow_galley_instructions",
+        "disrespectful_to_crew",
+        "poor_mess_room_organization"
+      ]
+    },
+    {
+      "role_code": "PUMPMAN",
+      "canonical_code": "pumpman",
+      "dimensions": {
+        "behavioral_weight": 0.25,
+        "technical_weight": 0.55,
+        "leadership_expectation": 0.25,
+        "decision_exposure": 0.40,
+        "safety_ownership": 0.85,
+        "supervision_dependency": 0.30
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "critical",
+        "communication": "high",
+        "initiative": "high",
+        "respect": "moderate",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_cargo_pump_knowledge",
+        "weak_tank_cleaning_procedures",
+        "cannot_manage_loading_discharge",
+        "low_gas_detection_awareness",
+        "valve_operation_errors",
+        "ignores_cargo_safety_protocols"
+      ]
+    },
+    {
+      "role_code": "DP_OPERATOR",
+      "canonical_code": "dp_operator",
+      "dimensions": {
+        "behavioral_weight": 0.30,
+        "technical_weight": 0.55,
+        "leadership_expectation": 0.30,
+        "decision_exposure": 0.55,
+        "safety_ownership": 0.85,
+        "supervision_dependency": 0.25
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "critical",
+        "communication": "critical",
+        "initiative": "high",
+        "respect": "moderate",
+        "conflict_handling": "moderate"
+      },
+      "mismatch_signals": [
+        "poor_dp_system_understanding",
+        "slow_reaction_to_position_drift",
+        "weak_reference_system_knowledge",
+        "cannot_manage_dp_alarms",
+        "poor_bridge_team_communication",
+        "over_reliance_on_automatic_mode"
+      ]
+    },
+    {
+      "role_code": "CRANE_OPERATOR",
+      "canonical_code": "crane_operator",
+      "dimensions": {
+        "behavioral_weight": 0.30,
+        "technical_weight": 0.50,
+        "leadership_expectation": 0.20,
+        "decision_exposure": 0.35,
+        "safety_ownership": 0.70,
+        "supervision_dependency": 0.35
+      },
+      "behavioral_profile": {
+        "discipline": "critical",
+        "teamwork": "high",
+        "stress_tolerance": "high",
+        "communication": "high",
+        "initiative": "moderate",
+        "respect": "moderate",
+        "conflict_handling": "low"
+      },
+      "mismatch_signals": [
+        "poor_load_calculation",
+        "weak_rigging_knowledge",
+        "ignores_wind_weather_limits",
+        "poor_hand_signal_communication",
+        "cannot_assess_lift_geometry",
+        "low_pre_operation_check_discipline"
+      ]
+    }
+  ]
+}

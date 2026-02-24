@@ -14,11 +14,13 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Mail;
 
 class SendCredentialReminderJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public int $maxExceptions = 3;
@@ -31,10 +33,12 @@ class SendCredentialReminderJob implements ShouldQueue
         public string $reminderType,
     ) {
         $this->onQueue('emails');
+        $this->captureBrand();
     }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         $candidate = PoolCandidate::find($this->candidateId);
         $credential = CandidateCredential::find($this->credentialId);
 

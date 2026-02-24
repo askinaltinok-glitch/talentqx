@@ -17,11 +17,13 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Mail;
 
 class SendCandidateEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public int $maxExceptions = 3;
@@ -35,10 +37,12 @@ class SendCandidateEmailJob implements ShouldQueue
         public ?string $positionName = null,
     ) {
         $this->onQueue('emails');
+        $this->captureBrand();
     }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         $candidate = PoolCandidate::find($this->candidateId);
 
         if (!$candidate || !$candidate->email) {

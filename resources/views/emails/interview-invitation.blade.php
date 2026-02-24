@@ -36,21 +36,21 @@
     <div class="body">
         @if($locale === 'tr')
             <h2>Merhaba {{ $candidate->first_name }},</h2>
-            <p>Başvurunuz başarıyla alındı. Değerlendirme sürecimizin bir sonraki adımı olarak, sizi davranışsal değerlendirmemizi tamamlamaya davet ediyoruz{{ $rank ? " ({$rank} pozisyonu için)" : '' }}.</p>
+            <p>Basvurunuz basariyla alindi. Degerlendirme surecimizin bir sonraki adimi olarak, sizi davranissal degerlendirmemizi tamamlamaya davet ediyoruz{{ $rank ? " ({$rank} pozisyonu icin)" : '' }}.</p>
 
             <div class="deadline-box">
-                <p>Bu bağlantının son kullanma tarihi: {{ $expiresAt->format('d.m.Y') }} saat {{ $expiresAt->format('H:i') }} (Europe/Istanbul)</p>
+                <p>Bu baglantinin son kullanma tarihi: {{ $expiresAt->format('d.m.Y') }} saat {{ $expiresAt->format('H:i') }} (Europe/Istanbul)</p>
             </div>
 
             <div class="info-box">
-                <p><strong>Değerlendirme hakkında:</strong> 12 soruluk bu form, denizcilik deneyimlerinize dayalı olarak çalışma tarzınızı ve ekip uyumunuzu anlamamıza yardımcı olur. Yaklaşık 15-20 dakika sürer.</p>
+                <p><strong>Degerlendirme hakkinda:</strong> {{ $questionCount }} soruluk bu form, denizcilik deneyimlerinize dayali olarak calisma tarzinizi ve ekip uyumunuzu anlamamiza yardimci olur. Yaklasik {{ $duration }} dakika surer.</p>
             </div>
 
             <div class="cta-wrapper">
-                <a href="{{ $interviewUrl }}" class="cta-button">Değerlendirmeye Başla</a>
+                <a href="{{ $interviewUrl }}" class="cta-button">Degerlendirmeye Basla</a>
             </div>
 
-            <p class="note">Bu bağlantının süresi dolarsa, 30 gün sonra yeniden başvurabilirsiniz.</p>
+            <p class="note">Bu baglantinin suresi dolarsa, 30 gun sonra yeniden basvurabilirsiniz.</p>
 
         @elseif($locale === 'ru')
             <h2>Здравствуйте, {{ $candidate->first_name }}!</h2>
@@ -61,7 +61,7 @@
             </div>
 
             <div class="info-box">
-                <p><strong>О оценке:</strong> Эта форма из 12 вопросов помогает нам понять ваш стиль работы и совместимость с командой. Занимает примерно 15-20 минут.</p>
+                <p><strong>Об оценке:</strong> Эта форма из {{ $questionCount }} вопросов помогает нам понять ваш стиль работы и совместимость с командой. Занимает примерно {{ $duration }} минут.</p>
             </div>
 
             <div class="cta-wrapper">
@@ -72,21 +72,21 @@
 
         @elseif($locale === 'az')
             <h2>Salam {{ $candidate->first_name }},</h2>
-            <p>Müraciətiniz uğurla qəbul edildi. Qiymətləndirmə prosesimizin növbəti addımı olaraq sizi davranış qiymətləndirməsini tamamlamağa dəvət edirik{{ $rank ? " ({$rank} vəzifəsi üçün)" : '' }}.</p>
+            <p>Muracietiniz ugurla qebul edildi. Qiymetlendirme prosesimizin novbeti addimi olaraq sizi davranis qiymetlendirmesini tamamlamaga devet edirik{{ $rank ? " ({$rank} vezifesi ucun)" : '' }}.</p>
 
             <div class="deadline-box">
-                <p>Bu keçidin son istifadə tarixi: {{ $expiresAt->format('d.m.Y') }} saat {{ $expiresAt->format('H:i') }} (Europe/Istanbul)</p>
+                <p>Bu kecidin son istifade tarixi: {{ $expiresAt->format('d.m.Y') }} saat {{ $expiresAt->format('H:i') }} (Europe/Istanbul)</p>
             </div>
 
             <div class="info-box">
-                <p><strong>Qiymətləndirmə haqqında:</strong> 12 suallıq bu forma iş tərzinizi və komanda uyğunluğunuzu anlamamıza kömək edir. Təxminən 15-20 dəqiqə çəkir.</p>
+                <p><strong>Qiymetlendirme haqqinda:</strong> {{ $questionCount }} sualliq bu forma is terzinizi ve komanda uygunlugunuzu anlamamiza komek edir. Texminen {{ $duration }} deqiqe cekir.</p>
             </div>
 
             <div class="cta-wrapper">
-                <a href="{{ $interviewUrl }}" class="cta-button">Qiymətləndirməyə Başla</a>
+                <a href="{{ $interviewUrl }}" class="cta-button">Qiymetlendirmeye Basla</a>
             </div>
 
-            <p class="note">Bu keçidin müddəti bitərsə, 30 gün sonra yenidən müraciət edə bilərsiniz.</p>
+            <p class="note">Bu kecidin muddeti biterse, 30 gun sonra yeniden muraciet ede bilersiniz.</p>
 
         @elseif($locale === 'fil')
             <h2>Kumusta {{ $candidate->first_name }},</h2>
@@ -97,7 +97,7 @@
             </div>
 
             <div class="info-box">
-                <p><strong>Tungkol sa assessment:</strong> Ang 12-tanong na form na ito ay tumutulong sa amin na maunawaan ang iyong estilo ng pagtatrabaho. Humigit-kumulang 15-20 minuto.</p>
+                <p><strong>Tungkol sa assessment:</strong> Ang {{ $questionCount }}-tanong na form na ito ay tumutulong sa amin na maunawaan ang iyong estilo ng pagtatrabaho. Humigit-kumulang {{ $duration }} minuto.</p>
             </div>
 
             <div class="cta-wrapper">
@@ -115,7 +115,7 @@
             </div>
 
             <div class="info-box">
-                <p><strong>Tentang penilaian:</strong> Formulir 12 pertanyaan ini membantu kami memahami gaya kerja dan kecocokan tim Anda. Membutuhkan sekitar 15-20 menit.</p>
+                <p><strong>Tentang penilaian:</strong> Formulir {{ $questionCount }} pertanyaan ini membantu kami memahami gaya kerja dan kecocokan tim Anda. Membutuhkan sekitar {{ $duration }} menit.</p>
             </div>
 
             <div class="cta-wrapper">
@@ -133,7 +133,7 @@
             </div>
 
             <div class="info-box">
-                <p><strong>Про оцінку:</strong> Ця форма з 12 питань допоможе нам зрозуміти ваш стиль роботи та сумісність з командою. Займе приблизно 15-20 хвилин.</p>
+                <p><strong>Про оцінку:</strong> Ця форма з {{ $questionCount }} питань допоможе нам зрозуміти ваш стиль роботи та сумісність з командою. Займе приблизно {{ $duration }} хвилин.</p>
             </div>
 
             <div class="cta-wrapper">
@@ -151,7 +151,7 @@
             </div>
 
             <div class="info-box">
-                <p><strong>About the assessment:</strong> This 12-question form helps us understand your work style and team compatibility based on your maritime experience. It takes approximately 15-20 minutes.</p>
+                <p><strong>About the assessment:</strong> This {{ $questionCount }}-question form helps us understand your work style and team compatibility based on your maritime experience. It takes approximately {{ $duration }} minutes.</p>
             </div>
 
             <div class="cta-wrapper">
@@ -172,7 +172,7 @@
         </p>
         <p style="font-size: 11px; color: #9ca3af;">
             @if($locale === 'tr')
-                Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
+                Bu e-posta otomatik olarak gonderilmistir. Lutfen yanitlamayin.
             @elseif($locale === 'ru')
                 Это письмо отправлено автоматически. Пожалуйста, не отвечайте на него.
             @elseif($locale === 'uk')

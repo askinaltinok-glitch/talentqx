@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Maritime;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\InterviewInvitation;
+use App\Models\VoiceBehavioralSignal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class VoiceTokenController extends Controller
 {
@@ -79,11 +81,13 @@ class VoiceTokenController extends Controller
         $request->validate([
             'invitation_token' => 'required|string|size:64',
             'interview_id'     => 'required|string',
-            'field_slot'       => 'required|integer|min:1|max:12',
+            'field_slot'       => 'required|integer|min:1|max:25',
             'lang'             => 'required|string|max:5',
             'duration_ms'      => 'required|integer|min:0|max:120000',
             'reason'           => 'required|string|in:client_stop,idle_timeout,max_duration,speech_final_silence,silence,time_limit,error',
             'had_transcript'   => 'required|boolean',
+            'question_slot'    => 'nullable|integer|min:1|max:25',
+            'voice_signals'    => 'nullable|array',
         ]);
 
         $hash = hash('sha256', $request->input('invitation_token'));
@@ -104,10 +108,44 @@ class VoiceTokenController extends Controller
                 'duration_ms'   => $request->input('duration_ms'),
                 'reason'        => $request->input('reason'),
                 'had_transcript' => $request->boolean('had_transcript'),
+                'has_signals'   => $request->has('voice_signals'),
             ],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
+        // Store per-question voice signals for behavioral analysis
+        if ($request->has('voice_signals') && config('maritime.voice_behavioral_signals_v1')) {
+            try {
+                $signals = $request->input('voice_signals');
+                $questionSlot = $request->input('question_slot') ?? $request->input('field_slot');
+                $interviewId = $request->input('interview_id');
+
+                if ($interviewId && $questionSlot && is_array($signals) && !empty($signals['utterance_count'])) {
+                    VoiceBehavioralSignal::updateOrCreate(
+                        ['form_interview_id' => $interviewId, 'question_slot' => $questionSlot],
+                        [
+                            'utterance_count'       => (int) ($signals['utterance_count'] ?? 0),
+                            'total_word_count'      => (int) ($signals['total_word_count'] ?? 0),
+                            'total_duration_s'      => (float) ($signals['total_duration_s'] ?? 0),
+                            'avg_confidence'        => (float) ($signals['avg_confidence'] ?? 0),
+                            'min_confidence'        => (float) ($signals['min_confidence'] ?? 0),
+                            'avg_wpm'               => (float) ($signals['avg_wpm'] ?? 0),
+                            'total_pause_count'     => (int) ($signals['total_pause_count'] ?? 0),
+                            'total_long_pause_count' => (int) ($signals['total_long_pause_count'] ?? 0),
+                            'total_filler_count'    => (int) ($signals['total_filler_count'] ?? 0),
+                            'avg_filler_ratio'      => (float) ($signals['avg_filler_ratio'] ?? 0),
+                            'utterance_signals_json' => $signals['utterance_signals'] ?? null,
+                        ]
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::debug('Voice signal storage failed', [
+                    'interview_id' => $request->input('interview_id'),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json(['success' => true]);
     }

@@ -52,6 +52,7 @@ class CandidateDecisionPanelService
         $qualifications = $this->buildQualifications($candidate);
         $competencies = $this->buildCompetencies($candidate);
         $language = $this->buildLanguage($candidateId);
+        $englishGate = $this->buildEnglishGate($candidate);
 
         return [
             'candidate' => $this->buildCandidateHeader($candidate),
@@ -59,8 +60,9 @@ class CandidateDecisionPanelService
             'competencies' => $competencies,
             'command_profile' => $this->buildCommandProfile($candidateId),
             'language' => $language,
+            'english_gate' => $englishGate,
             'synergy_preview' => $this->synergyPreview->previewForCandidate($candidateId),
-            'decision_state' => $this->computeDecisionState($qualifications, $competencies, $language),
+            'decision_state' => $this->computeDecisionState($qualifications, $competencies, $language, $englishGate),
             'actions' => $this->buildActions($candidateId),
         ];
     }
@@ -299,9 +301,9 @@ class CandidateDecisionPanelService
 
     /**
      * Compute a single decision_state from panel data.
-     * Priority order: rejected → missing_language → missing_qual_verification → missing_competency → ready_for_shortlist
+     * Priority order: rejected → english_gate_failed → missing_language → missing_qual_verification → missing_competency → ready_for_shortlist
      */
-    private function computeDecisionState(array $qualifications, array $competencies, ?array $language): array
+    private function computeDecisionState(array $qualifications, array $competencies, ?array $language, ?array $englishGate = null): array
     {
         $blockers = [];
 
@@ -315,6 +317,15 @@ class CandidateDecisionPanelService
         }
         if ($hasRejected) {
             $blockers[] = 'rejected_qualification';
+        }
+
+        // English gate blocker (question bank v1)
+        if ($englishGate && $englishGate['enabled']) {
+            if ($englishGate['status'] === 'failed') {
+                $blockers[] = 'english_gate_failed';
+            } elseif ($englishGate['status'] === 'pending') {
+                $blockers[] = 'english_gate_pending';
+            }
         }
 
         // Check unverified qualifications (self_declared or uploaded but not verified)
@@ -359,6 +370,62 @@ class CandidateDecisionPanelService
             'state' => $state,
             'blockers' => $blockers,
             'is_ready' => empty($blockers),
+        ];
+    }
+
+    /**
+     * Build English gate assessment data from the candidate's latest question bank interview.
+     * Returns null when question bank or english gate is disabled.
+     */
+    private function buildEnglishGate(PoolCandidate $candidate): ?array
+    {
+        if (!config('maritime.question_bank_v1') || !config('maritime.english_gate.enabled')) {
+            return null;
+        }
+
+        // Find the latest question_bank_v1 interview
+        $interview = FormInterview::where('pool_candidate_id', $candidate->id)
+            ->where('status', 'completed')
+            ->latest('completed_at')
+            ->first();
+
+        if (!$interview || ($interview->meta['workflow'] ?? null) !== 'question_bank_v1') {
+            return ['enabled' => true, 'status' => 'not_applicable', 'reason' => 'No question bank interview'];
+        }
+
+        $minLevel = $interview->meta['english_min_level'] ?? 'A2';
+        $roleCode = $interview->meta['question_bank_role'] ?? null;
+        $hasGateAnswers = $interview->meta['english_gate_answered'] ?? false;
+
+        // Check language assessment for CEFR result
+        $assessment = LanguageAssessment::forCandidate($candidate->id);
+        $interviewEvidence = $assessment?->interview_evidence ?? null;
+
+        // If no language assessment with English gate evidence → pending
+        if (!$interviewEvidence || ($interviewEvidence['source'] ?? null) !== 'english_speaking_gate') {
+            return [
+                'enabled' => true,
+                'status' => $hasGateAnswers ? 'awaiting_scoring' : 'pending',
+                'min_level' => $minLevel,
+                'role_code' => $roleCode,
+                'has_gate_answers' => $hasGateAnswers,
+                'estimated_level' => null,
+                'pass' => null,
+            ];
+        }
+
+        // English gate has been scored
+        $pass = $interviewEvidence['pass'] ?? false;
+
+        return [
+            'enabled' => true,
+            'status' => $pass ? 'passed' : 'failed',
+            'min_level' => $minLevel,
+            'role_code' => $roleCode,
+            'estimated_level' => $interviewEvidence['estimated_level'] ?? null,
+            'best_prompt_score' => $interviewEvidence['best_prompt_score'] ?? null,
+            'confidence' => $interviewEvidence['confidence'] ?? null,
+            'pass' => $pass,
         ];
     }
 

@@ -10,11 +10,13 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Mail;
 
 class SendCandidateNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public int $maxExceptions = 3;
@@ -23,10 +25,13 @@ class SendCandidateNotificationJob implements ShouldQueue
 
     public function __construct(
         public CandidateNotification $notification
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         // Skip delivery for demo notifications (mark as delivered but don't actually send)
         if ($this->notification->is_demo) {
             $this->notification->update(['delivered_at' => now()]);

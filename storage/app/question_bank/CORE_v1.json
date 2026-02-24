@@ -1,0 +1,189 @@
+{
+  "version": "1.0",
+  "block": "core",
+  "description": "12 core behavioral questions — same for all 22 maritime roles",
+  "min_answer_words": 50,
+  "max_answer_seconds": 90,
+  "questions": [
+    {
+      "id": "core-comm-1",
+      "dimension": "communication",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Give a specific example of explaining a complex or technical topic to someone who had difficulty understanding it. How did you adapt your communication?",
+        "tr": "Zor veya teknik bir konuyu anlamakta güçlük çeken birine anlatman gereken somut bir örnek ver. İletişimini nasıl uyarladın?"
+      },
+      "rubric": {
+        "high": "Concrete maritime example, audience-adapted language, confirmation of understanding, positive outcome.",
+        "mid": "Relevant example with some detail but missing audience adaptation or outcome.",
+        "low": "Vague, generic, or no real example provided."
+      },
+      "red_flags": ["no_example", "single_sentence"]
+    },
+    {
+      "id": "core-acct-2",
+      "dimension": "accountability",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Describe a time you made a mistake on the job. How did you take ownership and what steps did you take to correct it?",
+        "tr": "İşte bir hata yaptığın bir durumu anlat. Hatayı nasıl sahiplendin ve düzeltmek için hangi adımları attın?"
+      },
+      "rubric": {
+        "high": "Admits specific mistake, takes full ownership, describes corrective action and lesson learned.",
+        "mid": "Acknowledges mistake but partial ownership or vague corrective steps.",
+        "low": "Deflects blame, denies mistakes, or gives a non-answer."
+      },
+      "red_flags": ["blame_shift", "denial"]
+    },
+    {
+      "id": "core-team-3",
+      "dimension": "teamwork",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Tell me about a conflict within your team and how you helped resolve it. What was the outcome?",
+        "tr": "Ekip içinde yaşanan bir çatışmayı ve bunu çözmek için nasıl katkıda bulunduğunu anlat. Sonuç ne oldu?"
+      },
+      "rubric": {
+        "high": "Specific conflict scenario, mediating role, active listening, constructive resolution, lasting outcome.",
+        "mid": "Describes conflict and some resolution effort but lacks specifics on approach or outcome.",
+        "low": "Avoids conflict, blames others, or gives no example."
+      },
+      "red_flags": ["avoidance", "blame_others"]
+    },
+    {
+      "id": "core-disc-4",
+      "dimension": "discipline",
+      "difficulty": 2,
+      "prompts": {
+        "en": "During a long or demanding watch/shift, how do you maintain standards and attention to detail? Give a real example.",
+        "tr": "Uzun veya yoğun bir vardiyada standartları ve detaylara dikkatini nasıl korursun? Gerçek bir örnek ver."
+      },
+      "rubric": {
+        "high": "Concrete routine/system for maintaining standards, checklist usage, fatigue management, real example.",
+        "mid": "Mentions discipline but lacks specific system or example.",
+        "low": "Generic answer with no practical method described."
+      },
+      "red_flags": ["no_system", "fatigue_denial"]
+    },
+    {
+      "id": "core-safe-5",
+      "dimension": "safety_mindset",
+      "difficulty": 3,
+      "prompts": {
+        "en": "Describe a time you noticed a hazard or near-miss situation. What did you do, and what was the result?",
+        "tr": "Bir tehlike veya ramak kala durumu fark ettiğin bir anı anlat. Ne yaptın ve sonuç ne oldu?"
+      },
+      "rubric": {
+        "high": "Identifies specific hazard, takes immediate action, reports through proper channels, describes outcome/prevention.",
+        "mid": "Notices hazard and takes some action but incomplete reporting or follow-up.",
+        "low": "Ignores hazards, normalizes risk, or provides no example."
+      },
+      "red_flags": ["risk_normalization", "no_reporting"]
+    },
+    {
+      "id": "core-stress-6",
+      "dimension": "stress_control",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Give an example of a high-pressure situation where you stayed calm and made good decisions. What helped you?",
+        "tr": "Baskı altında sakin kalıp doğru kararlar verdiğin bir durumu anlat. Sana ne yardımcı oldu?"
+      },
+      "rubric": {
+        "high": "Specific high-stakes scenario, describes internal coping mechanism, logical decision-making, positive outcome.",
+        "mid": "Mentions pressure but lacks detail on coping strategy or decision process.",
+        "low": "Claims never stressed, or gives unrealistic answer."
+      },
+      "red_flags": ["stress_denial", "bravado"]
+    },
+    {
+      "id": "core-comply-7",
+      "dimension": "rule_compliance",
+      "difficulty": 3,
+      "prompts": {
+        "en": "If a colleague or superior pushes you to take a shortcut that bypasses a safety procedure, how do you respond? Give a real example if possible.",
+        "tr": "Bir meslektaşın veya amirin güvenlik prosedürünü atlatmanı isterse nasıl karşılık verirsin? Mümkünse gerçek bir örnek ver."
+      },
+      "rubric": {
+        "high": "Firm refusal with diplomatic communication, cites specific regulation/procedure, escalation path, real example.",
+        "mid": "Would refuse but uncertain about how to handle the interpersonal dynamics.",
+        "low": "Would comply with shortcut, normalizes cutting corners."
+      },
+      "red_flags": ["compliance_bypass", "authority_blind"]
+    },
+    {
+      "id": "core-solve-8",
+      "dimension": "problem_solving",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Describe an unexpected equipment failure or operational problem. What was your approach to diagnosing and solving it?",
+        "tr": "Beklenmedik bir ekipman arızası veya operasyonel sorunu anlat. Teşhis ve çözüm yaklaşımın nasıldı?"
+      },
+      "rubric": {
+        "high": "Systematic diagnosis (observe, isolate, test), resource use, communication with team, outcome.",
+        "mid": "Some troubleshooting but lacks systematic approach.",
+        "low": "Waited for someone else, or no relevant example."
+      },
+      "red_flags": ["passivity", "no_approach"]
+    },
+    {
+      "id": "core-learn-9",
+      "dimension": "learning_agility",
+      "difficulty": 1,
+      "prompts": {
+        "en": "What is something new you learned in the last 6 months related to your work? How did you learn it?",
+        "tr": "Son 6 ayda işinle ilgili öğrendiğin yeni bir şey nedir? Nasıl öğrendin?"
+      },
+      "rubric": {
+        "high": "Specific skill/knowledge, active learning method (course, mentoring, self-study), applies to work.",
+        "mid": "Mentions learning but vague on method or application.",
+        "low": "Nothing learned, or irrelevant answer."
+      },
+      "red_flags": ["learning_stagnation"]
+    },
+    {
+      "id": "core-lead-10",
+      "dimension": "leadership_followership",
+      "difficulty": 2,
+      "prompts": {
+        "en": "Give an example of how you communicate with a superior and how you give or receive feedback. What makes it effective?",
+        "tr": "Bir amirinle nasıl iletişim kurduğunu ve geri bildirim alıp verdiğini örnek vererek anlat. Bunu etkili kılan nedir?"
+      },
+      "rubric": {
+        "high": "Two-way communication example, respectful tone, specific feedback given/received, growth result.",
+        "mid": "Describes communication but one-directional or lacking feedback specifics.",
+        "low": "Avoids feedback, fears authority, or gives no example."
+      },
+      "red_flags": ["authority_fear", "feedback_avoidance"]
+    },
+    {
+      "id": "core-integ-11",
+      "dimension": "integrity",
+      "difficulty": 3,
+      "prompts": {
+        "en": "Describe an ethical dilemma you faced at work. What did you decide, and why?",
+        "tr": "İşte karşılaştığın bir etik ikilemi anlat. Ne karar verdin ve neden?"
+      },
+      "rubric": {
+        "high": "Real dilemma with competing interests, principled decision, explains moral reasoning, outcome.",
+        "mid": "Recognizes ethical tension but decision-making rationale unclear.",
+        "low": "No ethical awareness, or chose the convenient over the right."
+      },
+      "red_flags": ["ethics_blind", "convenience_choice"]
+    },
+    {
+      "id": "core-motiv-12",
+      "dimension": "motivation_retention",
+      "difficulty": 1,
+      "prompts": {
+        "en": "What keeps you motivated during a long contract? And what would make you leave a contract early?",
+        "tr": "Uzun bir kontrat süresince seni motive eden nedir? Ve bir kontratı erken bırakmanıza ne sebep olur?"
+      },
+      "rubric": {
+        "high": "Clear intrinsic motivators (growth, purpose, team), honest about deal-breakers, self-aware.",
+        "mid": "Mentions motivation but lacks depth or self-awareness.",
+        "low": "Only money-driven, unrealistic expectations, or evasive."
+      },
+      "red_flags": ["pure_financial", "unrealistic_expectations"]
+    }
+  ]
+}

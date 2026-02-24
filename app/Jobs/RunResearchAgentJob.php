@@ -13,11 +13,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class RunResearchAgentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 2;
     public array $backoff = [60, 300];
@@ -26,10 +28,13 @@ class RunResearchAgentJob implements ShouldQueue
     public function __construct(
         public string $agentName,
         public ?array $meta = null,
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         $run = ResearchRun::create([
             'agent_name' => $this->agentName,
             'status' => ResearchRun::STATUS_PENDING,

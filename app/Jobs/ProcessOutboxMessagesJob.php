@@ -10,12 +10,14 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 
 class ProcessOutboxMessagesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public int $timeout = 60;
@@ -37,10 +39,12 @@ class ProcessOutboxMessagesJob implements ShouldQueue
             $this->singleMessageId = null;
             $this->batchSize = (int) $batchSizeOrMessageId;
         }
+        $this->captureBrand();
     }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         // Single message mode (immediate dispatch)
         if ($this->singleMessageId) {
             $message = MessageOutbox::find($this->singleMessageId);

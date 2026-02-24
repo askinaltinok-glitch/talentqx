@@ -12,11 +12,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class SendOutboundEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public array $backoff = [30, 60, 120];
@@ -24,10 +26,13 @@ class SendOutboundEmailJob implements ShouldQueue
 
     public function __construct(
         public CrmOutboundQueue $queueItem
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         $item = $this->queueItem;
 
         if ($item->status !== CrmOutboundQueue::STATUS_APPROVED) {

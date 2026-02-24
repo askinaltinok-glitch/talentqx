@@ -111,6 +111,13 @@ class JobController extends Controller
             'closes_at' => 'nullable|date|after:today',
         ]);
 
+        if (!$request->user()->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu işlem için bir şirkete bağlı olmanız gerekmektedir.',
+            ], 422);
+        }
+
         $slug = Str::slug($validated['title']);
         $originalSlug = $slug;
         $counter = 1;

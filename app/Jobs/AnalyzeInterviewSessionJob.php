@@ -12,21 +12,26 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeInterviewSessionJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public int $tries = 3;
     public int $backoff = 60;
 
     public function __construct(
         public string $sessionId
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(): void
     {
+        $this->setBrandDatabase();
         $session = InterviewSession::with(['answers'])->findOrFail($this->sessionId);
 
         if ($session->analysis) {

@@ -13,11 +13,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Jobs\Traits\BrandAware;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeInterviewJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use BrandAware;
 
     public $tries = 3;
     public $backoff = [30, 60, 120];
@@ -26,11 +28,14 @@ class AnalyzeInterviewJob implements ShouldQueue
         public Interview $interview,
         public bool $forceReanalyze = false,
         public ?string $provider = null
-    ) {}
+    ) {
+        $this->captureBrand();
+    }
 
     public function handle(
         TranscriptionService $transcriptionService
     ): void {
+        $this->setBrandDatabase();
         // Get company ID from interview to use correct AI provider
         $companyId = $this->interview->job?->company_id;
 

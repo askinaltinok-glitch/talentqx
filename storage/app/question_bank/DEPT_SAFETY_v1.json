@@ -1,0 +1,187 @@
+{
+  "version": "1.0",
+  "block": "dept",
+  "description": "Department-specific safety/compliance questions — 4 per department",
+  "departments": {
+    "deck": {
+      "questions": [
+        {
+          "id": "dept-deck-1",
+          "dimension": "deck_safety",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Describe a near-miss you witnessed or reported during bridge watchkeeping. What action did you take and how was it followed up?",
+            "tr": "Köprü vardiyasında şahit olduğun veya raporladığın bir ramak kala olayını anlat. Ne aksiyon aldın ve nasıl takip edildi?"
+          },
+          "rubric": {
+            "high": "Specific near-miss, immediate reporting, corrective action, crew learning outcome.",
+            "mid": "Reports incident but follow-up unclear.",
+            "low": "No reporting culture awareness."
+          }
+        },
+        {
+          "id": "dept-deck-2",
+          "dimension": "deck_compliance",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How would you handle a situation where a COLREG or bridge procedure conflicts with a request from a charterer or port authority?",
+            "tr": "COLREG veya köprü prosedürü ile kiracı veya liman otoritesinden gelen bir talebin çeliştiği bir durumda nasıl davranırsın?"
+          },
+          "rubric": {
+            "high": "Safety-first decision, references specific COLREG rules, diplomatic communication, escalation.",
+            "mid": "Would prioritize safety but unsure about communication approach.",
+            "low": "Would comply with external pressure over regulations."
+          }
+        },
+        {
+          "id": "dept-deck-3",
+          "dimension": "deck_operations",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you manage risk during mooring/anchoring operations? Include your approach to briefing, PPE, and communications.",
+            "tr": "Palamar/demirleme operasyonlarında riski nasıl yönetirsin? Brifing, KKD ve iletişim yaklaşımını dahil et."
+          },
+          "rubric": {
+            "high": "Detailed pre-op briefing, PPE checklist, clear communication protocol, snap-back zone awareness.",
+            "mid": "Mentions some safety elements but incomplete coverage.",
+            "low": "No structured approach to mooring safety."
+          }
+        },
+        {
+          "id": "dept-deck-4",
+          "dimension": "deck_ism",
+          "difficulty": 3,
+          "prompts": {
+            "en": "How do you enforce ISM/permit-to-work discipline, especially during night watches when oversight is reduced?",
+            "tr": "Özellikle gözetimin azaldığı gece vardiyalarında ISM/çalışma izni disiplinini nasıl uygularsın?"
+          },
+          "rubric": {
+            "high": "Specific ISM examples, proactive night-watch checks, documentation discipline, leadership approach.",
+            "mid": "Follows ISM but reactive approach to enforcement.",
+            "low": "Relaxes standards during unsupervised periods."
+          }
+        }
+      ]
+    },
+    "engine": {
+      "questions": [
+        {
+          "id": "dept-engine-1",
+          "dimension": "engine_safety",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Describe the hot work or enclosed space permit process. Give an example where you exercised stop-work authority.",
+            "tr": "Sıcak çalışma veya kapalı alan izin sürecini anlat. İşi durdurma yetkisini kullandığın bir örnek ver."
+          },
+          "rubric": {
+            "high": "Full permit process knowledge, specific stop-work example, safety-first decision, documentation.",
+            "mid": "Knows permit process but no personal stop-work example.",
+            "low": "Unfamiliar with permit procedures or stop-work authority."
+          }
+        },
+        {
+          "id": "dept-engine-2",
+          "dimension": "engine_compliance",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you ensure Planned Maintenance System (PMS) records are accurate and audit-ready? What happens when records don't match reality?",
+            "tr": "Planlı Bakım Sistemi (PMS) kayıtlarının doğru ve denetime hazır olmasını nasıl sağlarsın? Kayıtlar gerçekle uyuşmadığında ne olur?"
+          },
+          "rubric": {
+            "high": "Proactive record-keeping, regular cross-checks, escalates discrepancies, audit preparation routine.",
+            "mid": "Maintains records but reactive to discrepancies.",
+            "low": "Records are an afterthought or falsified."
+          }
+        },
+        {
+          "id": "dept-engine-3",
+          "dimension": "engine_operations",
+          "difficulty": 2,
+          "prompts": {
+            "en": "Explain the safety measures you follow during bunkering or fuel transfer operations, including communication and checklist protocols.",
+            "tr": "Yakıt alma veya transfer operasyonları sırasında uyguladığın güvenlik önlemlerini, iletişim ve kontrol listesi protokollerini açıkla."
+          },
+          "rubric": {
+            "high": "Complete bunkering checklist knowledge, SOPEP awareness, clear communication protocol, spill prevention.",
+            "mid": "Follows basic procedures but gaps in communication protocol.",
+            "low": "Treats bunkering as routine with no special precautions."
+          }
+        },
+        {
+          "id": "dept-engine-4",
+          "dimension": "engine_emergency",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Describe the engine room emergency response process: alarm handling, isolation procedures, and escalation to bridge.",
+            "tr": "Makine dairesi acil müdahale sürecini anlat: alarm yönetimi, izolasyon prosedürleri ve köprüye bildirim."
+          },
+          "rubric": {
+            "high": "Systematic alarm response, correct isolation sequence, bridge communication, team coordination.",
+            "mid": "Knows general process but gaps in isolation or escalation details.",
+            "low": "Panics, waits for orders, or no structured response."
+          }
+        }
+      ]
+    },
+    "galley": {
+      "questions": [
+        {
+          "id": "dept-galley-1",
+          "dimension": "galley_food_safety",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you manage food safety (HACCP principles), allergen control, and cross-contamination prevention in the galley?",
+            "tr": "Mutfakta gıda güvenliğini (HACCP ilkeleri), alerjen kontrolü ve çapraz bulaşma önlemlerini nasıl yönetirsin?"
+          },
+          "rubric": {
+            "high": "HACCP knowledge, specific allergen protocols, temperature monitoring, separation procedures.",
+            "mid": "Basic food safety awareness but gaps in HACCP specifics.",
+            "low": "No structured food safety approach."
+          }
+        },
+        {
+          "id": "dept-galley-2",
+          "dimension": "galley_fire_safety",
+          "difficulty": 3,
+          "prompts": {
+            "en": "Describe your approach to galley fire prevention, extinguisher use, and drill participation.",
+            "tr": "Mutfak yangın önleme, yangın söndürücü kullanımı ve tatbikat katılımı yaklaşımını anlat."
+          },
+          "rubric": {
+            "high": "Fire prevention routine, correct extinguisher selection, active drill participation, near-miss awareness.",
+            "mid": "Basic fire safety knowledge but limited prevention mindset.",
+            "low": "Relies entirely on others for fire safety."
+          }
+        },
+        {
+          "id": "dept-galley-3",
+          "dimension": "galley_inventory",
+          "difficulty": 1,
+          "prompts": {
+            "en": "How do you manage stock control (FEFO), cold chain integrity, and food waste reduction on board?",
+            "tr": "Gemide stok kontrolü (FEFO), soğuk zincir bütünlüğü ve gıda israfını azaltmayı nasıl yönetirsin?"
+          },
+          "rubric": {
+            "high": "FEFO knowledge, temperature logs, waste tracking, cost-conscious ordering.",
+            "mid": "Basic stock rotation but no structured waste reduction.",
+            "low": "No inventory management discipline."
+          }
+        },
+        {
+          "id": "dept-galley-4",
+          "dimension": "galley_hygiene",
+          "difficulty": 2,
+          "prompts": {
+            "en": "How do you maintain hygiene standards during peak service times when time pressure is highest?",
+            "tr": "Zaman baskısının en yoğun olduğu servis saatlerinde hijyen standartlarını nasıl korursun?"
+          },
+          "rubric": {
+            "high": "Structured hygiene routine despite pressure, hand washing discipline, surface sanitization, personal hygiene.",
+            "mid": "Maintains hygiene but admits shortcuts under pressure.",
+            "low": "Hygiene suffers when busy."
+          }
+        }
+      ]
+    }
+  }
+}

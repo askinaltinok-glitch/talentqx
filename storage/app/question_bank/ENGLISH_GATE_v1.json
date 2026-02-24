@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "block": "english",
+  "description": "3 English speaking prompts (voice-only) + role-based minimum level table",
+  "prompts": [
+    {
+      "id": "eng-s1",
+      "dimension": "english_speaking",
+      "difficulty": 1,
+      "prompt": "Describe your last vessel and your duties in 60 seconds.",
+      "scoring_criteria": ["fluency", "clarity", "accuracy", "safety_vocabulary"],
+      "max_seconds": 60
+    },
+    {
+      "id": "eng-s2",
+      "dimension": "english_speaking",
+      "difficulty": 2,
+      "prompt": "Explain a safety incident you witnessed and what you did.",
+      "scoring_criteria": ["fluency", "clarity", "accuracy", "safety_vocabulary"],
+      "max_seconds": 90
+    },
+    {
+      "id": "eng-s3",
+      "dimension": "english_speaking",
+      "difficulty": 2,
+      "prompt": "Role scenario: I give you a task with missing information. What questions do you ask first?",
+      "scoring_criteria": ["fluency", "clarity", "accuracy", "safety_vocabulary"],
+      "max_seconds": 90
+    }
+  ],
+  "scoring": {
+    "dimensions": {
+      "fluency": { "min": 0, "max": 5, "description": "Natural flow, minimal hesitation" },
+      "clarity": { "min": 0, "max": 5, "description": "Clear pronunciation, understandable" },
+      "accuracy": { "min": 0, "max": 5, "description": "Correct grammar and vocabulary" },
+      "safety_vocabulary": { "min": 0, "max": 5, "description": "Correct use of maritime safety terms" }
+    },
+    "cefr_mapping": {
+      "A2": { "min_total": 4, "max_total": 8 },
+      "B1": { "min_total": 9, "max_total": 12 },
+      "B2": { "min_total": 13, "max_total": 16 },
+      "C1": { "min_total": 17, "max_total": 20 }
+    }
+  },
+  "min_level_by_role": {
+    "master_captain": "C1",
+    "chief_engineer": "C1",
+    "chief_officer": "B2",
+    "second_officer": "B2",
+    "second_engineer": "B2",
+    "eto_electrician": "B2",
+    "dp_operator": "B2",
+    "third_officer": "B1",
+    "fourth_engineer": "B1",
+    "third_engineer": "B1",
+    "bosun": "B1",
+    "pumpman": "B1",
+    "crane_operator": "B1",
+    "able_seaman": "A2",
+    "ordinary_seaman": "A2",
+    "oiler": "A2",
+    "wiper": "A2",
+    "fitter": "A2",
+    "deck_cadet": "A2",
+    "engine_cadet": "A2",
+    "cook": "A2",
+    "steward": "A2"
+  }
+}

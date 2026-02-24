@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\MarketplaceAccessRequestedMail;
 use App\Models\Candidate;
 use App\Models\MarketplaceAccessRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Marketplace Controller
@@ -337,7 +339,9 @@ class MarketplaceController extends Controller
             'owning_company_id' => $owningCompanyId,
         ]);
 
-        // TODO: Send notification email to owning company
+        // Notify platform admins about the new access request
+        $adminEmail = config('mail.admin_address', 'admin@octopus-ai.net');
+        Mail::to($adminEmail)->queue(new MarketplaceAccessRequestedMail($accessRequest));
 
         return response()->json([
             'success' => true,

@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Note: EnsureFrontendRequestsAreStateful removed - using token-based auth only
         // ForceJsonResponse ensures no 302 redirects - always JSON errors
         $middleware->api(prepend: [
+            \App\Http\Middleware\BrandDatabaseMiddleware::class,
             \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\TenantMiddleware::class,
         ]);

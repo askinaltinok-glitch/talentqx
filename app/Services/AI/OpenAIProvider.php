@@ -88,6 +88,18 @@ class OpenAIProvider implements LLMProviderInterface
         ];
     }
 
+    /**
+     * Public JSON-mode chat: returns raw JSON string from GPT.
+     * Uses low temperature for deterministic scoring outputs.
+     */
+    public function chatJson(string $systemPrompt, string $userPrompt, array $extraOptions = []): string
+    {
+        return $this->chat($systemPrompt, $userPrompt, array_merge([
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0.2,
+        ], $extraOptions));
+    }
+
     private function chat(string $systemPrompt, string $userPrompt, array $options = []): string
     {
         if (empty($this->apiKey)) {
