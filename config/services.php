@@ -135,7 +135,11 @@ return [
     ],
 
     'whisper' => [
-        'model'           => env('WHISPER_MODEL', 'faster-whisper-large-v3'),
+        'model'           => in_array(env('WHISPER_MODEL', 'large-v3'), [
+            'tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en',
+            'medium', 'medium.en', 'large-v1', 'large-v2', 'large-v3',
+            'large', 'turbo', 'large-v3-turbo',
+        ]) ? env('WHISPER_MODEL', 'large-v3') : 'large-v3',
         'language'        => env('WHISPER_LANGUAGE', 'en'),
         'temperature'     => (int) env('WHISPER_TEMPERATURE', 0),
         'response_format' => env('WHISPER_RESPONSE_FORMAT', 'json'),
@@ -145,6 +149,18 @@ return [
     'voice' => [
         'max_upload_mb'       => (int) env('VOICE_MAX_UPLOAD_MB', 12),
         'max_duration_seconds' => (int) env('VOICE_MAX_DURATION_SECONDS', 120),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Web Push (VAPID)
+    |--------------------------------------------------------------------------
+    */
+
+    'web_push' => [
+        'subject'     => env('VAPID_SUBJECT', 'mailto:noreply@octopus-ai.net'),
+        'public_key'  => env('VAPID_PUBLIC_KEY', ''),
+        'private_key' => env('VAPID_PRIVATE_KEY', ''),
     ],
 
 ];

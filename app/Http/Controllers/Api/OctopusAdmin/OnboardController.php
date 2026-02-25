@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CrmCompany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class OnboardController extends Controller
 {
@@ -62,6 +63,16 @@ class OnboardController extends Controller
             ],
             'status' => CrmCompany::STATUS_NEW,
         ]);
+
+        // Admin push notification (fail-safe)
+        try {
+            app(\App\Services\AdminNotificationService::class)->notifyCompanyOnboard(
+                $data['name'],
+                $company->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Admin notification failed (company_onboard)', ['error' => $e->getMessage()]);
+        }
 
         return response()->json([
             'success' => true,

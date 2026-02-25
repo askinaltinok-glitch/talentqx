@@ -473,6 +473,17 @@ class MaritimeCandidateController extends Controller
             Log::warning('Timeline event failed (applied)', ['error' => $e->getMessage()]);
         }
 
+        // Admin push notification (fail-safe)
+        try {
+            app(\App\Services\AdminNotificationService::class)->notifyNewCandidate(
+                $candidate->first_name . ' ' . $candidate->last_name,
+                $data['rank'] ?? 'unknown',
+                $candidate->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Admin notification failed (new_candidate)', ['error' => $e->getMessage()]);
+        }
+
         // Increment daily IP counter
         Cache::increment($ipKey);
         if ($dailyCount === 0) {

@@ -536,6 +536,20 @@ class CleanInterviewController extends Controller
                 'candidate_id' => $invitation->pool_candidate_id,
             ]);
 
+            // Admin push notification (fail-safe)
+            try {
+                $candidate = $interview->poolCandidate;
+                if ($candidate) {
+                    app(\App\Services\AdminNotificationService::class)->notifyInterviewCompleted(
+                        $candidate->first_name . ' ' . $candidate->last_name,
+                        $interview->id,
+                        $candidate->id,
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Admin notification failed (interview_completed)', ['error' => $e->getMessage()]);
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [

@@ -386,6 +386,14 @@ Route::prefix('v1')->group(function () {
             Route::post('voice', [\App\Http\Controllers\Api\Maritime\CleanInterviewController::class, 'voice'])
                 ->middleware('throttle:30,60')
                 ->name('maritime.clean-interview.voice');
+
+            // Voice answer upload + polling (async Whisper transcription via AiModelsPanel)
+            Route::post('voice-answers', [\App\Http\Controllers\Api\Maritime\VoiceAnswerController::class, 'store'])
+                ->middleware('throttle:5,1')
+                ->name('maritime.voice-answers.store');
+            Route::get('voice-answers/{questionId}', [\App\Http\Controllers\Api\Maritime\VoiceAnswerController::class, 'show'])
+                ->middleware('throttle:30,1')
+                ->name('maritime.voice-answers.show');
         });
 
         // Crew Feedback (public, seafarer submits after contract ends)
@@ -656,6 +664,24 @@ Route::prefix('v1')->group(function () {
         // PORTAL — Fleet, Manning, Roster, Crew Planning
         // ===================================================
         Route::prefix('portal')->group(function () {
+            // Portal Job Management (uses existing JobController with company_id filtering)
+            Route::prefix('jobs')->group(function () {
+                Route::get('/', [JobController::class, 'index']);
+                Route::post('/', [JobController::class, 'store']);
+                Route::get('/{id}', [JobController::class, 'show']);
+                Route::put('/{id}', [JobController::class, 'update']);
+                Route::delete('/{id}', [JobController::class, 'destroy']);
+                Route::post('/{id}/publish', [JobController::class, 'publish']);
+                Route::post('/{id}/qr-code', [JobController::class, 'generateQRCode']);
+                Route::get('/{id}/qr-info', [JobController::class, 'qrInfo']);
+                Route::get('/{id}/questions', [JobController::class, 'questions']);
+                Route::post('/{id}/generate-questions', [JobController::class, 'generateQuestions']);
+            });
+
+            // Portal Candidates (company's own candidates)
+            Route::get('/candidates', [\App\Http\Controllers\Api\Portal\PortalCandidateController::class, 'index']);
+            Route::get('/candidates/{id}', [\App\Http\Controllers\Api\Portal\PortalCandidateController::class, 'show']);
+
             // Onboarding finalize
             Route::get('/onboarding', [\App\Http\Controllers\Api\Portal\OnboardingFinalizeController::class, 'show']);
             Route::put('/onboarding', [\App\Http\Controllers\Api\Portal\OnboardingFinalizeController::class, 'update']);
@@ -934,7 +960,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/follow-up-stats', [LeadController::class, 'followUpStats']);
             Route::post('/', [LeadController::class, 'store']);
             Route::get('/{lead}', [LeadController::class, 'show']);
-            Route::put('/{lead}', [LeadController::class, 'update']);
+            Route::match(['put', 'patch'], '/{lead}', [LeadController::class, 'update']);
             Route::patch('/{lead}/status', [LeadController::class, 'updateStatus']);
             Route::delete('/{lead}', [LeadController::class, 'destroy']);
 
@@ -1593,6 +1619,10 @@ Route::prefix('v1/octopus/admin')->group(function () {
             ->whereUuid('id');
         Route::post('/candidates/{id}/send-interview-invite', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'sendInterviewInvite'])
             ->whereUuid('id');
+        Route::delete('/candidates/{id}/erase', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'eraseCandidate'])
+            ->whereUuid('id');
+        Route::get('/candidates/{id}/data-export', [\App\Http\Controllers\Api\OctopusAdmin\CandidateController::class, 'exportCandidateData'])
+            ->whereUuid('id');
 
         // Contracts (Trust Core)
         Route::get('/candidates/{id}/contracts', [\App\Http\Controllers\Api\OctopusAdmin\ContractController::class, 'index'])->whereUuid('id');
@@ -1739,6 +1769,13 @@ Route::prefix('v1/octopus/admin')->group(function () {
             Route::post('/requests/{id}/approve', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'approve'])->whereUuid('id');
             Route::post('/requests/{id}/reject', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'reject'])->whereUuid('id');
         });
+
+        // Admin Notifications + Push Subscriptions
+        Route::get('/notifications', [\App\Http\Controllers\Api\OctopusAdmin\AdminNotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\OctopusAdmin\AdminNotificationController::class, 'unreadCount']);
+        Route::post('/notifications/mark-read', [\App\Http\Controllers\Api\OctopusAdmin\AdminNotificationController::class, 'markRead']);
+        Route::post('/notifications/push-subscriptions', [\App\Http\Controllers\Api\OctopusAdmin\AdminNotificationController::class, 'subscribe']);
+        Route::delete('/notifications/push-subscriptions', [\App\Http\Controllers\Api\OctopusAdmin\AdminNotificationController::class, 'unsubscribe']);
 
         // Crew Roster Import (Excel)
         Route::prefix('imports/crew-roster')->group(function () {
