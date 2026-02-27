@@ -25,33 +25,29 @@ class AdminAnalyticsController extends Controller
      */
     public function interviewFilters(): JsonResponse
     {
-        // Distinct positions from completed interviews
-        $positions = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+        // Positions from form_interviews
+        $fiPositions = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
             ->whereNotNull('position_code')
             ->distinct()
-            ->orderBy('position_code')
             ->pluck('position_code')
             ->toArray();
 
-        // Companies that have interviews
-        $companyIds = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
-            ->whereNotNull('company_id')
+        // Positions from QR interviews (job titles)
+        $qrPositions = DB::table('interviews')
+            ->join('job_postings', 'job_postings.id', '=', 'interviews.job_id')
+            ->where('interviews.status', 'completed')
+            ->whereNotNull('job_postings.title')
             ->distinct()
-            ->pluck('company_id')
+            ->pluck('job_postings.title')
             ->toArray();
 
-        $companies = [];
-        if (!empty($companyIds)) {
-            $companies = DB::table('companies')
-                ->whereIn('id', $companyIds)
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-                ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
-                ->toArray();
-        }
+        $positions = collect(array_merge($fiPositions, $qrPositions))
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
 
-        // Also include all active companies for the dropdown (even without interviews yet)
+        // All companies
         $allCompanies = DB::table('companies')
             ->select('id', 'name')
             ->orderBy('name')
@@ -70,6 +66,7 @@ class AdminAnalyticsController extends Controller
 
     /**
      * Get interview analytics summary.
+     * Includes both form_interviews (AI form) and interviews (QR flow).
      *
      * GET /v1/admin/analytics/interviews/summary
      * Query params: from (date), to (date), company_id, position_code
@@ -83,85 +80,34 @@ class AdminAnalyticsController extends Controller
             ? Carbon::parse($request->input('to'))->endOfDay()
             : Carbon::now()->endOfDay();
 
-        // Only completed interviews
-        $baseQuery = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+        // ── Form Interviews (AI form) ──
+        $fiQuery = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
             ->whereBetween('completed_at', [$from, $to]);
 
-        // Company filter
         if ($request->filled('company_id')) {
-            $baseQuery->where('company_id', $request->input('company_id'));
+            $fiQuery->where('company_id', $request->input('company_id'));
         }
-
-        // Position filter
         if ($request->filled('position_code')) {
-            $baseQuery->where('position_code', $request->input('position_code'));
+            $fiQuery->where('position_code', $request->input('position_code'));
         }
 
-        // Total count
-        $total = (clone $baseQuery)->count();
+        $fiTotal = (clone $fiQuery)->count();
+        $fiAvg = (clone $fiQuery)->whereNotNull('final_score')->avg('final_score');
 
-        // By decision
-        $byDecision = (clone $baseQuery)
+        $fiByDecision = (clone $fiQuery)
             ->select('decision', DB::raw('COUNT(*) as count'))
             ->whereNotNull('decision')
             ->groupBy('decision')
             ->pluck('count', 'decision')
             ->toArray();
 
-        // Ensure all decisions are present
-        $byDecision = array_merge([
-            'HIRE' => 0,
-            'HOLD' => 0,
-            'REJECT' => 0,
-        ], $byDecision);
-
-        // Average final score
-        $avgFinalScore = (clone $baseQuery)
-            ->whereNotNull('final_score')
-            ->avg('final_score');
-
-        // By position (top 10)
-        $byPosition = (clone $baseQuery)
+        $fiByPosition = (clone $fiQuery)
             ->select('position_code', DB::raw('COUNT(*) as count'))
             ->groupBy('position_code')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get()
-            ->map(fn($row) => [
-                'position_code' => $row->position_code,
-                'count' => $row->count,
-            ])
+            ->pluck('count', 'position_code')
             ->toArray();
 
-        // Top risk flags (aggregated from all interviews)
-        $interviews = (clone $baseQuery)
-            ->whereNotNull('risk_flags')
-            ->pluck('risk_flags');
-
-        $riskFlagCounts = [];
-        foreach ($interviews as $flags) {
-            $flagsArray = is_array($flags) ? $flags : json_decode($flags, true);
-            if (!is_array($flagsArray)) continue;
-
-            foreach ($flagsArray as $flag) {
-                $code = $flag['code'] ?? $flag['flag_code'] ?? null;
-                if ($code) {
-                    $riskFlagCounts[$code] = ($riskFlagCounts[$code] ?? 0) + 1;
-                }
-            }
-        }
-        arsort($riskFlagCounts);
-        $topRiskFlags = array_slice(
-            array_map(fn($code, $count) => ['code' => $code, 'count' => $count],
-                array_keys($riskFlagCounts),
-                array_values($riskFlagCounts)
-            ),
-            0,
-            10
-        );
-
-        // Timeseries daily
-        $timeseriesDaily = (clone $baseQuery)
+        $fiTimeseries = (clone $fiQuery)
             ->select(
                 DB::raw('DATE(completed_at) as date'),
                 DB::raw('COUNT(*) as total'),
@@ -170,26 +116,139 @@ class AdminAnalyticsController extends Controller
                 DB::raw('SUM(CASE WHEN decision = "REJECT" THEN 1 ELSE 0 END) as reject')
             )
             ->groupBy(DB::raw('DATE(completed_at)'))
-            ->orderBy('date')
             ->get()
-            ->map(fn($row) => [
-                'date' => $row->date,
-                'total' => (int)$row->total,
-                'hire' => (int)$row->hire,
-                'hold' => (int)$row->hold,
-                'reject' => (int)$row->reject,
-            ])
+            ->keyBy('date')
             ->toArray();
+
+        // Risk flags from form_interviews
+        $riskFlagCounts = [];
+        $fiFlags = (clone $fiQuery)->whereNotNull('risk_flags')->pluck('risk_flags');
+        foreach ($fiFlags as $flags) {
+            $flagsArray = is_array($flags) ? $flags : json_decode($flags, true);
+            if (!is_array($flagsArray)) continue;
+            foreach ($flagsArray as $flag) {
+                $code = $flag['code'] ?? $flag['flag_code'] ?? null;
+                if ($code) {
+                    $riskFlagCounts[$code] = ($riskFlagCounts[$code] ?? 0) + 1;
+                }
+            }
+        }
+
+        // ── QR Interviews ──
+        $qrQuery = DB::table('interviews')
+            ->where('interviews.status', 'completed')
+            ->whereBetween('interviews.completed_at', [$from, $to]);
+
+        if ($request->filled('company_id')) {
+            $qrQuery->join('job_postings', 'job_postings.id', '=', 'interviews.job_id')
+                ->where('job_postings.company_id', $request->input('company_id'));
+        }
+
+        $qrTotal = (clone $qrQuery)->count();
+
+        // QR scores from interview_analyses
+        $qrScores = DB::table('interviews')
+            ->join('interview_analyses', 'interview_analyses.interview_id', '=', 'interviews.id')
+            ->where('interviews.status', 'completed')
+            ->whereBetween('interviews.completed_at', [$from, $to])
+            ->whereNotNull('interview_analyses.overall_score');
+
+        if ($request->filled('company_id')) {
+            $qrScores->join('job_postings', 'job_postings.id', '=', 'interviews.job_id')
+                ->where('job_postings.company_id', $request->input('company_id'));
+        }
+
+        $qrAvg = (clone $qrScores)->avg('interview_analyses.overall_score');
+        $qrScoreCount = (clone $qrScores)->count();
+
+        // QR by position (from job_postings.title)
+        $qrByPosition = DB::table('interviews')
+            ->join('job_postings', 'job_postings.id', '=', 'interviews.job_id')
+            ->where('interviews.status', 'completed')
+            ->whereBetween('interviews.completed_at', [$from, $to])
+            ->select('job_postings.title as position_code', DB::raw('COUNT(*) as count'))
+            ->groupBy('job_postings.title')
+            ->pluck('count', 'position_code')
+            ->toArray();
+
+        // QR timeseries
+        $qrTimeseries = DB::table('interviews')
+            ->where('status', 'completed')
+            ->whereBetween('completed_at', [$from, $to])
+            ->select(
+                DB::raw('DATE(completed_at) as date'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy(DB::raw('DATE(completed_at)'))
+            ->get()
+            ->keyBy('date')
+            ->toArray();
+
+        // ── Merge results ──
+        $total = $fiTotal + $qrTotal;
+
+        // Weighted average score
+        $fiScoreCount = (clone $fiQuery)->whereNotNull('final_score')->count();
+        $avgFinalScore = null;
+        if (($fiScoreCount + $qrScoreCount) > 0) {
+            $avgFinalScore = round(
+                (($fiAvg ?: 0) * $fiScoreCount + ($qrAvg ?: 0) * $qrScoreCount)
+                / ($fiScoreCount + $qrScoreCount),
+                1
+            );
+        }
+
+        // Merge decisions
+        $byDecision = array_merge(['HIRE' => 0, 'HOLD' => 0, 'REJECT' => 0], $fiByDecision);
+
+        // Merge positions
+        $mergedPositions = $fiByPosition;
+        foreach ($qrByPosition as $pos => $cnt) {
+            $mergedPositions[$pos] = ($mergedPositions[$pos] ?? 0) + $cnt;
+        }
+        arsort($mergedPositions);
+        $byPosition = collect($mergedPositions)->take(10)->map(fn($count, $pos) => [
+            'position_code' => $pos,
+            'count' => $count,
+        ])->values()->toArray();
+
+        // Merge timeseries
+        $allDates = array_unique(array_merge(array_keys($fiTimeseries), array_keys($qrTimeseries)));
+        sort($allDates);
+        $timeseriesDaily = [];
+        foreach ($allDates as $date) {
+            $fi = $fiTimeseries[$date] ?? null;
+            $qr = $qrTimeseries[$date] ?? null;
+            $timeseriesDaily[] = [
+                'date' => $date,
+                'total' => (int)($fi->total ?? 0) + (int)($qr->total ?? 0),
+                'hire' => (int)($fi->hire ?? 0),
+                'hold' => (int)($fi->hold ?? 0),
+                'reject' => (int)($fi->reject ?? 0),
+            ];
+        }
+
+        arsort($riskFlagCounts);
+        $topRiskFlags = array_slice(
+            array_map(fn($code, $count) => ['code' => $code, 'count' => $count],
+                array_keys($riskFlagCounts),
+                array_values($riskFlagCounts)
+            ), 0, 10
+        );
 
         return response()->json([
             'success' => true,
             'data' => [
                 'total' => $total,
                 'by_decision' => $byDecision,
-                'avg_final_score' => $avgFinalScore ? round($avgFinalScore, 1) : null,
+                'avg_final_score' => $avgFinalScore,
                 'by_position' => $byPosition,
                 'top_risk_flags' => $topRiskFlags,
                 'timeseries_daily' => $timeseriesDaily,
+                'breakdown' => [
+                    'form_interviews' => $fiTotal,
+                    'qr_interviews' => $qrTotal,
+                ],
             ],
             'meta' => [
                 'from' => $from->toDateString(),
@@ -200,6 +259,7 @@ class AdminAnalyticsController extends Controller
 
     /**
      * Get interview list for drill-down.
+     * Includes both form_interviews and QR interviews.
      *
      * GET /v1/admin/analytics/interviews
      * Query params: from, to, decision, position_code, company_id, page, per_page
@@ -215,40 +275,25 @@ class AdminAnalyticsController extends Controller
 
         $perPage = min((int)($request->input('per_page', 20)), 100);
 
-        $query = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+        // ── Form Interviews ──
+        $fiQuery = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
             ->whereBetween('completed_at', [$from, $to]);
 
-        // Filters
         if ($request->filled('decision')) {
-            $query->where('decision', strtoupper($request->input('decision')));
+            $fiQuery->where('decision', strtoupper($request->input('decision')));
         }
-
         if ($request->filled('position_code')) {
-            $query->where('position_code', $request->input('position_code'));
+            $fiQuery->where('position_code', $request->input('position_code'));
         }
-
         if ($request->filled('company_id')) {
-            $query->where('company_id', $request->input('company_id'));
+            $fiQuery->where('company_id', $request->input('company_id'));
         }
-
         if ($request->filled('language')) {
-            $query->where('language', strtolower($request->input('language')));
+            $fiQuery->where('language', strtolower($request->input('language')));
         }
 
-        // Sort
-        $sortBy = $request->input('sort_by', 'completed_at');
-        $sortDir = $request->input('sort_dir', 'desc');
-        $allowedSorts = ['completed_at', 'final_score', 'position_code'];
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
-        } else {
-            $query->orderByDesc('completed_at');
-        }
-
-        $paginated = $query->paginate($perPage);
-
-        $data = $paginated->getCollection()->map(function ($interview) {
-            $riskFlags = $interview->risk_flags;
+        $fiItems = $fiQuery->orderByDesc('completed_at')->get()->map(function ($fi) {
+            $riskFlags = $fi->risk_flags;
             $riskFlagsCount = 0;
             if (is_array($riskFlags)) {
                 $riskFlagsCount = count($riskFlags);
@@ -258,25 +303,73 @@ class AdminAnalyticsController extends Controller
             }
 
             return [
-                'id' => $interview->id,
-                'created_at' => $interview->created_at->toIso8601String(),
-                'completed_at' => $interview->completed_at?->toIso8601String(),
-                'position_code' => $interview->position_code,
-                'language' => $interview->language,
-                'final_score' => $interview->final_score,
-                'decision' => $interview->decision,
+                'id' => $fi->id,
+                'source' => 'form',
+                'candidate_name' => null,
+                'created_at' => $fi->created_at->toIso8601String(),
+                'completed_at' => $fi->completed_at?->toIso8601String(),
+                'position_code' => $fi->position_code,
+                'language' => $fi->language,
+                'final_score' => $fi->final_score,
+                'decision' => $fi->decision,
                 'risk_flags_count' => $riskFlagsCount,
             ];
         });
 
+        // ── QR Interviews ──
+        $qrQuery = DB::table('interviews')
+            ->leftJoin('interview_analyses', 'interview_analyses.interview_id', '=', 'interviews.id')
+            ->leftJoin('candidates', 'candidates.id', '=', 'interviews.candidate_id')
+            ->leftJoin('job_postings', 'job_postings.id', '=', 'interviews.job_id')
+            ->where('interviews.status', 'completed')
+            ->whereBetween('interviews.completed_at', [$from, $to])
+            ->select(
+                'interviews.id',
+                'interviews.completed_at',
+                'interviews.created_at',
+                'interviews.started_at',
+                DB::raw("CONCAT(candidates.first_name, ' ', candidates.last_name) as candidate_name"),
+                'job_postings.title as position_title',
+                'job_postings.locale as language',
+                'job_postings.company_id',
+                'interview_analyses.overall_score as final_score',
+                'interview_analyses.cheating_level'
+            );
+
+        if ($request->filled('company_id')) {
+            $qrQuery->where('job_postings.company_id', $request->input('company_id'));
+        }
+
+        $qrItems = $qrQuery->orderByDesc('interviews.completed_at')->get()->map(fn($row) => [
+            'id' => $row->id,
+            'source' => 'qr',
+            'candidate_name' => $row->candidate_name,
+            'created_at' => $row->created_at,
+            'completed_at' => $row->completed_at,
+            'position_code' => $row->position_title,
+            'language' => $row->language ?? 'tr',
+            'final_score' => $row->final_score ? round($row->final_score, 1) : null,
+            'decision' => null,
+            'risk_flags_count' => ($row->cheating_level && $row->cheating_level !== 'low') ? 1 : 0,
+        ]);
+
+        // Merge and sort by completed_at desc
+        $merged = $fiItems->concat($qrItems)
+            ->sortByDesc('completed_at')
+            ->values();
+
+        $total = $merged->count();
+        $page = max(1, (int)$request->input('page', 1));
+        $paged = $merged->forPage($page, $perPage)->values();
+
         return response()->json([
             'success' => true,
-            'data' => $data,
+            'data' => $paged,
             'meta' => [
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
+                'current_page' => $page,
+                'last_page' => (int)ceil($total / $perPage),
+                'per_page' => $perPage,
+                'total' => $total,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],

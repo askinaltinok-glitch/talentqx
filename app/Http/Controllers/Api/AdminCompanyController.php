@@ -212,7 +212,7 @@ class AdminCompanyController extends Controller
 
     /**
      * PATCH /v1/admin/companies/{id}/credits
-     * Update company credits (add bonus credits).
+     * Update company credits (full edit: plan, monthly, bonus, grace, subscription end, reset).
      */
     public function updateCredits(Request $request, string $id): JsonResponse
     {
@@ -229,30 +229,32 @@ class AdminCompanyController extends Controller
         }
 
         $validated = $request->validate([
-            'bonus_credits' => ['required', 'integer', 'min:1', 'max:10000'],
-            'reason' => ['required', 'string', 'max:255'],
+            'subscription_plan' => ['sometimes', Rule::in(Company::PLANS)],
+            'monthly_credits' => ['sometimes', 'integer', 'min:0', 'max:100000'],
+            'bonus_credits' => ['sometimes', 'integer', 'min:0', 'max:100000'],
+            'grace_credits_total' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            'reset_usage' => ['sometimes', 'boolean'],
+            'subscription_ends_at' => ['sometimes', 'nullable', 'date'],
         ]);
 
         try {
-            $this->creditService->addBonusCredits(
+            $this->creditService->updateCompanyCredits(
                 $company,
-                $validated['bonus_credits'],
-                $validated['reason'],
+                $validated,
                 $request->user()->id
             );
 
             $company->refresh();
 
-            Log::info('Admin added bonus credits', [
+            Log::info('Admin updated company credits', [
                 'admin_id' => $request->user()->id,
                 'company_id' => $company->id,
-                'amount' => $validated['bonus_credits'],
-                'reason' => $validated['reason'],
+                'changes' => array_keys($validated),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => "Bonus kontür eklendi: {$validated['bonus_credits']}",
+                'message' => 'Kontür bilgileri güncellendi.',
                 'data' => $this->formatCompany($company, true),
             ]);
 

@@ -497,6 +497,8 @@ Route::prefix('v1')->group(function () {
     // /i/{token} frontend -> /api/v1/qr-apply/{token}
     // ===========================================
     Route::prefix('qr-apply')->group(function () {
+        // Company positions listing (must be before /{token} to avoid slug collision)
+        Route::get('/company/{slug}', [PublicApplyController::class, 'companyPositions']);
         // Resume interview from access_token (must be before /{token})
         Route::get('/resume/{accessToken}', [PublicApplyController::class, 'resume']);
         // GET job info for QR landing page
@@ -707,6 +709,9 @@ Route::prefix('v1')->group(function () {
         // PORTAL — Fleet, Manning, Roster, Crew Planning
         // ===================================================
         Route::prefix('portal')->group(function () {
+            // Company permanent apply link (QR for all positions)
+            Route::get('/company-apply-link', [JobController::class, 'companyApplyLink']);
+
             // Portal Job Management (uses existing JobController with company_id filtering)
             Route::prefix('jobs')->group(function () {
                 Route::get('/', [JobController::class, 'index']);
@@ -1652,6 +1657,23 @@ Route::prefix('v1')->group(function () {
 
         }); // End of force.password.change middleware group
     }); // End of auth:sanctum middleware group
+
+    // ===========================================
+    // ORGHEALTH MODULE (WorkStyle v1)
+    // ===========================================
+    Route::middleware(['auth:sanctum'])
+        ->prefix('orghealth')
+        ->group(function () {
+            Route::get('/questionnaires/workstyle/active', [\App\Http\Controllers\V1\OrgHealth\WorkstyleQuestionnaireController::class, 'active']);
+
+            Route::post('/employees/{employeeId}/consents', [\App\Http\Controllers\V1\OrgHealth\OrgEmployeeConsentController::class, 'upsert']);
+
+            Route::post('/employees/{employeeId}/assessments/workstyle/start', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAssessmentController::class, 'start']);
+            Route::post('/assessments/{assessmentId}/answers', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAssessmentController::class, 'saveAnswers']);
+            Route::post('/assessments/{assessmentId}/complete', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAssessmentController::class, 'complete']);
+
+            Route::get('/employees/{employeeId}/workstyle/profile/latest', [\App\Http\Controllers\V1\OrgHealth\WorkstyleProfileController::class, 'latest']);
+        });
 
 }); // End of v1 prefix group
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CompanyApplyLink;
 use App\Models\Job;
 use App\Models\JobPosition;
 use App\Models\PositionTemplate;
@@ -621,5 +622,78 @@ class JobController extends Controller
                 ],
             ], 500);
         }
+    }
+
+    /**
+     * Get or auto-create the company's permanent apply link.
+     * GET /api/v1/portal/company-apply-link
+     */
+    public function companyApplyLink(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $companyId = $user->company_id;
+        $company = $user->company;
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Şirket bulunamadı.',
+            ], 404);
+        }
+
+        // Look for existing active apply link
+        $link = CompanyApplyLink::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->first();
+
+        // Auto-create if not exists
+        if (!$link) {
+            $slug = Str::slug($company->name);
+
+            // Ensure unique slug
+            $baseSlug = $slug;
+            $counter = 1;
+            while (CompanyApplyLink::withoutTenantScope()->where('slug', $slug)->exists()) {
+                $slug = "{$baseSlug}-{$counter}";
+                $counter++;
+            }
+
+            $link = CompanyApplyLink::create([
+                'company_id' => $companyId,
+                'slug' => $slug,
+                'label' => $company->name,
+                'is_active' => true,
+            ]);
+        }
+
+        // Build apply URL
+        $platform = $company->platform ?? 'talentqx';
+        $frontendBase = match ($platform) {
+            'octopus' => 'https://octopus-ai.net',
+            default   => 'https://app.talentqx.com',
+        };
+        $applyUrl = "{$frontendBase}/c/{$link->slug}";
+
+        // Generate QR code as base64
+        $qrBase64 = null;
+        try {
+            $qrBase64 = $this->qrCodeService->generateBase64($applyUrl, 400);
+        } catch (\Exception $e) {
+            Log::warning('Company apply link QR generation failed', ['error' => $e->getMessage()]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $link->id,
+                'slug' => $link->slug,
+                'label' => $link->label,
+                'apply_url' => $applyUrl,
+                'qr_base64' => $qrBase64,
+                'click_count' => $link->click_count,
+                'is_active' => $link->is_active,
+                'created_at' => $link->created_at->toIso8601String(),
+            ],
+        ]);
     }
 }

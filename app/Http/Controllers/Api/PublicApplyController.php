@@ -10,6 +10,7 @@ use App\Mail\QrApplyCompletedMail;
 use App\Mail\QrApplyContinueMail;
 use App\Mail\QrApplyInterviewScheduledMail;
 use App\Models\Candidate;
+use App\Models\CompanyApplyLink;
 use App\Models\ConsentLog;
 use App\Models\Interview;
 use App\Models\InterviewResponse;
@@ -39,6 +40,77 @@ class PublicApplyController extends Controller
         private CreditService $creditService,
         private QrApplyEmailVerificationService $verificationService,
     ) {}
+
+    /**
+     * Get company positions for a company apply link slug.
+     * Public endpoint: GET /qr-apply/company/{slug}
+     */
+    public function companyPositions(string $slug): JsonResponse
+    {
+        // Look up without tenant scope (public endpoint)
+        $link = CompanyApplyLink::withoutTenantScope()
+            ->where('slug', $slug)
+            ->first();
+
+        if (!$link || !$link->isValid()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'invalid_link',
+                'message' => 'Bu bağlantı geçersiz veya süresi dolmuş.',
+            ], 404);
+        }
+
+        // Increment click count
+        $link->incrementClicks();
+
+        $company = $link->company;
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'code' => 'invalid_link',
+                'message' => 'Bu bağlantı geçersiz.',
+            ], 404);
+        }
+
+        // Get active jobs for this company
+        $jobs = Job::withoutTenantScope()
+            ->where('company_id', $company->id)
+            ->active()
+            ->with('branch')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Resolve frontend domain from company's platform
+        $platform = $company->platform ?? 'talentqx';
+        $frontendBase = match ($platform) {
+            'octopus' => 'https://octopus-ai.net',
+            default   => 'https://app.talentqx.com',
+        };
+
+        $positions = $jobs->map(fn(Job $job) => [
+            'id' => $job->id,
+            'title' => $job->title,
+            'description' => $job->description,
+            'location' => $job->location ?? ($job->branch ? "{$job->branch->district}, {$job->branch->city}" : null),
+            'employment_type' => $job->employment_type,
+            'public_token' => $job->public_token,
+            'apply_url' => "{$frontendBase}/i/{$job->public_token}",
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'company' => [
+                    'name' => $company->name,
+                    'logo_url' => $company->getLogoUrl(),
+                    'brand_primary_color' => $company->getBrandColor(),
+                ],
+                'hasActivePositions' => $positions->isNotEmpty(),
+                'positions' => $positions->values(),
+            ],
+        ]);
+    }
 
     /**
      * Resolve the correct DB connection for a public_token.

@@ -596,6 +596,7 @@ class AdminFormInterviewController extends Controller
 
     /**
      * Generate PDF Decision Packet for download.
+     * Supports both FormInterview (AI form) and Interview (QR flow).
      *
      * GET /v1/admin/form-interviews/{id}/decision-packet.pdf
      */
@@ -603,11 +604,9 @@ class AdminFormInterviewController extends Controller
     {
         $interview = FormInterview::with(['answers', 'outcome'])->find($id);
 
+        // Fallback: check QR interview table
         if (!$interview) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Interview not found',
-            ], 404);
+            return $this->qrInterviewDecisionPacketPdf($request, $id);
         }
 
         // Company users can only see their own interviews
@@ -661,6 +660,89 @@ class AdminFormInterviewController extends Controller
         $pdf->setOption('isHtml5ParserEnabled', true);
 
         // Generate filename
+        $filename = sprintf(
+            'decision-packet-%s-%s.pdf',
+            $interview->id,
+            now()->format('Ymd-His')
+        );
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Generate PDF Decision Packet for QR Interview (interviews table).
+     */
+    private function qrInterviewDecisionPacketPdf(Request $request, string $id)
+    {
+        $interview = Interview::with(['candidate', 'job', 'analysis', 'responses.question'])->find($id);
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        if ($interview->status !== Interview::STATUS_COMPLETED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Decision packet only available for completed interviews',
+            ], 400);
+        }
+
+        $analysis = $interview->analysis;
+        if (!$analysis) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No analysis data available for this interview',
+            ], 400);
+        }
+
+        $candidate = $interview->candidate;
+        if (!$candidate) {
+            $candidate = (object) [
+                'first_name' => 'Unknown',
+                'last_name' => 'Candidate',
+                'email' => null,
+                'phone' => null,
+                'source' => null,
+                'status' => null,
+            ];
+        }
+
+        $jobTitle = $interview->job?->title ?? 'N/A';
+
+        // Build checksum
+        $packetData = [
+            'id' => $interview->id,
+            'overall_score' => $analysis->overall_score,
+            'recommendation' => $analysis->getRecommendation(),
+            'completed_at' => $interview->completed_at?->toIso8601String(),
+        ];
+        $checksum = hash('sha256', json_encode($packetData));
+
+        $adminUser = $request->user();
+        if (!$adminUser) {
+            $generatedBy = 'Platform Admin';
+        } elseif ($adminUser->is_octopus_admin ?? false) {
+            $generatedBy = 'Platform admin';
+        } else {
+            $generatedBy = ($adminUser->name ?? $adminUser->email) . ' (' . $adminUser->email . ')';
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.decision-packet-hr', [
+            'interview' => $interview,
+            'candidate' => $candidate,
+            'analysis' => $analysis,
+            'jobTitle' => $jobTitle,
+            'checksum' => $checksum,
+            'generatedBy' => $generatedBy,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOption('isRemoteEnabled', false);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+
         $filename = sprintf(
             'decision-packet-%s-%s.pdf',
             $interview->id,
