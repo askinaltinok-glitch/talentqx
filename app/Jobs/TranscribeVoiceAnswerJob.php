@@ -70,7 +70,7 @@ class TranscribeVoiceAnswerJob implements ShouldQueue
 
             // Guard: empty/too-short transcript
             if (mb_strlen($transcript) < 5) {
-                $transcription->markFailed('TRANSCRIPT_TOO_SHORT: ' . mb_strlen($transcript) . ' chars');
+                $transcription->markFailed('NEEDS_RERECORD:TRANSCRIPT_TOO_SHORT: ' . mb_strlen($transcript) . ' chars');
                 Log::info('TranscribeVoiceAnswerJob: transcript too short', [
                     'id'     => $transcription->id,
                     'length' => mb_strlen($transcript),
@@ -79,11 +79,12 @@ class TranscribeVoiceAnswerJob implements ShouldQueue
             }
 
             // Guard: Whisper silence hallucination (common phantom phrases on silence/noise)
-            if ($this->isHallucination($transcript)) {
-                $transcription->markFailed('SILENCE_HALLUCINATION: "' . mb_substr($transcript, 0, 60) . '"');
+            if ($this->isHallucination($transcript, $transcription->language)) {
+                $transcription->markFailed('NEEDS_RERECORD:SILENCE_HALLUCINATION: "' . mb_substr($transcript, 0, 60) . '"');
                 Log::info('TranscribeVoiceAnswerJob: hallucination detected', [
                     'id'         => $transcription->id,
                     'transcript' => $transcript,
+                    'language'   => $transcription->language,
                 ]);
                 return;
             }
@@ -109,11 +110,23 @@ class TranscribeVoiceAnswerJob implements ShouldQueue
             $this->maybeScoreEnglishGate($transcription, $transcript);
 
         } catch (WhisperTranscriptionException $e) {
+            $message = $e->getMessage();
+
+            // Silence/short audio errors are not retryable — mark as needs rerecord
+            if (str_contains($message, 'silence') || str_contains($message, 'too small') || str_contains($message, 'too short')) {
+                $transcription->markFailed('NEEDS_RERECORD:' . $message);
+                Log::info('TranscribeVoiceAnswerJob: audio quality issue (not retrying)', [
+                    'id'    => $transcription->id,
+                    'error' => $message,
+                ]);
+                return; // Don't re-throw — no retry needed
+            }
+
             Log::error('TranscribeVoiceAnswerJob: Whisper error', [
                 'id'    => $transcription->id,
-                'error' => $e->getMessage(),
+                'error' => $message,
             ]);
-            $transcription->markFailed($e->getMessage());
+            $transcription->markFailed($message);
             throw $e; // re-throw for queue retry
         } catch (\Throwable $e) {
             Log::error('TranscribeVoiceAnswerJob: unexpected error', [
@@ -127,8 +140,9 @@ class TranscribeVoiceAnswerJob implements ShouldQueue
 
     /**
      * Known Whisper hallucination phrases generated from silence, noise, or very short audio.
+     * Organized by language.
      */
-    private const HALLUCINATION_PATTERNS = [
+    private const HALLUCINATION_PATTERNS_EN = [
         'thank you',
         'thanks for watching',
         'thanks for listening',
@@ -146,21 +160,73 @@ class TranscribeVoiceAnswerJob implements ShouldQueue
         'silence',
     ];
 
-    private function isHallucination(string $transcript): bool
+    private const HALLUCINATION_PATTERNS_TR = [
+        'altyazi',
+        'altyazı',
+        'alt yazı',
+        'ses',
+        'muzik',
+        'müzik',
+        'alkis',
+        'alkış',
+        'sessizlik',
+        'tesekkurler',
+        'teşekkürler',
+        'izlediginiz icin tesekkurler',
+        'izlediğiniz için teşekkürler',
+        'abone olun',
+        'abone ol',
+        'bizi takip edin',
+        'iyi seyirler',
+        'hosgeldiniz',
+        'hoşgeldiniz',
+        'hoş geldiniz',
+    ];
+
+    private function isHallucination(string $transcript, ?string $language = null): bool
     {
         $normalized = mb_strtolower(trim(preg_replace('/[.\s,!?]+/', ' ', $transcript)));
         $normalized = trim($normalized);
 
-        foreach (self::HALLUCINATION_PATTERNS as $pattern) {
+        // Check language-specific patterns
+        $patterns = self::HALLUCINATION_PATTERNS_EN;
+        if ($language === 'tr') {
+            $patterns = array_merge($patterns, self::HALLUCINATION_PATTERNS_TR);
+        } else {
+            // For any language, include Turkish patterns since most interviews are Turkish
+            $patterns = array_merge($patterns, self::HALLUCINATION_PATTERNS_TR);
+        }
+
+        foreach ($patterns as $pattern) {
             if ($normalized === $pattern) {
                 return true;
             }
         }
 
+        // Repetition detection: "Ses 1235885533" or similar numeric hallucinations
+        if (preg_match('/^(ses|alt\s*yaz[ıi]|subtitle)\s*[\d\s.]+$/iu', $normalized)) {
+            return true;
+        }
+
+        // Pure numbers / timestamps hallucination
+        if (preg_match('/^[\d\s.:,]+$/', $normalized) && mb_strlen($normalized) <= 30) {
+            return true;
+        }
+
         // Very short + single phrase → suspicious
         if (mb_strlen($normalized) <= 20 && str_word_count($normalized) <= 3) {
-            // Allow if it looks like a real answer (contains maritime/technical words)
-            $realWords = ['engine', 'ship', 'vessel', 'sea', 'crew', 'safety', 'bridge', 'cargo', 'port', 'navigation'];
+            // Allow if it looks like a real answer (contains domain-specific words)
+            $realWords = [
+                // Maritime
+                'engine', 'ship', 'vessel', 'sea', 'crew', 'safety', 'bridge', 'cargo', 'port', 'navigation',
+                'gemi', 'deniz', 'mürettebat', 'güvenlik', 'köprü', 'kargo', 'liman', 'makine',
+                // General work
+                'work', 'job', 'team', 'manage', 'project', 'customer', 'service',
+                'iş', 'takım', 'müşteri', 'proje', 'hizmet', 'yönet', 'ekip',
+                // Technical
+                'system', 'data', 'process', 'quality', 'plan',
+                'sistem', 'veri', 'süreç', 'kalite',
+            ];
             foreach ($realWords as $word) {
                 if (str_contains($normalized, $word)) {
                     return false;

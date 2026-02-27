@@ -201,6 +201,23 @@ class FormInterviewVoiceController extends Controller
 
         if ($transcription->isFailed()) {
             $data['error'] = $transcription->error_message;
+            // Signal frontend that user can re-record this answer
+            $data['can_rerecord'] = true;
+            // Provide user-friendly reason
+            $errorMsg = $transcription->error_message ?? '';
+            if (str_contains($errorMsg, 'NEEDS_RERECORD')) {
+                if (str_contains($errorMsg, 'HALLUCINATION') || str_contains($errorMsg, 'silence')) {
+                    $data['rerecord_reason'] = 'no_speech_detected';
+                } elseif (str_contains($errorMsg, 'TOO_SHORT') || str_contains($errorMsg, 'too short')) {
+                    $data['rerecord_reason'] = 'too_short';
+                } elseif (str_contains($errorMsg, 'too small')) {
+                    $data['rerecord_reason'] = 'file_corrupt';
+                } else {
+                    $data['rerecord_reason'] = 'transcription_failed';
+                }
+            } else {
+                $data['rerecord_reason'] = 'transcription_failed';
+            }
         }
 
         return response()->json([
