@@ -16,6 +16,7 @@ use App\Services\Policy\FormInterviewPolicyEngine;
 use App\Services\PoolCandidateService;
 use App\Services\Behavioral\BehavioralScoringService;
 use App\Services\Brand\BrandResolver;
+use App\Services\CompanyCompetencyService;
 use App\Services\System\SystemEventService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,6 +33,7 @@ class FormInterviewService
         private readonly MlScoringService $mlScoringService,
         private readonly MaritimeDecisionEngine $maritimeDecisionEngine,
         private readonly BehavioralScoringService $behavioralScoringService,
+        private readonly FormInterviewTemplateGenerator $templateGenerator,
     ) {}
 
     /**
@@ -45,7 +47,8 @@ class FormInterviewService
         ?string $industryCode = null,
         ?string $roleCode = null,
         ?string $department = null,
-        ?string $operationType = null
+        ?string $operationType = null,
+        ?string $companyId = null
     ): FormInterview {
         $isMaritime = $industryCode === 'maritime';
 
@@ -65,12 +68,39 @@ class FormInterviewService
 
         $positionCode = $positionCode ?: '__generic__';
 
-        // Get template with fallback
-        $template = $this->templateService->getTemplate($version, $language, $positionCode);
-        $resolvedPosition = $template->position_code; // could be __generic__ if fallback
+        // Dynamic template: if company has an active competency model, generate from it
+        $templateJson = null;
+        $templateSource = 'static';
+        $resolvedPosition = null;
 
-        // Get raw template JSON (exact string snapshot, no re-encoding)
-        $templateJson = $template->getRawOriginal('template_json') ?? $template->template_json;
+        if ($companyId && config('features.competency_model_v1')) {
+            $competencyModel = app(CompanyCompetencyService::class)->resolveModel($companyId);
+            if ($competencyModel && $competencyModel->items->isNotEmpty()) {
+                try {
+                    $dynamicTemplate = $this->templateGenerator->generateFromCompetencyModel(
+                        $competencyModel,
+                        $language,
+                        $positionCode,
+                        $industryCode
+                    );
+                    $templateJson = json_encode($dynamicTemplate, JSON_UNESCAPED_UNICODE);
+                    $templateSource = 'dynamic_competency_model';
+                    $resolvedPosition = $positionCode;
+                } catch (\Throwable $e) {
+                    Log::warning('Dynamic template generation failed, falling back to static', [
+                        'company_id' => $companyId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // Static fallback (existing behavior)
+        if (!$templateJson) {
+            $template = $this->templateService->getTemplate($version, $language, $positionCode);
+            $resolvedPosition = $template->position_code;
+            $templateJson = $template->getRawOriginal('template_json') ?? $template->template_json;
+        }
 
         // Resolve brand from industry
         $brandCode = BrandResolver::codeFromIndustry($industryCode)
@@ -85,10 +115,11 @@ class FormInterviewService
             'industry_code' => $industryCode,
             'platform_code' => $brandCode,
             'brand_domain' => $brand['domain'] ?? null,
+            'company_id' => $companyId,
             'status' => FormInterview::STATUS_IN_PROGRESS,
             'template_json' => $templateJson,
             'template_json_sha256' => $templateJson ? hash('sha256', $templateJson) : null,
-            'meta' => $meta ?: null,
+            'meta' => array_merge($meta ?: [], ['template_source' => $templateSource]),
         ]);
 
         // Timeline: interview started

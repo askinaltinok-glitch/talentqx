@@ -31,6 +31,7 @@ class StartCandidateInterviewRequest extends FormRequest
                 'string',
                 'in:' . implode(',', ConsentService::VALID_CONSENT_TYPES),
             ],
+            'company_id' => ['nullable', 'string', 'uuid'],
         ];
     }
 

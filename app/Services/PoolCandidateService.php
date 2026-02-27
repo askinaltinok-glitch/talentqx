@@ -55,7 +55,8 @@ class PoolCandidateService
         array $consents,
         string $countryCode,
         string $regulation,
-        ?Request $request = null
+        ?Request $request = null,
+        ?string $companyId = null
     ): FormInterview {
         return DB::transaction(function () use (
             $candidate,
@@ -64,7 +65,8 @@ class PoolCandidateService
             $consents,
             $countryCode,
             $regulation,
-            $request
+            $request,
+            $companyId
         ) {
             // Set maritime flags if applicable
             if ($industryCode === PoolCandidate::INDUSTRY_MARITIME) {
@@ -81,7 +83,8 @@ class PoolCandidateService
                     'candidate_email' => $candidate->email,
                     'english_level_self' => $candidate->english_level_self,
                 ],
-                industryCode: $industryCode
+                industryCode: $industryCode,
+                companyId: $companyId
             );
 
             // Link to pool candidate and snapshot acquisition data

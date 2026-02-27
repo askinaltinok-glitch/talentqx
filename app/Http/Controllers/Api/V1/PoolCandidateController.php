@@ -125,7 +125,8 @@ class PoolCandidateController extends Controller
             consents: $data['consents'],
             countryCode: $data['country_code'],
             regulation: $regulation,
-            request: $request
+            request: $request,
+            companyId: $data['company_id'] ?? null
         );
 
         return response()->json([
