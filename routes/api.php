@@ -730,7 +730,8 @@ Route::prefix('v1')->group(function () {
             Route::put('/onboarding', [\App\Http\Controllers\Api\Portal\OnboardingFinalizeController::class, 'update']);
 
             // Fleet vessels CRUD
-            Route::apiResource('vessels', \App\Http\Controllers\Api\Portal\FleetVesselController::class);
+            Route::apiResource('vessels', \App\Http\Controllers\Api\Portal\FleetVesselController::class)
+                ->names(['index' => 'portal.vessels.index', 'store' => 'portal.vessels.store', 'show' => 'portal.vessels.show', 'update' => 'portal.vessels.update', 'destroy' => 'portal.vessels.destroy']);
 
             // Vessel registry IMO lookup (local cache)
             Route::get('/vessel-registry/lookup', [\App\Http\Controllers\Api\Portal\FleetVesselController::class, 'registryLookup']);
