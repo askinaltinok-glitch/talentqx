@@ -631,8 +631,8 @@ class PublicApplyController extends Controller
     // ── Voice Answer Endpoints ─────────────────────────────────────────
 
     private const ALLOWED_AUDIO_MIMES = [
-        'audio/webm', 'audio/wav', 'audio/x-wav', 'audio/mpeg',
-        'audio/mp3', 'audio/mp4', 'audio/m4a', 'audio/ogg',
+        'audio/webm', 'video/webm', 'audio/wav', 'audio/x-wav', 'audio/mpeg',
+        'audio/mp3', 'audio/mp4', 'audio/m4a', 'audio/ogg', 'application/octet-stream',
     ];
 
     /**

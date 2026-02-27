@@ -23,6 +23,7 @@ class FormInterviewVoiceController extends Controller
 {
     private const ALLOWED_MIMES = [
         'audio/webm',
+        'video/webm',
         'audio/wav',
         'audio/x-wav',
         'audio/mpeg',
@@ -30,6 +31,7 @@ class FormInterviewVoiceController extends Controller
         'audio/mp4',
         'audio/m4a',
         'audio/ogg',
+        'application/octet-stream',
     ];
 
     /**
