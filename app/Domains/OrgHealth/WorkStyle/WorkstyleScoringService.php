@@ -70,7 +70,7 @@ class WorkstyleScoringService
         return DB::transaction(function () use ($assessment, $scores) {
             $assessment->status = 'completed';
             $assessment->completed_at = Carbon::now();
-            $assessment->next_due_at = Carbon::now()->addDays(365);
+            $assessment->next_due_at = Carbon::now()->addDays(30);
             $assessment->save();
 
             return OrgWorkstyleProfile::create([

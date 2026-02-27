@@ -709,6 +709,12 @@ Route::prefix('v1')->group(function () {
         // PORTAL — Fleet, Manning, Roster, Crew Planning
         // ===================================================
         Route::prefix('portal')->group(function () {
+            // Company profile (logo + settings)
+            Route::get('/company-profile', [\App\Http\Controllers\Api\CompanyProfileController::class, 'show']);
+            Route::put('/company-profile', [\App\Http\Controllers\Api\CompanyProfileController::class, 'update']);
+            Route::post('/company-profile/logo', [\App\Http\Controllers\Api\CompanyProfileController::class, 'uploadLogo']);
+            Route::delete('/company-profile/logo', [\App\Http\Controllers\Api\CompanyProfileController::class, 'deleteLogo']);
+
             // Company permanent apply link (QR for all positions)
             Route::get('/company-apply-link', [JobController::class, 'companyApplyLink']);
 
@@ -1075,6 +1081,8 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{id}/subscription', [AdminCompanyController::class, 'updateSubscription']);
             Route::patch('/{id}/credits', [AdminCompanyController::class, 'updateCredits']);
             Route::get('/{id}/credit-history', [AdminCompanyController::class, 'creditHistory']);
+            Route::post('/{id}/logo', [AdminCompanyController::class, 'uploadLogo']);
+            Route::delete('/{id}/logo', [AdminCompanyController::class, 'deleteLogo']);
             Route::patch('/{id}/ai-settings', [AdminCompanyController::class, 'updateCompanyAiSettings']);
         });
 
@@ -1673,6 +1681,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/assessments/{assessmentId}/complete', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAssessmentController::class, 'complete']);
 
             Route::get('/employees/{employeeId}/workstyle/profile/latest', [\App\Http\Controllers\V1\OrgHealth\WorkstyleProfileController::class, 'latest']);
+            Route::get('/employees/{employeeId}/workstyle/profile/history', [\App\Http\Controllers\V1\OrgHealth\WorkstyleProfileController::class, 'history']);
+
+            // HR Aggregate
+            Route::get('/hr/workstyle/aggregate', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAggregateController::class, 'index']);
         });
 
 }); // End of v1 prefix group

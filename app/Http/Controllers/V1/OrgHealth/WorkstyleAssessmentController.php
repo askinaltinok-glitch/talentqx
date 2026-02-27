@@ -37,6 +37,23 @@ class WorkstyleAssessmentController extends Controller
             throw ValidationException::withMessages(['consent' => 'Consent is required.']);
         }
 
+        // 30-day cooldown check
+        $lastCompleted = OrgAssessment::query()
+            ->where('tenant_id', $tenantId)
+            ->where('employee_id', $employee->id)
+            ->where('status', 'completed')
+            ->whereNotNull('next_due_at')
+            ->orderByDesc('completed_at')
+            ->first();
+
+        if ($lastCompleted && $lastCompleted->next_due_at && now()->lessThan($lastCompleted->next_due_at)) {
+            return response()->json([
+                'error' => 'cooldown',
+                'message' => 'Assessment cooldown period has not ended yet.',
+                'next_due_at' => $lastCompleted->next_due_at->toIso8601String(),
+            ], 422);
+        }
+
         $questionnaire = OrgQuestionnaire::query()
             ->where('code', 'workstyle')
             ->where('status', 'active')
@@ -91,17 +108,25 @@ class WorkstyleAssessmentController extends Controller
 
         DB::transaction(function () use ($assessment, $payload) {
             foreach ($payload['answers'] as $a) {
-                DB::table('org_assessment_answers')->updateOrInsert(
-                    [
+                $exists = DB::table('org_assessment_answers')
+                    ->where('assessment_id', $assessment->id)
+                    ->where('question_id', $a['question_id'])
+                    ->exists();
+
+                if ($exists) {
+                    DB::table('org_assessment_answers')
+                        ->where('assessment_id', $assessment->id)
+                        ->where('question_id', $a['question_id'])
+                        ->update(['value' => (int)$a['value']]);
+                } else {
+                    DB::table('org_assessment_answers')->insert([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'assessment_id' => $assessment->id,
                         'question_id' => $a['question_id'],
-                    ],
-                    [
-                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'value' => (int)$a['value'],
                         'created_at' => now(),
-                    ]
-                );
+                    ]);
+                }
             }
         });
 

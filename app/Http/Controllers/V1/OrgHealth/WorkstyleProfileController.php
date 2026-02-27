@@ -29,4 +29,26 @@ class WorkstyleProfileController extends Controller
             'computed_at' => $profile->computed_at,
         ]);
     }
+
+    public function history(Request $request, string $employeeId)
+    {
+        $tenantId = $request->user()->company_id;
+
+        $profiles = OrgWorkstyleProfile::query()
+            ->where('tenant_id', $tenantId)
+            ->where('employee_id', $employeeId)
+            ->orderByDesc('computed_at')
+            ->get()
+            ->map(fn($p) => [
+                'assessment_id' => $p->assessment_id,
+                'planning_score' => $p->planning_score,
+                'social_score' => $p->social_score,
+                'cooperation_score' => $p->cooperation_score,
+                'stability_score' => $p->stability_score,
+                'adaptability_score' => $p->adaptability_score,
+                'computed_at' => $p->computed_at,
+            ]);
+
+        return response()->json(['employee_id' => $employeeId, 'profiles' => $profiles]);
+    }
 }
