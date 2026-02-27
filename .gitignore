@@ -23,3 +23,6 @@ yarn-error.log
 /storage/app/private/reports
 /storage/app/temp
 /storage/logs/*.log
+/bootstrap/cache/
+/storage/app/private/qr-interviews/
+/storage/framework/

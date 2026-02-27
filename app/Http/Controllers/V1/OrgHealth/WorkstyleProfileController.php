@@ -10,7 +10,7 @@ class WorkstyleProfileController extends Controller
 {
     public function latest(Request $request, string $employeeId)
     {
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $profile = OrgWorkstyleProfile::query()
             ->where('tenant_id', $tenantId)

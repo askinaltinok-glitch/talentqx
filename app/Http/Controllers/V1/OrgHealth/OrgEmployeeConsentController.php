@@ -18,7 +18,7 @@ class OrgEmployeeConsentController extends Controller
             'action' => ['required', Rule::in(['accept','withdraw','delete_request'])],
         ]);
 
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $employee = OrgEmployee::query()
             ->where('tenant_id', $tenantId)

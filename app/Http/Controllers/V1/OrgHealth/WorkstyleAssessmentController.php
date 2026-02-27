@@ -16,7 +16,7 @@ class WorkstyleAssessmentController extends Controller
 {
     public function start(Request $request, string $employeeId)
     {
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $employee = OrgEmployee::query()
             ->where('tenant_id', $tenantId)
@@ -72,7 +72,7 @@ class WorkstyleAssessmentController extends Controller
 
     public function saveAnswers(Request $request, string $assessmentId)
     {
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $payload = $request->validate([
             'answers' => ['required','array','min:1'],
@@ -110,7 +110,7 @@ class WorkstyleAssessmentController extends Controller
 
     public function complete(Request $request, string $assessmentId, WorkstyleScoringService $scoring)
     {
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $assessment = OrgAssessment::query()
             ->where('tenant_id', $tenantId)

@@ -42,11 +42,29 @@ class PublicApplyController extends Controller
     ) {}
 
     /**
+     * Resolve the correct DB connection for a company apply link slug.
+     */
+    private function resolveConnectionForSlug(string $slug): void
+    {
+        if (DB::table('company_apply_links')->where('slug', $slug)->exists()) {
+            return;
+        }
+
+        if (config('database.connections.mysql_talentqx') &&
+            DB::connection('mysql_talentqx')->table('company_apply_links')->where('slug', $slug)->exists()) {
+            config(['database.default' => 'mysql_talentqx']);
+            DB::purge('mysql');
+        }
+    }
+
+    /**
      * Get company positions for a company apply link slug.
      * Public endpoint: GET /qr-apply/company/{slug}
      */
     public function companyPositions(string $slug): JsonResponse
     {
+        $this->resolveConnectionForSlug($slug);
+
         // Look up without tenant scope (public endpoint)
         $link = CompanyApplyLink::withoutTenantScope()
             ->where('slug', $slug)

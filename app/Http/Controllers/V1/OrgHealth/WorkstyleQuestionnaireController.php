@@ -14,7 +14,7 @@ class WorkstyleQuestionnaireController extends Controller
         $lang = str_starts_with($lang, 'tr') ? 'tr' : 'en';
 
         // Prefer tenant-specific active; fallback to global active (tenant_id null)
-        $tenantId = $request->user()->tenant_id;
+        $tenantId = $request->user()->company_id;
 
         $q = OrgQuestionnaire::query()
             ->where('code', 'workstyle')
