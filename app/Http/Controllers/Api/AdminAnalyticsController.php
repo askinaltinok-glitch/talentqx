@@ -19,10 +19,60 @@ class AdminAnalyticsController extends Controller
         private readonly PositionBaselineService $baselineService
     ) {}
     /**
+     * Get filter options for interview analytics dropdowns.
+     *
+     * GET /v1/admin/analytics/interviews/filters
+     */
+    public function interviewFilters(): JsonResponse
+    {
+        // Distinct positions from completed interviews
+        $positions = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+            ->whereNotNull('position_code')
+            ->distinct()
+            ->orderBy('position_code')
+            ->pluck('position_code')
+            ->toArray();
+
+        // Companies that have interviews
+        $companyIds = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+            ->whereNotNull('company_id')
+            ->distinct()
+            ->pluck('company_id')
+            ->toArray();
+
+        $companies = [];
+        if (!empty($companyIds)) {
+            $companies = DB::table('companies')
+                ->whereIn('id', $companyIds)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
+                ->toArray();
+        }
+
+        // Also include all active companies for the dropdown (even without interviews yet)
+        $allCompanies = DB::table('companies')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'positions' => $positions,
+                'companies' => $allCompanies,
+            ],
+        ]);
+    }
+
+    /**
      * Get interview analytics summary.
      *
      * GET /v1/admin/analytics/interviews/summary
-     * Query params: from (date), to (date)
+     * Query params: from (date), to (date), company_id, position_code
      */
     public function interviewsSummary(Request $request): JsonResponse
     {
@@ -36,6 +86,16 @@ class AdminAnalyticsController extends Controller
         // Only completed interviews
         $baseQuery = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
             ->whereBetween('completed_at', [$from, $to]);
+
+        // Company filter
+        if ($request->filled('company_id')) {
+            $baseQuery->where('company_id', $request->input('company_id'));
+        }
+
+        // Position filter
+        if ($request->filled('position_code')) {
+            $baseQuery->where('position_code', $request->input('position_code'));
+        }
 
         // Total count
         $total = (clone $baseQuery)->count();
@@ -142,7 +202,7 @@ class AdminAnalyticsController extends Controller
      * Get interview list for drill-down.
      *
      * GET /v1/admin/analytics/interviews
-     * Query params: from, to, decision, position_code, page, per_page
+     * Query params: from, to, decision, position_code, company_id, page, per_page
      */
     public function interviewsList(Request $request): JsonResponse
     {
@@ -165,6 +225,10 @@ class AdminAnalyticsController extends Controller
 
         if ($request->filled('position_code')) {
             $query->where('position_code', $request->input('position_code'));
+        }
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->input('company_id'));
         }
 
         if ($request->filled('language')) {

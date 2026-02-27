@@ -1151,6 +1151,8 @@ Route::prefix('v1')->group(function () {
         // ADMIN ANALYTICS - Interview Results Dashboard
         // ===========================================
         Route::prefix('admin/analytics')->group(function () {
+            Route::get('/interviews/filters', [AdminAnalyticsController::class, 'interviewFilters'])
+                ->middleware('throttle:60,1');
             Route::get('/interviews/summary', [AdminAnalyticsController::class, 'interviewsSummary'])
                 ->middleware('throttle:60,1');
             Route::get('/interviews', [AdminAnalyticsController::class, 'interviewsList'])

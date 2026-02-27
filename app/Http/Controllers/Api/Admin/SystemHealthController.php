@@ -12,6 +12,7 @@ use App\Models\VesselReview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class SystemHealthController extends Controller
 {
@@ -30,10 +31,32 @@ class SystemHealthController extends Controller
         $oldestAge = $oldestPending ? now()->diffInSeconds($oldestPending) : 0;
         $pendingJobs = CrmOutboundQueue::where('status', 'approved')->count();
 
+        // Check actual queue worker status via /proc filesystem
+        $workerActive = false;
+        try {
+            foreach (glob('/proc/[0-9]*/cmdline') as $cmdFile) {
+                $cmd = @file_get_contents($cmdFile);
+                if ($cmd && str_contains($cmd, 'queue:work')) {
+                    $workerActive = true;
+                    break;
+                }
+            }
+        } catch (\Throwable) {
+            $workerActive = false;
+        }
+
+        // Also check Laravel failed jobs
+        $failedJobs = DB::table('failed_jobs')->count();
+        $failedJobsRecent = DB::table('failed_jobs')
+            ->where('failed_at', '>=', now()->subDay())
+            ->count();
+
         $checks['queue'] = [
             'oldest_job_age_seconds' => $oldestAge,
             'pending_jobs' => $pendingJobs,
-            'worker_active' => true,
+            'worker_active' => $workerActive,
+            'failed_jobs_total' => $failedJobs,
+            'failed_jobs_24h' => $failedJobsRecent,
         ];
 
         // 2. Mail check
@@ -155,6 +178,67 @@ class SystemHealthController extends Controller
             $overallStatus = 'degraded';
         }
 
+        // 7. Infrastructure check
+        $redisOk = false;
+        $redisLatency = 0;
+        try {
+            $start = microtime(true);
+            Redis::ping();
+            $redisLatency = round((microtime(true) - $start) * 1000, 1);
+            $redisOk = true;
+        } catch (\Throwable) {
+            $redisOk = false;
+        }
+
+        $dbOk = false;
+        $dbLatency = 0;
+        try {
+            $start = microtime(true);
+            DB::select('SELECT 1');
+            $dbLatency = round((microtime(true) - $start) * 1000, 1);
+            $dbOk = true;
+        } catch (\Throwable) {
+            $dbOk = false;
+        }
+
+        $diskUsagePct = 0;
+        try {
+            $total = disk_total_space('/');
+            $free = disk_free_space('/');
+            $diskUsagePct = $total > 0 ? round((1 - $free / $total) * 100, 1) : 0;
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        $checks['infrastructure'] = [
+            'redis_connected' => $redisOk,
+            'redis_latency_ms' => $redisLatency,
+            'database_connected' => $dbOk,
+            'database_latency_ms' => $dbLatency,
+            'disk_usage_pct' => $diskUsagePct,
+        ];
+
+        // 8. Activity check — real data from recent operations
+        $lastInterviewAt = DB::table('form_interviews')
+            ->orderByDesc('created_at')
+            ->value('created_at');
+        $lastTranscriptionAt = DB::table('voice_transcriptions')
+            ->orderByDesc('created_at')
+            ->value('created_at');
+        $lastCandidateAt = DB::table('pool_candidates')
+            ->orderByDesc('created_at')
+            ->value('created_at');
+
+        $checks['activity'] = [
+            'total_interviews' => DB::table('form_interviews')->count(),
+            'completed_interviews' => DB::table('form_interviews')->where('status', 'completed')->count(),
+            'total_candidates' => DB::table('pool_candidates')->count(),
+            'total_transcriptions' => DB::table('voice_transcriptions')->count(),
+            'last_interview_at' => $lastInterviewAt,
+            'last_transcription_at' => $lastTranscriptionAt,
+            'last_candidate_at' => $lastCandidateAt,
+        ];
+
         // Uptime estimate
         $totalEvents = SystemEvent::where('created_at', '>=', now()->subDays(30))->count();
         $criticalEvents = SystemEvent::where('severity', 'critical')
@@ -163,6 +247,13 @@ class SystemHealthController extends Controller
         $uptimePct = $totalEvents > 0
             ? round(100 - (($criticalEvents / max($totalEvents, 1)) * 100), 2)
             : 99.99;
+
+        // Infrastructure affects overall status
+        if (!$redisOk || !$dbOk || !$workerActive) {
+            $overallStatus = 'critical';
+        } elseif ($diskUsagePct > 90) {
+            $overallStatus = $overallStatus === 'critical' ? 'critical' : 'degraded';
+        }
 
         return response()->json([
             'overall_status' => $overallStatus,

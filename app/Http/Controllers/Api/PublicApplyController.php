@@ -238,8 +238,8 @@ class PublicApplyController extends Controller
     public function start(Request $request, string $token): JsonResponse
     {
         $validated = $request->validate([
-            'firstName' => 'nullable|string|min:2|max:50',
-            'lastName' => 'nullable|string|min:2|max:50',
+            'firstName' => 'required|string|min:2|max:50',
+            'lastName' => 'required|string|min:2|max:50',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|min:10|max:20',
             'kvkkConsent' => 'required|boolean',

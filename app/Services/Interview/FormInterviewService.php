@@ -342,8 +342,9 @@ class FormInterviewService
             'risk_flags_count' => count($result['risk_flags'] ?? []),
         ]);
 
-        // CONTRACT WARNING: Flag suspicious low scores
-        if ($rawFinal <= 10 && $answersWithText >= 4) {
+        // CONTRACT WARNING: Flag suspicious low scores (exclude legitimate high-penalty cases)
+        $redFlagPenalty = $result['red_flag_penalty'] ?? 0;
+        if ($rawFinal <= 10 && $answersWithText >= 4 && $redFlagPenalty === 0) {
             Log::channel('single')->warning('FormInterview::completeAndScore ANOMALY', [
                 'interview_id' => $interview->id,
                 'raw_final_score' => $rawFinal,

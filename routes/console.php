@@ -179,14 +179,14 @@ Schedule::call(function () {
 
 // Domain enrichment: classify new research companies (every hour)
 Schedule::call(function () {
-    BrandRunner::forEachBrand(fn () => Artisan::call('research:run-agent', ['type' => 'domain_enrichment', '--sync' => true]));
+    BrandRunner::forEachBrand(fn () => Artisan::call('research:run-agent', ['agent' => 'domain_enrichment', '--sync' => true]));
 })->name('research:domain-enrichment:all-brands')
   ->hourly()
   ->withoutOverlapping();
 
 // Lead generator: push qualified companies to CRM (daily at 5 AM)
 Schedule::call(function () {
-    BrandRunner::forEachBrand(fn () => Artisan::call('research:run-agent', ['type' => 'lead_generator', '--sync' => true]));
+    BrandRunner::forEachBrand(fn () => Artisan::call('research:run-agent', ['agent' => 'lead_generator', '--sync' => true]));
 })->name('research:lead-generator:all-brands')
   ->dailyAt('05:00')
   ->withoutOverlapping();
