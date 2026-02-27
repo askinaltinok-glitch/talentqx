@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Octopus AI — Portalınız Hazır</title>
+    <title>{{ $brand['brand_name'] }} — Portalınız Hazır</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -13,12 +13,15 @@
 
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #0f4c81 0%, #1a6fb5 100%); padding: 40px 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                        <td style="background: {{ $brand['gradient'] }}; padding: 40px 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                            @if(!empty($brand['logo_url']))
+                                <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['brand_name'] }}" style="max-height: 48px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">
+                            @endif
                             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                Octopus AI
+                                {{ $brand['brand_name'] }}
                             </h1>
                             <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 14px;">
-                                AI-Powered Maritime Crew Assessment
+                                {{ $brand['tagline'] }}
                             </p>
                         </td>
                     </tr>
@@ -30,22 +33,22 @@
                                 Hoş Geldiniz, {{ $user->first_name }}!
                             </h2>
                             <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
-                                <strong>{{ $company->name }}</strong> için Octopus AI mürettebat değerlendirme portalınız
-                                başarıyla oluşturuldu. Artık mürettebatınızı yapay zeka ile değerlendirebilirsiniz.
+                                <strong>{{ $company->name }}</strong> için {{ $brand['brand_name'] }} portalınız
+                                başarıyla oluşturuldu.
                             </p>
 
                             <!-- Login Credentials -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f0f7ff; border-radius: 8px; border-left: 4px solid #0f4c81; margin: 25px 0;">
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f0f7ff; border-radius: 8px; border-left: 4px solid {{ $brand['primary_color'] }}; margin: 25px 0;">
                                 <tr>
                                     <td style="padding: 25px;">
-                                        <h3 style="color: #0f4c81; margin: 0 0 15px; font-size: 16px;">
+                                        <h3 style="color: {{ $brand['primary_color'] }}; margin: 0 0 15px; font-size: 16px;">
                                             Giriş Bilgileriniz
                                         </h3>
                                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                                             <tr>
                                                 <td style="padding: 8px 0; color: #718096; font-size: 14px; width: 80px;">Portal:</td>
                                                 <td style="padding: 8px 0;">
-                                                    <a href="{{ $portalUrl }}" style="color: #0f4c81; text-decoration: none; font-weight: 600; font-size: 14px;">{{ $portalUrl }}</a>
+                                                    <a href="{{ $portalUrl }}" style="color: {{ $brand['primary_color'] }}; text-decoration: none; font-weight: 600; font-size: 14px;">{{ $portalUrl }}</a>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -70,8 +73,8 @@
                             <table role="presentation" style="width: 100%; border-collapse: collapse;">
                                 <tr>
                                     <td align="center" style="padding: 10px 0 30px;">
-                                        <a href="{{ $portalUrl }}" style="display: inline-block; background: linear-gradient(135deg, #0f4c81 0%, #1a6fb5 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 15px rgba(15, 76, 129, 0.4);">
-                                            Portala Giriş Yap
+                                        <a href="{{ $portalUrl }}" style="display: inline-block; background: {{ $brand['gradient'] }}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+                                                Portala Giriş Yap
                                         </a>
                                     </td>
                                 </tr>
@@ -92,67 +95,6 @@
                                 </tr>
                             </table>
 
-                            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-
-                            <!-- How It Works -->
-                            <h3 style="color: #1a1a2e; margin: 30px 0 20px; font-size: 20px;">
-                                Nasıl Çalışır?
-                            </h3>
-
-                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="width: 40px; vertical-align: top;">
-                                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #0f4c81 0%, #1a6fb5 100%); border-radius: 50%; text-align: center; line-height: 32px; color: white; font-weight: bold; font-size: 14px;">1</div>
-                                                </td>
-                                                <td style="padding-left: 15px;">
-                                                    <h4 style="color: #1a1a2e; margin: 0 0 5px; font-size: 15px;">Mürettebat Listesini Yükleyin</h4>
-                                                    <p style="color: #718096; font-size: 13px; line-height: 1.5; margin: 0;">
-                                                        Portaldan CSV dosyası ile mürettebatınızı toplu yükleyin. İsim, email, pozisyon, departman bilgileri yeterli.
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="width: 40px; vertical-align: top;">
-                                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #0f4c81 0%, #1a6fb5 100%); border-radius: 50%; text-align: center; line-height: 32px; color: white; font-weight: bold; font-size: 14px;">2</div>
-                                                </td>
-                                                <td style="padding-left: 15px;">
-                                                    <h4 style="color: #1a1a2e; margin: 0 0 5px; font-size: 15px;">AI Mülakat Başlasın</h4>
-                                                    <p style="color: #718096; font-size: 13px; line-height: 1.5; margin: 0;">
-                                                        Her mürettebat için pozisyonuna özel sorular hazırlanır. Kaptan, başmühendis, güverte zabiti — her rol için ayrı soru seti.
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="width: 40px; vertical-align: top;">
-                                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #0f4c81 0%, #1a6fb5 100%); border-radius: 50%; text-align: center; line-height: 32px; color: white; font-weight: bold; font-size: 14px;">3</div>
-                                                </td>
-                                                <td style="padding-left: 15px;">
-                                                    <h4 style="color: #1a1a2e; margin: 0 0 5px; font-size: 15px;">Sonuçları Takip Edin</h4>
-                                                    <p style="color: #718096; font-size: 13px; line-height: 1.5; margin: 0;">
-                                                        Portaldan sonuçları anlık görün. HIRE / REVIEW / REJECT kararları, yetkinlik puanları ve PDF raporlar elinizde.
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-
                             <!-- Support -->
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 30px;">
                                 <tr>
@@ -161,7 +103,7 @@
                                             Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.
                                         </p>
                                         <p style="margin: 0;">
-                                            <a href="mailto:support@octopus-ai.net" style="color: #0f4c81; text-decoration: none; font-weight: 500;">support@octopus-ai.net</a>
+                                            <a href="mailto:{{ $brand['support_email'] }}" style="color: {{ $brand['primary_color'] }}; text-decoration: none; font-weight: 500;">{{ $brand['support_email'] }}</a>
                                         </p>
                                     </td>
                                 </tr>
@@ -172,12 +114,12 @@
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #0f2b40; padding: 30px 40px; border-radius: 0 0 12px 12px; text-align: center;">
+                        <td style="background-color: {{ $brand['footer_bg'] }}; padding: 30px 40px; border-radius: 0 0 12px 12px; text-align: center;">
                             <p style="color: #a0aec0; font-size: 13px; margin: 0 0 10px;">
-                                &copy; {{ date('Y') }} Octopus AI. All rights reserved.
+                                &copy; {{ date('Y') }} {{ $brand['brand_name'] }}. All rights reserved.
                             </p>
                             <p style="color: #718096; font-size: 12px; margin: 0;">
-                                AI-Powered Maritime Crew Assessment Platform
+                                {{ $brand['tagline'] }}
                             </p>
                         </td>
                     </tr>

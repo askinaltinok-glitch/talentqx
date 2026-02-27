@@ -13,11 +13,8 @@ class OutboxService
      */
     public function queue(array $params): MessageOutbox
     {
-        $companyId = $params['company_id'] ?? app('current_tenant_id');
-
-        if (!$companyId) {
-            throw new \InvalidArgumentException('company_id is required');
-        }
+        $companyId = $params['company_id']
+            ?? (app()->bound('current_tenant_id') ? app('current_tenant_id') : null);
 
         $message = MessageOutbox::create([
             'company_id' => $companyId,
@@ -55,7 +52,8 @@ class OutboxService
         array $templateData,
         array $extraParams = []
     ): MessageOutbox {
-        $companyId = $extraParams['company_id'] ?? app('current_tenant_id');
+        $companyId = $extraParams['company_id']
+            ?? (app()->bound('current_tenant_id') ? app('current_tenant_id') : null);
 
         $template = MessageTemplate::findForTenant(
             $templateCode,

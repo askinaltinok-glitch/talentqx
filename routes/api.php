@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\CopilotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\FormInterviewController;
+use App\Http\Controllers\Api\FormInterviewVoiceController;
 use App\Http\Controllers\Api\InterviewController;
 use App\Http\Controllers\Api\InterviewSessionController;
 use App\Http\Controllers\Api\InterviewTemplateController;
@@ -84,6 +85,8 @@ use App\Http\Controllers\Api\Admin\JobApplicantsController;
 use App\Http\Controllers\Api\Public\JobListingController as PublicJobListingController;
 use App\Http\Controllers\Api\Public\JobApplyController;
 use App\Http\Controllers\Api\Public\DemoRequestController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminDemoRequestController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -227,6 +230,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/candidates/{id}/resend-verification', [MaritimeCandidateController::class, 'resendVerification'])
             ->middleware('throttle:5,1')
             ->name('maritime.resend-verification');
+
+        // OTP verification (immediate verification v1)
+        Route::post('/candidates/{id}/verify-otp', [MaritimeCandidateController::class, 'verifyOtp'])
+            ->middleware('throttle:10,1')
+            ->name('maritime.verify-otp');
+        Route::post('/candidates/{id}/resend-otp', [MaritimeCandidateController::class, 'resendOtp'])
+            ->middleware('throttle:5,1')
+            ->name('maritime.resend-otp');
 
         // GDPR/KVKK — Candidate self-service data rights
         Route::get('/candidates/{id}/data-export', [MaritimeCandidateController::class, 'dataExport'])
@@ -491,11 +502,25 @@ Route::prefix('v1')->group(function () {
         // POST start application (create candidate + interview)
         Route::post('/{token}', [PublicApplyController::class, 'start'])
             ->middleware('throttle:10,1');
+        // POST verify email (OTP)
+        Route::post('/{token}/verify-email', [PublicApplyController::class, 'verifyEmail'])
+            ->middleware('throttle:10,1');
+        // POST resend verification code
+        Route::post('/{token}/resend-code', [PublicApplyController::class, 'resendCode'])
+            ->middleware('throttle:3,10');
+        // POST schedule interview
+        Route::post('/{token}/schedule', [PublicApplyController::class, 'schedule'])
+            ->middleware('throttle:5,1');
         // POST submit answer
         Route::post('/{token}/answers', [PublicApplyController::class, 'submitAnswer'])
             ->middleware('throttle:30,1');
         // POST complete interview
         Route::post('/{token}/complete', [PublicApplyController::class, 'complete']);
+        // Voice answers (Whisper transcription)
+        Route::post('/{token}/voice-answers', [PublicApplyController::class, 'voiceUpload'])
+            ->middleware('throttle:30,1');
+        Route::get('/{token}/voice-answers/{questionId}', [PublicApplyController::class, 'voicePoll'])
+            ->middleware('throttle:60,1');
     });
 
     // ===========================================
@@ -570,6 +595,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}/score', [FormInterviewController::class, 'score'])
             ->middleware('throttle:60,1')
             ->name('form-interviews.score');
+
+        // Voice answer upload + transcription polling (Whisper)
+        Route::post('/{id}/voice-answers', [FormInterviewVoiceController::class, 'store'])
+            ->middleware('throttle:5,1')
+            ->name('form-interviews.voice-answers.store');
+        Route::get('/{id}/voice-answers/{questionId}', [FormInterviewVoiceController::class, 'show'])
+            ->middleware('throttle:30,1')
+            ->name('form-interviews.voice-answers.show');
     });
 
     // ===========================================
@@ -659,6 +692,14 @@ Route::prefix('v1')->group(function () {
         Route::get('company/certificate-rules', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'index']);
         Route::post('company/certificate-rules', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'store']);
         Route::delete('company/certificate-rules/{id}', [\App\Http\Controllers\Api\CompanyCertificateRuleController::class, 'destroy']);
+
+        // Company Competency Models (self-service, tenant-scoped)
+        Route::get('competency-library', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'competencies']);
+        Route::get('competency-models', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'index']);
+        Route::post('competency-models', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'store']);
+        Route::put('competency-models/{id}', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'update']);
+        Route::delete('competency-models/{id}', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'destroy']);
+        Route::post('competency-models/{id}/set-default', [\App\Http\Controllers\Api\CompetencyModelSelfServiceController::class, 'setDefault']);
 
         // ===================================================
         // PORTAL — Fleet, Manning, Roster, Crew Planning
@@ -813,6 +854,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [InterviewController::class, 'index']);
         Route::post('/', [InterviewController::class, 'store']);
         Route::get('/{id}', [InterviewController::class, 'show']);
+        Route::get('/{id}/report.pdf', [InterviewController::class, 'reportPdf']);
         Route::post('/{id}/analyze', [InterviewController::class, 'analyze']);
     });
 
@@ -943,6 +985,41 @@ Route::prefix('v1')->group(function () {
     // AI PROVIDERS - For all authenticated users
     // ===========================================
     Route::get('/ai-providers/enabled', [AdminCompanyController::class, 'getEnabledProviders']);
+
+    // ===========================================
+    // ADMIN FORM INTERVIEWS - Company & Platform Admin
+    // Company users see only their own interviews (scoped by company_id)
+    // ===========================================
+    Route::prefix('admin/form-interviews')->group(function () {
+        Route::get('/stats', [AdminFormInterviewController::class, 'stats'])
+            ->middleware('throttle:60,1');
+        Route::get('/', [AdminFormInterviewController::class, 'index'])
+            ->middleware('throttle:60,1');
+        Route::get('/{id}', [AdminFormInterviewController::class, 'show'])
+            ->middleware('throttle:60,1');
+        Route::get('/{id}/decision-packet', [AdminFormInterviewController::class, 'decisionPacket'])
+            ->middleware('throttle:30,1');
+        Route::get('/{id}/decision-packet.pdf', [AdminFormInterviewController::class, 'decisionPacketPdf'])
+            ->middleware('throttle:10,1');
+        Route::get('/{id}/candidate-report.pdf', [AdminFormInterviewController::class, 'candidateReportPdf'])
+            ->middleware('throttle:10,1');
+        Route::patch('/{id}/notes', [AdminFormInterviewController::class, 'updateNotes'])
+            ->middleware('throttle:30,1');
+        Route::delete('/{id}', [AdminFormInterviewController::class, 'destroy'])
+            ->middleware('throttle:30,1');
+        // Maritime Decision Engine
+        Route::get('/{id}/decision', [\App\Http\Controllers\Api\Admin\FormInterviewDecisionController::class, 'show'])
+            ->middleware('throttle:60,1');
+        // Assessment stubs (Maritime)
+        Route::get('/{id}/assessment-status', [AssessmentStubController::class, 'assessmentStatus'])
+            ->middleware('throttle:60,1');
+        Route::post('/{id}/english-assessment/complete', [AssessmentStubController::class, 'completeEnglishAssessment'])
+            ->middleware('throttle:30,1');
+        Route::post('/{id}/video/attach', [AssessmentStubController::class, 'attachVideo'])
+            ->middleware('throttle:30,1');
+        Route::post('/{id}/video/complete', [AssessmentStubController::class, 'completeVideoAssessment'])
+            ->middleware('throttle:30,1');
+    });
 
     // ===========================================
     // PLATFORM ADMIN ONLY ROUTES
@@ -1187,40 +1264,6 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:60,1');
             Route::get('/drop-off', [GeoAnalyticsController::class, 'dropOff'])
                 ->middleware('throttle:60,1');
-        });
-
-        // ===========================================
-        // ADMIN FORM INTERVIEWS - Operations Dashboard
-        // ===========================================
-        Route::prefix('admin/form-interviews')->group(function () {
-            Route::get('/stats', [AdminFormInterviewController::class, 'stats'])
-                ->middleware('throttle:60,1');
-            Route::get('/', [AdminFormInterviewController::class, 'index'])
-                ->middleware('throttle:60,1');
-            Route::get('/{id}', [AdminFormInterviewController::class, 'show'])
-                ->middleware('throttle:60,1');
-            Route::get('/{id}/decision-packet', [AdminFormInterviewController::class, 'decisionPacket'])
-                ->middleware('throttle:30,1');
-            Route::get('/{id}/decision-packet.pdf', [AdminFormInterviewController::class, 'decisionPacketPdf'])
-                ->middleware('throttle:10,1');
-            Route::get('/{id}/candidate-report.pdf', [AdminFormInterviewController::class, 'candidateReportPdf'])
-                ->middleware('throttle:10,1');
-            Route::patch('/{id}/notes', [AdminFormInterviewController::class, 'updateNotes'])
-                ->middleware('throttle:30,1');
-            Route::delete('/{id}', [AdminFormInterviewController::class, 'destroy'])
-                ->middleware('throttle:30,1');
-            // Maritime Decision Engine
-            Route::get('/{id}/decision', [\App\Http\Controllers\Api\Admin\FormInterviewDecisionController::class, 'show'])
-                ->middleware('throttle:60,1');
-            // Assessment stubs (Maritime)
-            Route::get('/{id}/assessment-status', [AssessmentStubController::class, 'assessmentStatus'])
-                ->middleware('throttle:60,1');
-            Route::post('/{id}/english-assessment/complete', [AssessmentStubController::class, 'completeEnglishAssessment'])
-                ->middleware('throttle:30,1');
-            Route::post('/{id}/video/attach', [AssessmentStubController::class, 'attachVideo'])
-                ->middleware('throttle:30,1');
-            Route::post('/{id}/video/complete', [AssessmentStubController::class, 'completeVideoAssessment'])
-                ->middleware('throttle:30,1');
         });
 
         // ===========================================
@@ -1580,6 +1623,26 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:5,1');
         });
 
+        // ===========================================
+        // ADMIN DASHBOARD - Superadmin KPI stats
+        // ===========================================
+        Route::get('admin/dashboard/stats', [AdminDashboardController::class, 'stats'])
+            ->middleware('throttle:60,1');
+
+        // ===========================================
+        // ADMIN DEMO REQUESTS - TalentQX demo request management
+        // ===========================================
+        Route::prefix('admin/demo-requests')->group(function () {
+            Route::get('/stats', [AdminDemoRequestController::class, 'stats'])
+                ->middleware('throttle:60,1');
+            Route::get('/', [AdminDemoRequestController::class, 'index'])
+                ->middleware('throttle:60,1');
+            Route::get('/{id}', [AdminDemoRequestController::class, 'show'])
+                ->middleware('throttle:60,1');
+            Route::patch('/{id}/status', [AdminDemoRequestController::class, 'updateStatus'])
+                ->middleware('throttle:30,1');
+        });
+
     }); // End of platform.admin middleware group
 
         }); // End of force.password.change middleware group
@@ -1732,6 +1795,10 @@ Route::prefix('v1/octopus/admin')->group(function () {
         Route::get('/demo-requests', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'index']);
         Route::get('/demo-requests/stats', [\App\Http\Controllers\Api\OctopusAdmin\DemoRequestAdminController::class, 'stats']);
 
+        // Unverified QR Applications (email verification report)
+        Route::get('/unverified-applications', [\App\Http\Controllers\Api\OctopusAdmin\UnverifiedApplicationController::class, 'index']);
+        Route::get('/unverified-applications/stats', [\App\Http\Controllers\Api\OctopusAdmin\UnverifiedApplicationController::class, 'stats']);
+
         // Country Certificate Rules (Validity Map)
         Route::get('/country-certificate-rules', [\App\Http\Controllers\Api\OctopusAdmin\CountryCertificateRuleController::class, 'index']);
         Route::post('/country-certificate-rules', [\App\Http\Controllers\Api\OctopusAdmin\CountryCertificateRuleController::class, 'store']);
@@ -1784,6 +1851,91 @@ Route::prefix('v1/octopus/admin')->group(function () {
             Route::post('/', [\App\Http\Controllers\Api\OctopusAdmin\CrewRosterImportController::class, 'import'])
                 ->middleware('throttle:30,1');
             Route::get('/history', [\App\Http\Controllers\Api\OctopusAdmin\CrewRosterImportController::class, 'history']);
+        });
+
+        // Company Competency Models (admin manages per-company models)
+        Route::get('/competencies', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'competencies']);
+        Route::get('/companies/{companyId}/competency-models', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'index']);
+        Route::post('/companies/{companyId}/competency-models', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'store']);
+        Route::put('/competency-models/{id}', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'update']);
+        Route::delete('/competency-models/{id}', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'destroy']);
+        Route::post('/competency-models/{id}/set-default', [\App\Http\Controllers\Api\OctoAdmin\CompetencyModelController::class, 'setDefault']);
+    });
+});
+
+// ===========================================
+// COMPANY PANEL ROUTES (internal management)
+// ===========================================
+Route::prefix('v1/company-panel')->middleware('force.default_db')->group(function () {
+    // Public login (rate limited)
+    Route::post('/login', [\App\Http\Controllers\Api\CompanyPanel\AuthController::class, 'login'])
+        ->middleware('throttle:5,1');
+
+    // Protected routes — force.default_db already active, then sanctum checks against mysql
+    Route::middleware(['force.default_db', 'auth:sanctum', 'platform.company_panel'])->group(function () {
+        Route::post('/logout', [\App\Http\Controllers\Api\CompanyPanel\AuthController::class, 'logout']);
+        Route::get('/me', [\App\Http\Controllers\Api\CompanyPanel\AuthController::class, 'me']);
+        Route::post('/change-password', [\App\Http\Controllers\Api\CompanyPanel\AuthController::class, 'changePassword']);
+
+        // Phase 2: User management (super_admin only)
+        Route::prefix('users')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CompanyPanel\UserController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\CompanyPanel\UserController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\CompanyPanel\UserController::class, 'show'])->whereUuid('id');
+            Route::put('/{id}', [\App\Http\Controllers\Api\CompanyPanel\UserController::class, 'update'])->whereUuid('id');
+        });
+
+        // Phase 2: API Key management (super_admin only)
+        Route::prefix('api-keys')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CompanyPanel\SystemApiKeyController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\CompanyPanel\SystemApiKeyController::class, 'store']);
+            Route::put('/{id}', [\App\Http\Controllers\Api\CompanyPanel\SystemApiKeyController::class, 'update'])->whereUuid('id');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\CompanyPanel\SystemApiKeyController::class, 'destroy'])->whereUuid('id');
+            Route::post('/{id}/test', [\App\Http\Controllers\Api\CompanyPanel\SystemApiKeyController::class, 'test'])->whereUuid('id');
+        });
+
+        // Phase 3: CRM (sales_rep + super_admin)
+        Route::prefix('crm')->group(function () {
+            Route::get('/leads', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'index']);
+            Route::post('/leads', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'store']);
+            Route::get('/leads/pipeline', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'pipeline']);
+            Route::get('/leads/{id}', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'show'])->whereUuid('id');
+            Route::put('/leads/{id}', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'update'])->whereUuid('id');
+            Route::post('/leads/{id}/activity', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'addActivity'])->whereUuid('id');
+            Route::post('/leads/{id}/checklist/{itemId}/toggle', [\App\Http\Controllers\Api\CompanyPanel\CrmController::class, 'toggleChecklist'])->whereUuid('id')->whereUuid('itemId');
+        });
+
+        // Phase 3: Demo flow
+        Route::prefix('demo')->group(function () {
+            Route::get('/leads/{id}/context', [\App\Http\Controllers\Api\CompanyPanel\DemoController::class, 'context'])->whereUuid('id');
+            Route::post('/leads/{id}/create-account', [\App\Http\Controllers\Api\CompanyPanel\DemoController::class, 'createAccount'])->whereUuid('id');
+            Route::post('/leads/{id}/package', [\App\Http\Controllers\Api\CompanyPanel\DemoController::class, 'setPackage'])->whereUuid('id');
+            Route::post('/leads/{id}/appointment', [\App\Http\Controllers\Api\CompanyPanel\DemoController::class, 'scheduleAppointment'])->whereUuid('id');
+        });
+
+        // Phase 4: Calendar & Appointments
+        Route::prefix('calendar')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CompanyPanel\CalendarController::class, 'index']);
+            Route::get('/availability', [\App\Http\Controllers\Api\CompanyPanel\CalendarController::class, 'availability']);
+            Route::post('/appointments', [\App\Http\Controllers\Api\CompanyPanel\CalendarController::class, 'store']);
+            Route::put('/appointments/{id}', [\App\Http\Controllers\Api\CompanyPanel\CalendarController::class, 'update'])->whereUuid('id');
+            Route::delete('/appointments/{id}', [\App\Http\Controllers\Api\CompanyPanel\CalendarController::class, 'destroy'])->whereUuid('id');
+        });
+
+        // Phase 5: Payments
+        Route::prefix('payments')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CompanyPanel\PaymentController::class, 'index']);
+            Route::get('/packages', [\App\Http\Controllers\Api\CompanyPanel\PaymentController::class, 'packages']);
+            Route::get('/companies', [\App\Http\Controllers\Api\CompanyPanel\PaymentController::class, 'companies']);
+            Route::post('/send-link', [\App\Http\Controllers\Api\CompanyPanel\PaymentController::class, 'sendLink']);
+        });
+
+        // Phase 5: Billing (accounting view)
+        Route::prefix('billing')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CompanyPanel\BillingController::class, 'index']);
+            Route::get('/stats', [\App\Http\Controllers\Api\CompanyPanel\BillingController::class, 'stats']);
+            Route::get('/companies/{id}', [\App\Http\Controllers\Api\CompanyPanel\BillingController::class, 'show'])->whereUuid('id');
+            Route::put('/companies/{id}/billing-info', [\App\Http\Controllers\Api\CompanyPanel\BillingController::class, 'updateBillingInfo'])->whereUuid('id');
         });
     });
 });

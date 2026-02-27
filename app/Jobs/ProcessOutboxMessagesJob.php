@@ -202,9 +202,9 @@ class ProcessOutboxMessagesJob implements ShouldQueue
         // Determine FROM name (tenant-branded)
         $fromName = $company
             ? $company->getEmailFromName()
-            : config('mail.from.name', 'TalentQX');
+            : config('mail.from.name', 'Octopus AI');
 
-        $fromAddress = config('mail.from.address', 'noreply@talentqx.com');
+        $fromAddress = config('mail.from.address', 'noreply@octopus-ai.net');
 
         // Extract attachments from metadata
         $attachments = $message->metadata['attachments'] ?? [];

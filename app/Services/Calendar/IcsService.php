@@ -20,7 +20,7 @@ class IcsService
      */
     public function generateInterviewIcs(array $data): string
     {
-        $uid = $data['interview_id'] ?? uniqid('talentqx-');
+        $uid = $data['interview_id'] ?? uniqid('octopus-');
         $companyName = $data['company_name'] ?? 'Company';
         $jobTitle = $data['job_title'] ?? 'Position';
         $interviewUrl = $data['interview_url'];
@@ -53,11 +53,11 @@ class IcsService
         // Generate ICS content
         $ics = "BEGIN:VCALENDAR\r\n";
         $ics .= "VERSION:2.0\r\n";
-        $ics .= "PRODID:-//TalentQX//Interview Platform//EN\r\n";
+        $ics .= "PRODID:-//Octopus AI//Interview Platform//EN\r\n";
         $ics .= "CALSCALE:GREGORIAN\r\n";
         $ics .= "METHOD:REQUEST\r\n";
         $ics .= "BEGIN:VEVENT\r\n";
-        $ics .= "UID:{$uid}@talentqx.com\r\n";
+        $ics .= "UID:{$uid}@octopus-ai.net\r\n";
         $ics .= "DTSTAMP:{$dtStamp}\r\n";
         $ics .= "DTSTART:{$dtStart}\r\n";
         $ics .= "DTEND:{$dtEnd}\r\n";

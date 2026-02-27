@@ -42,8 +42,10 @@ class InterviewReminderNotification extends Notification implements ShouldQueue
 
     private function buildT24Reminder($candidate, $company, $job, $interviewUrl, $dateStr, $timeStr): MailMessage
     {
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+
         return (new MailMessage)
-            ->subject("Octopus AI – Hatırlatma: Yarın mülakatınız var – {$job->title}")
+            ->subject("{$brandName} – Hatırlatma: Yarın mülakatınız var – {$job->title}")
             ->greeting("Merhaba {$candidate->first_name},")
             ->line("{$company->name} için başvurduğunuz **{$job->title}** pozisyonuna ait mülakatınız **yarın** gerçekleşecektir.")
             ->line("---")
@@ -62,8 +64,10 @@ class InterviewReminderNotification extends Notification implements ShouldQueue
 
     private function buildT1Reminder($candidate, $company, $job, $interviewUrl, $timeStr): MailMessage
     {
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+
         return (new MailMessage)
-            ->subject("Octopus AI – ⏰ 1 saat sonra: Mülakatınız başlıyor")
+            ->subject("{$brandName} – ⏰ 1 saat sonra: Mülakatınız başlıyor")
             ->greeting("Merhaba {$candidate->first_name},")
             ->line("**{$job->title}** mülakatınız **1 saat sonra** başlayacak.")
             ->line("---")

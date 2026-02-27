@@ -203,7 +203,8 @@ class InboundEmailService
     {
         // Try by In-Reply-To header
         if ($inReplyTo) {
-            $outbound = CrmEmailMessage::where('message_id', '<' . $inReplyTo . '@talentqx.com>')
+            $outbound = CrmEmailMessage::where('message_id', '<' . $inReplyTo . '@octopus-ai.net>')
+                ->orWhere('message_id', '<' . $inReplyTo . '@talentqx.com>')
                 ->orWhere('message_id', $inReplyTo)
                 ->orWhere('message_id', '<' . $inReplyTo . '>')
                 ->first();
@@ -351,7 +352,7 @@ class InboundEmailService
     private function classificationSystemPrompt(): string
     {
         return <<<'PROMPT'
-You are an email classification engine for TalentQX, a maritime recruitment and HR tech company. Given an email subject and body, output STRICT JSON with these fields:
+You are an email classification engine for Octopus AI, a maritime recruitment and HR tech company. Given an email subject and body, output STRICT JSON with these fields:
 {
   "language": "en" | "tr" | "ru",
   "intent": "inquiry" | "application" | "complaint" | "info_request" | "follow_up" | "spam" | "other",

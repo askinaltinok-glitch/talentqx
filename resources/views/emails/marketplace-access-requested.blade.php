@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; padding: 20px 0 10px;">
+        <img src="https://talentqx.com/assets/octopus-logo-email.png" alt="Octopus AI" style="max-height: 48px; margin-bottom: 12px;">
+    </div>
     <h2 style="color: #1e40af;">New Candidate Access Request</h2>
 
     <p>A company has requested access to one of the candidates in the marketplace.</p>

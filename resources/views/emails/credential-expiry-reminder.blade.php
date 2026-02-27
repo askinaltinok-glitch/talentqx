@@ -28,8 +28,9 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px;">Octopus AI</h1>
-        <h1>MARITIME TALENT INTELLIGENCE PLATFORM</h1>
+        @include('emails.partials.logo')
+        <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px;">{{ $brand['name'] ?? 'Octopus AI' }}</h1>
+        <h1>{{ $brand['tagline'] ?? 'AI Recruitment Platform' }}</h1>
     </div>
 
     <div class="body">
@@ -38,30 +39,30 @@
 
             @if($daysLeft <= 7)
                 <div class="urgent-box">
-                    <p><strong>{{ $credentialType }}</strong> belgenizin suresinin dolmasina <strong>{{ $daysLeft }} gun</strong> kaldi!</p>
-                    <p><strong>Son Gecerlilik:</strong> {{ $expiryDate }}</p>
+                    <p><strong>{{ $credentialType }}</strong> belgenizin süresinin dolmasına <strong>{{ $daysLeft }} gün</strong> kaldı!</p>
+                    <p><strong>Son Geçerlilik:</strong> {{ $expiryDate }}</p>
                 </div>
-                <p>Belgenizi en kisa surede yenilemenizi onemle tavsiye ederiz. Suresi dolmus belgeler is basvurularinizi olumsuz etkileyebilir.</p>
+                <p>Belgenizi en kısa sürede yenilemenizi önemle tavsiye ederiz. Süresi dolmuş belgeler iş başvurularınızı olumsuz etkileyebilir.</p>
             @else
                 <div class="warning-box">
-                    <p><strong>{{ $credentialType }}</strong> belgenizin suresi <strong>{{ $expiryDate }}</strong> tarihinde sona erecektir.</p>
-                    <p>Kalan sure: <strong>{{ $daysLeft }} gun</strong></p>
+                    <p><strong>{{ $credentialType }}</strong> belgenizin süresi <strong>{{ $expiryDate }}</strong> tarihinde sona erecektir.</p>
+                    <p>Kalan süre: <strong>{{ $daysLeft }} gün</strong></p>
                 </div>
-                <p>Belge yenileme islemleri zaman alabilir. Simdiden hazirliklara baslamanizi oneririz.</p>
+                <p>Belge yenileme işlemleri zaman alabilir. Şimdiden hazırlıklara başlamanızı öneririz.</p>
             @endif
 
             <div class="info-box">
-                <p><strong>Belge Turu:</strong> {{ $credentialType }}</p>
+                <p><strong>Belge Türü:</strong> {{ $credentialType }}</p>
                 @if($credential->credential_number)
                     <p><strong>Belge No:</strong> {{ $credential->credential_number }}</p>
                 @endif
                 @if($credential->issuer)
                     <p><strong>Veren Kurum:</strong> {{ $credential->issuer }}</p>
                 @endif
-                <p><strong>Son Gecerlilik:</strong> {{ $expiryDate }}</p>
+                <p><strong>Son Geçerlilik:</strong> {{ $expiryDate }}</p>
             </div>
 
-            <p>Belgenizi yeniledikten sonra platformumuzdaki bilgilerinizi guncellemeyi unutmayin.</p>
+            <p>Belgenizi yeniledikten sonra platformumuzdaki bilgilerinizi güncellemeyi unutmayın.</p>
 
         @elseif($locale === 'ru')
             <h2>{{ $candidate->first_name }},</h2>
@@ -157,8 +158,8 @@
     </div>
 
     <div class="footer">
-        <p>Octopus AI &mdash; Maritime Talent Intelligence Platform</p>
-        <p><a href="https://octopus-ai.net">octopus-ai.net</a></p>
+        <p>{{ $brand['name'] ?? 'Octopus AI' }} &mdash; {{ $brand['tagline'] ?? 'AI Recruitment Platform' }}</p>
+        <p><a href="{{ $brand['website_url'] ?? 'https://talentqx.com' }}">{{ $brand['domain'] ?? 'talentqx.com' }}</a></p>
     </div>
 </div>
 </body>

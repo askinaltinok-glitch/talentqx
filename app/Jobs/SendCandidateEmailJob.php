@@ -96,6 +96,15 @@ class SendCandidateEmailJob implements ShouldQueue
                 'sent_at' => now(),
             ]);
 
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    $this->mailType ?? 'candidate_email',
+                    $candidate->email,
+                    "Email sent ({$this->mailType}): {$candidate->first_name} {$candidate->last_name}",
+                    ['candidate_id' => $candidate->id]
+                );
+            } catch (\Throwable) {}
+
             Log::info('SendCandidateEmailJob: email sent', [
                 'candidate_id' => $candidate->id,
                 'email' => $candidate->email,

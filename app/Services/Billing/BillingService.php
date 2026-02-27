@@ -228,7 +228,7 @@ class BillingService
             'subscription' => $company->getSubscriptionStatus(),
             'checkout_enabled' => $this->isCheckoutEnabled(),
             'contact_sales' => [
-                'email' => 'sales@talentqx.com',
+                'email' => 'sales@octopus-ai.net',
                 'phone' => '+90 212 123 45 67',
             ],
         ];
@@ -250,7 +250,7 @@ class BillingService
                 'error' => 'Online checkout is not available. Please contact sales.',
                 'code' => 'CHECKOUT_DISABLED',
                 'contact' => [
-                    'email' => 'sales@talentqx.com',
+                    'email' => 'sales@octopus-ai.net',
                     'phone' => '+90 212 123 45 67',
                 ],
             ];

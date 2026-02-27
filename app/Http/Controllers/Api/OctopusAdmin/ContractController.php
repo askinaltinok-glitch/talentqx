@@ -12,10 +12,12 @@ use App\Models\AisVerification;
 use App\Models\CandidateContract;
 use App\Models\PoolCandidate;
 use App\Models\TrustEvent;
+use App\Models\Company;
 use App\Models\Vessel;
 use App\Services\Ais\AisProviderInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ContractController extends Controller
 {
@@ -238,7 +240,7 @@ class ContractController extends Controller
         }
 
         $validated = $request->validate([
-            'company_id' => 'nullable|uuid',
+            'company_id' => ['nullable', 'uuid', Rule::exists('companies', 'id')->where('platform', Company::PLATFORM_OCTOPUS)],
             'notes' => 'nullable|string|max:500',
         ]);
 

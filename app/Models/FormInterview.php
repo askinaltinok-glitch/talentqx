@@ -81,6 +81,9 @@ class FormInterview extends Model
         'override_by_user_id',
         // Behavioral Engine v1
         'behavioral_profile_id',
+        // Company Competency Model v1
+        'company_fit_score',
+        'company_competency_scores',
     ];
 
     protected $casts = [
@@ -104,6 +107,9 @@ class FormInterview extends Model
         'phase' => 'integer',
         'needs_review' => 'boolean',
         'scenario_set_json' => 'array',
+        // Company Competency Model v1
+        'company_fit_score' => 'float',
+        'company_competency_scores' => 'array',
     ];
 
     public const STATUS_DRAFT = 'draft';
@@ -231,6 +237,11 @@ class FormInterview extends Model
     public function behavioralProfile(): BelongsTo
     {
         return $this->belongsTo(BehavioralProfile::class, 'behavioral_profile_id');
+    }
+
+    public function aiAnalysis(): HasOne
+    {
+        return $this->hasOne(FormInterviewAnalysis::class);
     }
 
     public function isCompleted(): bool

@@ -795,6 +795,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Immediate OTP Verification v1
+    |--------------------------------------------------------------------------
+    | When enabled: application form → instant 6-digit OTP email → verify → interview.
+    | Replaces the delayed interview invitation flow (clean_workflow_v1).
+    | Takes priority over clean_workflow_v1 when both are true.
+    */
+    'immediate_verification_v1' => (bool) env('MARITIME_IMMEDIATE_VERIFICATION_V1', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Vessel Requirement Engine v1
     |--------------------------------------------------------------------------
     | When enabled, CandidateDecisionService uses vessel-type requirement

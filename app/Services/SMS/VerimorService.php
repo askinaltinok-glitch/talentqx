@@ -2,6 +2,7 @@
 
 namespace App\Services\SMS;
 
+use App\Support\BrandConfig;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -112,9 +113,10 @@ class VerimorService
     /**
      * Send OTP SMS.
      */
-    public function sendOtp(string $phone, string $code): array
+    public function sendOtp(string $phone, string $code, ?string $platform = null): array
     {
-        $message = "TalentQX doğrulama kodunuz: {$code}. Bu kodu kimseyle paylaşmayın.";
+        $brand = BrandConfig::brandName($platform ?? 'octopus');
+        $message = "{$brand} doğrulama kodunuz: {$code}. Bu kodu kimseyle paylaşmayın.";
         return $this->send($phone, $message);
     }
 
@@ -139,18 +141,20 @@ class VerimorService
     /**
      * Send payment confirmation SMS.
      */
-    public function sendPaymentConfirmation(string $phone, int $credits, string $amount): array
+    public function sendPaymentConfirmation(string $phone, int $credits, string $amount, ?string $platform = null): array
     {
-        $message = "TalentQX ödemeniz alındı. {$credits} kontür hesabınıza eklendi. Tutar: {$amount}";
+        $brand = BrandConfig::brandName($platform ?? 'octopus');
+        $message = "{$brand} ödemeniz alındı. {$credits} kontür hesabınıza eklendi. Tutar: {$amount}";
         return $this->send($phone, $message);
     }
 
     /**
      * Send low credit warning SMS.
      */
-    public function sendLowCreditWarning(string $phone, int $remaining): array
+    public function sendLowCreditWarning(string $phone, int $remaining, ?string $platform = null): array
     {
-        $message = "TalentQX: Kalan kontürünüz {$remaining} adet. Kontür satın almak için: talentqx.com/platform/credits";
+        $brand = BrandConfig::brandName($platform ?? 'octopus');
+        $message = "{$brand}: Kalan kontürünüz {$remaining} adet. Kontür satın almak için platformunuzu ziyaret edin.";
         return $this->send($phone, $message);
     }
 

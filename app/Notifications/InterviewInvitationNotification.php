@@ -36,8 +36,10 @@ class InterviewInvitationNotification extends Notification
 
     private function buildWrittenInvitation($candidate, $job, $company, $interviewUrl): MailMessage
     {
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+
         return (new MailMessage)
-            ->subject("Octopus AI – {$company->name} | Yazılı Mülakat Daveti – {$job->title}")
+            ->subject("{$brandName} – {$company->name} | Yazılı Mülakat Daveti – {$job->title}")
             ->greeting("Merhaba {$candidate->first_name},")
             ->line("{$company->name} bünyesindeki **{$job->title}** pozisyonu için başvurunuz değerlendirme sürecine alınmıştır.")
             ->line("Bu aşamada sizi yazılı mülakat aşamasına davet ediyoruz.")
@@ -62,8 +64,10 @@ class InterviewInvitationNotification extends Notification
         $dateStr = $scheduledAt ? $scheduledAt->format('d.m.Y') : 'Belirtilecek';
         $timeStr = $scheduledAt ? $scheduledAt->format('H:i') : 'Belirtilecek';
 
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+
         return (new MailMessage)
-            ->subject("Octopus AI – {$company->name} | Görüntülü Mülakat Daveti – {$job->title}")
+            ->subject("{$brandName} – {$company->name} | Görüntülü Mülakat Daveti – {$job->title}")
             ->greeting("Merhaba {$candidate->first_name},")
             ->line("{$company->name} için yürütülen **{$job->title}** değerlendirme sürecinde sizi görüntülü mülakat aşamasına davet etmekten memnuniyet duyarız.")
             ->line("---")

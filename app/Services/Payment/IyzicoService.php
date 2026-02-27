@@ -241,7 +241,7 @@ class IyzicoService
             'currency' => $payment->currency,
             'issue_date' => now()->toDateString(),
             'due_date' => now()->toDateString(),
-            'description' => "TalentQX Kontür Paketi: {$package->name} ({$package->credits} Kontür)",
+            'description' => "Octopus AI Kontür Paketi: {$package->name} ({$package->credits} Kontür)",
             'line_items' => [
                 [
                     'description' => "{$package->name} - {$package->credits} Kontür",
@@ -320,7 +320,7 @@ class IyzicoService
             'basketItems' => [
                 [
                     'id' => $package->id,
-                    'name' => "TalentQX {$package->name}",
+                    'name' => "Octopus AI {$package->name}",
                     'category1' => 'Yazılım',
                     'category2' => 'SaaS',
                     'itemType' => 'VIRTUAL',

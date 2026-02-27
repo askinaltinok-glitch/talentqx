@@ -25,6 +25,7 @@ class User extends Authenticatable
         'is_active',
         'is_platform_admin',
         'is_octopus_admin',
+        'company_panel_role',
         'must_change_password',
         'password_changed_at',
         'last_login_at',
@@ -105,5 +106,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role?->name === 'admin';
+    }
+
+    public function hasCompanyPanelAccess(): bool
+    {
+        return $this->company_panel_role !== null;
+    }
+
+    public function getCompanyPanelRole(): ?string
+    {
+        return $this->company_panel_role;
     }
 }

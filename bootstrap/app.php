@@ -38,6 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.token' => \App\Http\Middleware\ApiTokenAuth::class,
             'feature.access' => \App\Http\Middleware\EnsureFeatureAccess::class,
             'platform.octopus_admin' => \App\Http\Middleware\RequireOctopusAdmin::class,
+            'platform.company_panel' => \App\Http\Middleware\RequireCompanyPanel::class,
+            'force.default_db' => \App\Http\Middleware\ForceDefaultDatabase::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

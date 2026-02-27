@@ -240,7 +240,7 @@
     @endif
 
     <div class="footer">
-        TalentQX - KVKK Uyumlu Veri Raporu | {{ $exportDate }}
+        Octopus AI - KVKK Uyumlu Veri Raporu | {{ $exportDate }}
     </div>
 </body>
 </html>

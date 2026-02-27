@@ -40,7 +40,12 @@ class PasswordController extends Controller
         $email = strtolower(trim($request->input('email')));
         $user = User::where('email', $email)->first();
 
-        // Always return success to prevent email enumeration
+        // If not found in current brand DB, check the other DB (platform admins may be in default)
+        if (!$user) {
+            $altConnection = config('database.default') === 'mysql_talentqx' ? 'mysql' : 'mysql_talentqx';
+            $user = User::on($altConnection)->where('email', $email)->first();
+        }
+
         if (!$user) {
             Log::info('Password reset requested for non-existent email', [
                 'email' => $email,
@@ -48,8 +53,9 @@ class PasswordController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderilecektir.',
-            ]);
+                'message' => 'Bu e-posta adresi sistemde kayıtlı değildir.',
+                'user_found' => false,
+            ], 404);
         }
 
         // Check if user is active
@@ -60,10 +66,10 @@ class PasswordController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            // Still return generic message
             return response()->json([
-                'message' => 'Eğer bu e-posta sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderilecektir.',
-            ]);
+                'message' => 'Bu hesap devre dışı bırakılmıştır. Lütfen yöneticinize başvurun.',
+                'user_found' => false,
+            ], 403);
         }
 
         // Send reset link

@@ -19,7 +19,7 @@ class BrandResolver
             return $brand;
         }
 
-        $default = config('brands.default', 'octopus');
+        $default = config('brands.default', 'talentqx');
         return config("brands.brands.{$default}", []);
     }
 
@@ -41,7 +41,7 @@ class BrandResolver
         }
 
         // 3. Default
-        return self::resolve(config('brands.default', 'octopus'));
+        return self::resolve(config('brands.default', 'talentqx'));
     }
 
     /**
@@ -71,7 +71,7 @@ class BrandResolver
         }
 
         // 4. Default
-        return self::resolve(config('brands.default', 'octopus'));
+        return self::resolve(config('brands.default', 'talentqx'));
     }
 
     /**

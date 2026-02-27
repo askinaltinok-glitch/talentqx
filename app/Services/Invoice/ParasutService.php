@@ -20,13 +20,46 @@ class ParasutService
 
     public function __construct()
     {
-        $this->clientId = config('services.parasut.client_id', '');
-        $this->clientSecret = config('services.parasut.client_secret', '');
-        $this->username = config('services.parasut.username', '');
-        $this->password = config('services.parasut.password', '');
-        $this->companyId = config('services.parasut.company_id', '');
+        // Try SystemApiKey first (encrypted DB storage), then fall back to config
+        $dbCreds = $this->loadFromSystemApiKey();
+
+        $this->clientId = $dbCreds['client_id'] ?? config('services.parasut.client_id') ?? '';
+        $this->clientSecret = $dbCreds['client_secret'] ?? config('services.parasut.client_secret') ?? '';
+        $this->username = $dbCreds['username'] ?? config('services.parasut.username') ?? '';
+        $this->password = $dbCreds['password'] ?? config('services.parasut.password') ?? '';
+        $this->companyId = $dbCreds['company_id'] ?? config('services.parasut.company_id') ?? '';
         $this->sandboxMode = config('services.parasut.sandbox', true);
         $this->baseUrl = 'https://api.parasut.com/v4';
+    }
+
+    /**
+     * Load credentials from SystemApiKey table (preferred over .env).
+     */
+    private function loadFromSystemApiKey(): array
+    {
+        try {
+            $key = \App\Models\SystemApiKey::where('service_name', 'parasut')
+                ->where('is_active', true)
+                ->first();
+
+            if (!$key) {
+                return [];
+            }
+
+            // api_key stores client_id, secret_key stores client_secret
+            // metadata stores: username, password, company_id
+            $meta = $key->metadata ?? [];
+
+            return [
+                'client_id' => $key->api_key ?: null,
+                'client_secret' => $key->secret_key ?: null,
+                'username' => $meta['username'] ?? null,
+                'password' => $meta['password'] ?? null,
+                'company_id' => $meta['company_id'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
@@ -250,6 +283,7 @@ class ParasutService
                     'address' => $billingInfo['address'] ?? null,
                     'city' => $billingInfo['city'] ?? null,
                     'district' => $billingInfo['postal_code'] ?? null,
+                    'phone' => $billingInfo['phone'] ?? null,
                     'account_type' => 'customer',
                 ],
             ],
@@ -301,7 +335,7 @@ class ParasutService
                             'vat_withholding_code' => null,
                             'vat_exemption_reason_code' => null,
                             'vat_exemption_reason' => null,
-                            'note' => 'TalentQX Kontür Satışı',
+                            'note' => 'Octopus AI Kontür Satışı',
                             'scenario' => 'commercial', // or 'basic'
                         ],
                         'relationships' => [

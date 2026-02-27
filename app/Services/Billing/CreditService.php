@@ -5,8 +5,11 @@ namespace App\Services\Billing;
 use App\Models\Company;
 use App\Models\CreditUsageLog;
 use App\Models\Interview;
+use App\Models\User;
+use App\Notifications\LowCreditNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
 
 class CreditService
 {
@@ -132,8 +135,69 @@ class CreditService
                 'is_grace' => $isGrace,
             ]);
 
+            // Check if credits dropped below 10% threshold
+            $this->checkLowCreditWarning($company);
+
             return true;
         });
+    }
+
+    /**
+     * Check if company credits are below 10% and send warning.
+     */
+    public function checkLowCreditWarning(Company $company): void
+    {
+        $remaining = $this->getRemainingCredits($company);
+        $total = $company->monthly_credits + $company->bonus_credits;
+
+        if ($total <= 0) {
+            return;
+        }
+
+        $percentage = $remaining / $total;
+
+        if ($percentage > 0.10) {
+            return;
+        }
+
+        // Check if we already sent a warning today
+        $settings = $company->settings ?? [];
+        $lastWarning = $settings['last_low_credit_warning_at'] ?? null;
+
+        if ($lastWarning && Carbon::parse($lastWarning)->isToday()) {
+            return; // Already warned today
+        }
+
+        // Update timestamp
+        $settings['last_low_credit_warning_at'] = now()->toIso8601String();
+        $company->update(['settings' => $settings]);
+
+        // Send notification to company admin users
+        $adminUsers = User::where('company_id', $company->id)
+            ->where(function ($q) {
+                $q->where('role', 'admin')
+                  ->orWhere('role', 'owner');
+            })
+            ->get();
+
+        foreach ($adminUsers as $user) {
+            try {
+                $user->notify(new LowCreditNotification($company, $remaining, $total));
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send low credit notification', [
+                    'company_id' => $company->id,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        Log::info('Low credit warning sent', [
+            'company_id' => $company->id,
+            'remaining' => $remaining,
+            'total' => $total,
+            'percentage' => round($percentage * 100, 1),
+        ]);
     }
 
     /**

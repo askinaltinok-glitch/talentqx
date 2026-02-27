@@ -17,8 +17,14 @@ class PositionQuestion extends Model
         'question_type',
         'question_tr',
         'question_en',
+        'question_de',
+        'question_fr',
+        'question_ar',
         'follow_up_tr',
         'follow_up_en',
+        'follow_up_de',
+        'follow_up_fr',
+        'follow_up_ar',
         'expected_indicators',
         'red_flag_indicators',
         'scoring_guide',
@@ -63,12 +69,14 @@ class PositionQuestion extends Model
 
     public function getQuestion(string $locale = 'tr'): string
     {
-        return $locale === 'en' ? $this->question_en : $this->question_tr;
+        $col = "question_{$locale}";
+        return $this->{$col} ?? $this->question_tr ?? $this->question_en ?? '';
     }
 
     public function getFollowUp(string $locale = 'tr'): ?string
     {
-        return $locale === 'en' ? $this->follow_up_en : $this->follow_up_tr;
+        $col = "follow_up_{$locale}";
+        return $this->{$col} ?? $this->follow_up_tr ?? $this->follow_up_en;
     }
 
     public function getTypeLabel(string $locale = 'tr'): string

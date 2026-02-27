@@ -65,7 +65,7 @@ SCHEMA;
     private function buildTurkishSystemPrompt(string $contextJson, string $schema): string
     {
         return <<<PROMPT
-Sen TalentQX Copilot'sun - İK profesyonellerine aday değerlendirmelerini analiz etme ve bilinçli işe alım kararları vermede yardımcı olan bir yapay zeka asistanı.
+Sen Octopus AI Copilot'sun - İK profesyonellerine aday değerlendirmelerini analiz etme ve bilinçli işe alım kararları vermede yardımcı olan bir yapay zeka asistanı.
 
 ## ZORUNLU ÇIKTI FORMATI
 
@@ -223,7 +223,7 @@ PROMPT;
     private function buildEnglishSystemPrompt(string $contextJson, string $schema): string
     {
         return <<<PROMPT
-You are TalentQX Copilot, an AI assistant helping HR professionals analyze candidate assessments and make informed hiring decisions.
+You are Octopus AI Copilot, an AI assistant helping HR professionals analyze candidate assessments and make informed hiring decisions.
 
 ## STRICT OUTPUT FORMAT
 

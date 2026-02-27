@@ -3,20 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CandidateHiredMail;
+use App\Mail\CandidateRejectedMail;
+use App\Mail\CandidateUnderReviewMail;
 use App\Models\Candidate;
 use App\Models\Interview;
 use App\Models\Job;
 use App\Notifications\InterviewInvitationNotification;
+use App\Services\AdminNotificationService;
 use App\Services\Copilot\RedFlagActionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class CandidateController extends Controller
 {
     public function __construct(
-        private RedFlagActionService $redFlagActionService
+        private RedFlagActionService $redFlagActionService,
+        private AdminNotificationService $notificationService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -272,6 +278,39 @@ class CandidateController extends Controller
             $validated['note'] ?? null,
             $request->user()
         );
+
+        // Send notification emails on terminal status changes
+        if ($validated['status'] === 'hired' && !$candidate->hired_email_sent_at && $candidate->email) {
+            Mail::to($candidate->email)->send(new CandidateHiredMail($candidate));
+            $candidate->update(['hired_email_sent_at' => now()]);
+            $this->notificationService->notifyEmailSent(
+                'candidate_hired',
+                $candidate->email,
+                "Hired: {$candidate->full_name}",
+                ['candidate_id' => $candidate->id]
+            );
+        }
+
+        if ($validated['status'] === 'rejected' && !$candidate->rejected_email_sent_at && $candidate->email) {
+            Mail::to($candidate->email)->send(new CandidateRejectedMail($candidate));
+            $candidate->update(['rejected_email_sent_at' => now()]);
+            $this->notificationService->notifyEmailSent(
+                'candidate_rejected',
+                $candidate->email,
+                "Rejected: {$candidate->full_name}",
+                ['candidate_id' => $candidate->id]
+            );
+        }
+
+        if ($validated['status'] === 'under_review' && $candidate->email) {
+            Mail::to($candidate->email)->send(new CandidateUnderReviewMail($candidate));
+            $this->notificationService->notifyEmailSent(
+                'candidate_under_review',
+                $candidate->email,
+                "Under Review: {$candidate->full_name}",
+                ['candidate_id' => $candidate->id]
+            );
+        }
 
         return response()->json([
             'success' => true,

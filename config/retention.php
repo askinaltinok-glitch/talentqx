@@ -48,6 +48,16 @@ return [
         'template_audit_logs' => [
             'default' => 365 * 3, // 3 years
         ],
+
+        // Voice interview audio files
+        'voice_audio' => [
+            'default' => 365, // 1 year after interview
+        ],
+
+        // Voice transcripts (text only, after audio deleted)
+        'voice_transcripts' => [
+            'default' => 365 * 2, // 2 years (anonymize after)
+        ],
     ],
 
     /*

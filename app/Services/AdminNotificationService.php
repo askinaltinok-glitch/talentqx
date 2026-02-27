@@ -123,4 +123,26 @@ class AdminNotificationService
             ['company_id' => $companyId, 'url' => '/octo-admin/onboard']
         );
     }
+
+    /**
+     * Notify admin that an email was sent.
+     *
+     * @param string $mailType  e.g. 'candidate_hired', 'candidate_rejected', 'qr_apply_completed', 'company_new_candidate'
+     * @param string $recipient email address
+     * @param string $subject   email subject line
+     * @param array  $extra     additional data (candidate_id, company_id, etc.)
+     */
+    public function notifyEmailSent(string $mailType, string $recipient, string $subject, array $extra = []): AdminNotification
+    {
+        return $this->create(
+            AdminNotification::TYPE_EMAIL_SENT,
+            $subject,
+            "To: {$recipient}",
+            array_merge([
+                'mail_type' => $mailType,
+                'recipient' => $recipient,
+                'url' => '/octo-admin/mail-log',
+            ], $extra)
+        );
+    }
 }

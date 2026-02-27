@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\CandidateCredential;
 use App\Models\PoolCandidate;
+use App\Services\Brand\BrandResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -18,12 +19,13 @@ class CredentialExpiryReminderMail extends Mailable
     public string $credentialType;
     public string $expiryDate;
     public int $daysLeft;
+    public array $brand;
 
-    private static array $subjects = [
-        'tr' => 'Hatırlatma: %s belgenizin süresi %s tarihinde bitiyor — Octopus AI',
-        'en' => 'Reminder: Your %s expires on %s — Octopus AI',
-        'ru' => 'Напоминание: Срок действия %s истекает %s — Octopus AI',
-        'az' => 'Xatırlatma: %s sənədinizin müddəti %s tarixində bitir — Octopus AI',
+    private static array $subjectTemplates = [
+        'tr' => 'Hatırlatma: %s belgenizin süresi %s tarihinde bitiyor — %s',
+        'en' => 'Reminder: Your %s expires on %s — %s',
+        'ru' => 'Напоминание: Срок действия %s истекает %s — %s',
+        'az' => 'Xatırlatma: %s sənədinizin müddəti %s tarixində bitir — %s',
     ];
 
     public function __construct(
@@ -35,12 +37,14 @@ class CredentialExpiryReminderMail extends Mailable
         $this->credentialType = $credential->credential_type;
         $this->expiryDate = $credential->expires_at?->format('d.m.Y') ?? '-';
         $this->daysLeft = $credential->days_until_expiry ?? 0;
+        $this->brand = BrandResolver::fromCandidate($candidate);
     }
 
     public function envelope(): Envelope
     {
-        $template = self::$subjects[$this->candidateLocale] ?? self::$subjects['en'];
-        $subject = sprintf($template, $this->credentialType, $this->expiryDate);
+        $template = self::$subjectTemplates[$this->candidateLocale] ?? self::$subjectTemplates['en'];
+        $brandName = $this->brand['name'] ?? 'Octopus AI';
+        $subject = sprintf($template, $this->credentialType, $this->expiryDate, $brandName);
 
         return new Envelope(subject: $subject);
     }
@@ -57,6 +61,7 @@ class CredentialExpiryReminderMail extends Mailable
                 'expiryDate' => $this->expiryDate,
                 'daysLeft' => $this->daysLeft,
                 'reminderType' => $this->reminderType,
+                'brand' => $this->brand,
             ],
         );
     }

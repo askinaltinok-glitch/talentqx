@@ -335,11 +335,11 @@ class MailTriggerService
 
         $personas = config('crm_mail.personas', []);
         return $personas[$personaKey] ?? [
-            'name' => 'TalentQX',
+            'name' => 'Octopus AI',
             'title' => 'Team',
-            'from_email' => 'info@talentqx.com',
+            'from_email' => 'info@octopus-ai.net',
             'tone' => 'Professional, concise',
-            'signature' => "Best regards,\nTalentQX Team",
+            'signature' => "Best regards,\nOctopus AI Team",
         ];
     }
 }

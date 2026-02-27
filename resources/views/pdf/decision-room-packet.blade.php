@@ -130,7 +130,7 @@
     @endif
 
     <div class="footer">
-        TalentQX Decision Room &middot; Confidential &middot; {{ $generatedAt }}
+        Octopus AI Decision Room &middot; Confidential &middot; {{ $generatedAt }}
     </div>
 </body>
 </html>

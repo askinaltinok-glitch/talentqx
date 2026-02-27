@@ -127,7 +127,7 @@ class CompanyApplyLinkController extends Controller
 
     private function buildApplyUrl(CompanyApplyLink $link): string
     {
-        $baseUrl = config('app.frontend_url', 'https://octopus-ai.net');
+        $baseUrl = config('app.frontend_url', 'https://talentqx.com');
         return "{$baseUrl}/maritime/apply?company={$link->slug}&t={$link->token}";
     }
 }

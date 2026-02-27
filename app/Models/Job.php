@@ -52,6 +52,7 @@ class Job extends Model
         'closes_at',
         'qr_file_path',
         'apply_url',
+        'locale',
     ];
 
     protected $casts = [
@@ -64,6 +65,7 @@ class Job extends Model
         'closes_at' => 'datetime',
         'experience_years' => 'integer',
         'qr_enabled' => 'boolean',
+        'locale' => 'string',
     ];
 
     protected $attributes = [

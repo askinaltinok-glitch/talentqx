@@ -272,8 +272,22 @@ class FormInterviewService
             'answers_with_text' => $answersWithText,
         ]);
 
-        // Step 1: DecisionEngine evaluation
-        $result = $this->decisionEngine->evaluate($interview);
+        // Step 1: DecisionEngine evaluation (AI or heuristic)
+        $scoringMethod = 'heuristic';
+
+        if (config('features.form_interview_ai_analysis_v1')) {
+            $aiResult = app(FormInterviewAnalysisService::class)->analyze($interview);
+            if ($aiResult !== null) {
+                $result = $aiResult;
+                $scoringMethod = 'ai';
+            } else {
+                // AI failed → heuristic fallback
+                $result = $this->decisionEngine->evaluate($interview);
+                $scoringMethod = 'heuristic_fallback';
+            }
+        } else {
+            $result = $this->decisionEngine->evaluate($interview);
+        }
 
         // CONTRACT ENFORCE: final_score 0..100 int
         $rawFinal = (int) round((float)($result['final_score'] ?? 0));
@@ -309,17 +323,32 @@ class FormInterviewService
         }
 
         // Step 1.5: Persist per-answer scores (0-5 scale)
+        // If AI provided question_analyses, use AI scores; otherwise heuristic length-based
+        $aiQuestionScores = [];
+        if ($scoringMethod === 'ai' && !empty($result['question_analyses'])) {
+            foreach ($result['question_analyses'] as $qa) {
+                $slot = $qa['question_order'] ?? null;
+                if ($slot !== null && isset($qa['score'])) {
+                    $aiQuestionScores[$slot] = max(0, min(5, (int) $qa['score']));
+                }
+            }
+        }
+
         foreach ($interview->answers as $answer) {
-            $text = trim($answer->answer_text ?? '');
-            $len = mb_strlen($text, 'UTF-8');
-            $score = match (true) {
-                $len === 0 => 0,
-                $len < 30  => 1,
-                $len < 80  => 2,
-                $len < 180 => 3,
-                $len < 350 => 4,
-                default    => 5,
-            };
+            if (isset($aiQuestionScores[$answer->slot])) {
+                $score = $aiQuestionScores[$answer->slot];
+            } else {
+                $text = trim($answer->answer_text ?? '');
+                $len = mb_strlen($text, 'UTF-8');
+                $score = match (true) {
+                    $len === 0 => 0,
+                    $len < 30  => 1,
+                    $len < 80  => 2,
+                    $len < 180 => 3,
+                    $len < 350 => 4,
+                    default    => 5,
+                };
+            }
             DB::table('form_interview_answers')
                 ->where('id', $answer->id)
                 ->update(['score' => $score]);
@@ -390,6 +419,9 @@ class FormInterviewService
             'policy_code'       => (string) $policy['policy_code'],
             'policy_version'    => 'v1',
 
+            // Scoring method in meta
+            'meta' => array_merge($interview->meta ?? [], ['scoring_method' => $scoringMethod]),
+
             // Status
             'status'       => FormInterview::STATUS_COMPLETED,
             'completed_at' => now(),
@@ -445,6 +477,24 @@ class FormInterviewService
                 );
             } catch (\Throwable $e) {
                 Log::channel('single')->warning('MaritimeDecisionEngine failed', [
+                    'interview_id' => $interview->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Step 7b: Company Competency Model scoring (non-fatal)
+        if (config('features.competency_model_v1') && $interview->company_id) {
+            try {
+                $companyFit = app(\App\Services\CompanyCompetencyService::class)->computeCompanyFit($interview);
+                if ($companyFit) {
+                    $interview->update([
+                        'company_fit_score' => $companyFit['company_fit_score'],
+                        'company_competency_scores' => $companyFit['company_competency_scores'],
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                Log::channel('single')->warning('Company competency scoring failed', [
                     'interview_id' => $interview->id,
                     'error' => $e->getMessage(),
                 ]);

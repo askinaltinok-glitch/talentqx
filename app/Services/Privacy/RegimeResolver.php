@@ -167,7 +167,7 @@ class RegimeResolver
      */
     private function getPolicyUrls(string $regime, string $locale): array
     {
-        $baseUrl = config('app.url', 'https://talentqx.com');
+        $baseUrl = config('app.url', 'https://octopus-ai.net');
 
         return [
             'privacy_policy' => "{$baseUrl}/privacy/{$regime}/{$locale}",

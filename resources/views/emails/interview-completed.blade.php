@@ -26,7 +26,8 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px;">{{ $brand['header_emoji'] }} {{ $brand['name'] }}</h1>
+        @include('emails.partials.logo')
+        <h1 style="font-size: 24px; font-weight: 700; letter-spacing: 1px;">{{ $brand['name'] }}</h1>
         <h1>{{ strtoupper($brand['tagline']) }}</h1>
     </div>
 

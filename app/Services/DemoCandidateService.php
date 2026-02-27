@@ -101,7 +101,7 @@ class DemoCandidateService
             $candidate = PoolCandidate::create([
                 'first_name' => $profile['first_name'],
                 'last_name' => $profile['last_name'],
-                'email' => "demo_{$timestamp}_" . strtolower($profile['last_name']) . '@talentqx.demo',
+                'email' => "demo_{$timestamp}_" . strtolower($profile['last_name']) . '@octopus-ai.demo',
                 'phone' => '+905550000' . rand(100, 999),
                 'country_code' => $profile['country_code'],
                 'preferred_language' => $profile['preferred_language'],
@@ -115,7 +115,7 @@ class DemoCandidateService
                     'is_demo' => true,
                     'created_by' => 'demo_system',
                     'registration_ip' => '127.0.0.1',
-                    'registration_ua' => 'TalentQX Demo System',
+                    'registration_ua' => 'Octopus AI Demo System',
                     'registered_at' => now()->toIso8601String(),
                 ],
                 'status' => PoolCandidate::STATUS_NEW,
@@ -177,7 +177,7 @@ class DemoCandidateService
             ]);
 
             // 6. Attach demo video
-            $videoUrl = 'https://app.talentqx.com/demo/video/' . $candidate->id;
+            $videoUrl = 'https://octopus-ai.net/demo/video/' . $candidate->id;
             try {
                 $this->featureService->attachVideoAssessment(
                     $interview->id,

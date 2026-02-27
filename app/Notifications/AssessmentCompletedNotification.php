@@ -27,8 +27,10 @@ class AssessmentCompletedNotification extends Notification implements ShouldQueu
         $job = $this->interview->job;
         $company = $job->company;
 
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+
         return (new MailMessage)
-            ->subject("Octopus AI – Değerlendirmeniz tamamlandı – {$job->title}")
+            ->subject("{$brandName} – Değerlendirmeniz tamamlandı – {$job->title}")
             ->greeting("Merhaba {$candidate->first_name},")
             ->line("{$company->name} bünyesindeki **{$job->title}** pozisyonu için tamamladığınız mülakatın değerlendirmesi sonuçlanmıştır.")
             ->line("Sonuçlarınız İK ekibimiz tarafından incelenmektedir. Süreçle ilgili gelişmeler size ayrıca bildirilecektir.")

@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\MessageOutbox;
 use App\Models\User;
 use App\Services\Outbox\OutboxService;
+use App\Support\BrandConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,7 @@ class PasswordResetService
     public function __construct(
         protected OutboxService $outboxService
     ) {
-        $this->baseUrl = config('app.frontend_url', config('app.url', 'https://talentqx.com'));
+        $this->baseUrl = config('app.frontend_url', config('app.url', 'https://octopus-ai.net'));
     }
 
     /**
@@ -36,14 +37,17 @@ class PasswordResetService
     public function sendResetLink(User $user, ?string $ipAddress = null, ?string $userAgent = null): bool
     {
         try {
+            // Use the user's DB connection for token storage
+            $connection = $user->getConnectionName() ?: config('database.default');
+
             // Generate secure token
-            $token = $this->createToken($user->email);
+            $token = $this->createToken($user->email, $connection);
 
             // Build reset URL
-            $resetUrl = $this->buildResetUrl($token, $user->email);
+            $resetUrl = $this->buildResetUrl($token, $user);
 
             // Queue email via Outbox
-            $this->queueResetEmail($user, $resetUrl);
+            $this->queueResetEmail($user, $resetUrl, $connection);
 
             // Audit log
             $this->logAuditEvent(
@@ -80,9 +84,19 @@ class PasswordResetService
      */
     public function verifyToken(string $email, string $token): ?User
     {
-        $record = DB::table('password_reset_tokens')
-            ->where('email', $email)
-            ->first();
+        // Try both DB connections for the token
+        $record = null;
+        $tokenConnection = null;
+
+        foreach ([config('database.default'), $this->altConnection()] as $conn) {
+            $record = DB::connection($conn)->table('password_reset_tokens')
+                ->where('email', $email)
+                ->first();
+            if ($record) {
+                $tokenConnection = $conn;
+                break;
+            }
+        }
 
         if (!$record) {
             return null;
@@ -97,11 +111,17 @@ class PasswordResetService
         $createdAt = \Carbon\Carbon::parse($record->created_at);
         if ($createdAt->addMinutes(self::TOKEN_EXPIRY_MINUTES)->isPast()) {
             // Clean up expired token
-            $this->deleteToken($email);
+            $this->deleteToken($email, $tokenConnection);
             return null;
         }
 
-        return User::where('email', $email)->first();
+        // Find user in either DB
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            $user = User::on($this->altConnection())->where('email', $email)->first();
+        }
+
+        return $user;
     }
 
     /**
@@ -120,7 +140,8 @@ class PasswordResetService
         ?string $userAgent = null
     ): bool {
         try {
-            DB::beginTransaction();
+            $connection = $user->getConnectionName() ?: config('database.default');
+            DB::connection($connection)->beginTransaction();
 
             // Update password
             $user->update([
@@ -129,8 +150,10 @@ class PasswordResetService
                 'password_changed_at' => now(),
             ]);
 
-            // Delete the used token
-            $this->deleteToken($user->email);
+            // Delete the used token (check both connections)
+            $this->deleteToken($user->email, $connection);
+            // Also clean from the other DB if it exists there
+            $this->deleteToken($user->email, $this->altConnection($connection));
 
             // Invalidate all existing tokens for security
             $user->tokens()->delete();
@@ -143,7 +166,7 @@ class PasswordResetService
                 $userAgent
             );
 
-            DB::commit();
+            DB::connection($connection)->commit();
 
             Log::info('Password reset completed', [
                 'user_id' => $user->id,
@@ -153,7 +176,7 @@ class PasswordResetService
             return true;
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection($connection)->rollBack();
 
             Log::error('Password reset failed', [
                 'user_id' => $user->id,
@@ -243,16 +266,19 @@ class PasswordResetService
      * @param string $email
      * @return string Plain token (to be sent to user)
      */
-    protected function createToken(string $email): string
+    protected function createToken(string $email, ?string $connection = null): string
     {
-        // Delete any existing tokens for this email
-        $this->deleteToken($email);
+        $conn = $connection ?: config('database.default');
+
+        // Delete any existing tokens for this email (from both DBs)
+        $this->deleteToken($email, $conn);
+        $this->deleteToken($email, $this->altConnection($conn));
 
         // Generate secure random token
         $token = Str::random(64);
 
-        // Store hashed token
-        DB::table('password_reset_tokens')->insert([
+        // Store hashed token on the user's DB connection
+        DB::connection($conn)->table('password_reset_tokens')->insert([
             'email' => $email,
             'token' => Hash::make($token),
             'created_at' => now(),
@@ -267,23 +293,46 @@ class PasswordResetService
      * @param string $email
      * @return void
      */
-    protected function deleteToken(string $email): void
+    protected function deleteToken(string $email, ?string $connection = null): void
     {
-        DB::table('password_reset_tokens')
-            ->where('email', $email)
-            ->delete();
+        $conn = $connection ?: config('database.default');
+        try {
+            DB::connection($conn)->table('password_reset_tokens')
+                ->where('email', $email)
+                ->delete();
+        } catch (\Exception $e) {
+            // Silently ignore if table doesn't exist on this connection
+        }
     }
 
     /**
      * Build the reset URL.
      *
      * @param string $token
-     * @param string $email
+     * @param User|string $userOrEmail
      * @return string
      */
-    protected function buildResetUrl(string $token, string $email): string
+    protected function buildResetUrl(string $token, User|string $userOrEmail): string
     {
-        return $this->baseUrl . '/reset-password?' . http_build_query([
+        if ($userOrEmail instanceof User) {
+            $user = $userOrEmail;
+            $email = $user->email;
+        } else {
+            $email = $userOrEmail;
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                $user = User::on($this->altConnection())->where('email', $email)->first();
+            }
+        }
+
+        $platform = $user?->company?->platform ?? 'talentqx';
+        $brand = BrandConfig::for($platform);
+        $domain = $brand['domain'] ?? 'talentqx.com';
+        $frontendBase = $domain === 'talentqx.com'
+            ? 'https://app.talentqx.com'
+            : 'https://' . $domain;
+
+        return $frontendBase . '/reset-password?' . http_build_query([
             'token' => $token,
             'email' => $email,
         ]);
@@ -296,8 +345,17 @@ class PasswordResetService
      * @param string $resetUrl
      * @return void
      */
-    protected function queueResetEmail(User $user, string $resetUrl): void
+    protected function queueResetEmail(User $user, string $resetUrl, ?string $connection = null): void
     {
+        // Use the user's DB connection for outbox insertion
+        $prevDefault = config('database.default');
+        $conn = $connection ?: $user->getConnectionName() ?: $prevDefault;
+
+        // Temporarily switch default connection so MessageOutbox model uses the right DB
+        if ($conn !== $prevDefault) {
+            config(['database.default' => $conn]);
+        }
+
         try {
             $this->outboxService->queueFromTemplate(
                 'password_reset',
@@ -313,7 +371,7 @@ class PasswordResetService
                     'recipient_name' => $user->full_name,
                     'related_type' => 'user',
                     'related_id' => $user->id,
-                    'priority' => 20, // High priority for security emails
+                    'priority' => 20,
                     'metadata' => [
                         'type' => 'password_reset',
                         'token_expiry_minutes' => self::TOKEN_EXPIRY_MINUTES,
@@ -331,7 +389,7 @@ class PasswordResetService
                 'channel' => MessageOutbox::CHANNEL_EMAIL,
                 'recipient' => $user->email,
                 'recipient_name' => $user->full_name,
-                'subject' => 'Şifre Sıfırlama Talebi - TalentQX',
+                'subject' => 'Şifre Sıfırlama Talebi - ' . $this->brandNameForUser($user),
                 'body' => $this->buildDefaultResetEmailBody($user, $resetUrl),
                 'related_type' => 'user',
                 'related_id' => $user->id,
@@ -341,6 +399,11 @@ class PasswordResetService
                     'token_expiry_minutes' => self::TOKEN_EXPIRY_MINUTES,
                 ],
             ]);
+        } finally {
+            // Restore original default connection
+            if ($conn !== $prevDefault) {
+                config(['database.default' => $prevDefault]);
+            }
         }
     }
 
@@ -353,12 +416,33 @@ class PasswordResetService
      */
     protected function buildDefaultResetEmailBody(User $user, string $resetUrl): string
     {
+        $brand = $this->brandNameForUser($user);
         return "Merhaba {$user->full_name},\n\n" .
-            "TalentQX hesabınız için şifre sıfırlama talebi aldık.\n\n" .
+            "{$brand} hesabınız için şifre sıfırlama talebi aldık.\n\n" .
             "Aşağıdaki bağlantı " . self::TOKEN_EXPIRY_MINUTES . " dakika boyunca geçerlidir:\n" .
             "{$resetUrl}\n\n" .
             "Eğer bu talebi siz yapmadıysanız bu e-postayı dikkate almayın.\n\n" .
-            "TalentQX";
+            $brand;
+    }
+
+    /**
+     * Get the alternate database connection name.
+     */
+    private function altConnection(?string $current = null): string
+    {
+        $conn = $current ?: config('database.default');
+        return $conn === 'mysql_talentqx' ? 'mysql' : 'mysql_talentqx';
+    }
+
+    private function brandNameForUser(User $user): string
+    {
+        // Determine platform from user's company, or from current request brand key
+        $platform = $user->company?->platform;
+        if (!$platform) {
+            $brandKey = request()->header('X-Brand-Key');
+            $platform = $brandKey === 'talentqx' ? 'talentqx' : 'octopus';
+        }
+        return BrandConfig::brandName($platform);
     }
 
     /**
@@ -378,18 +462,32 @@ class PasswordResetService
         ?string $userAgent = null,
         array $extraData = []
     ): void {
-        AuditLog::create([
-            'user_id' => $user->id,
-            'company_id' => $user->company_id,
-            'action' => $action,
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
-            'ip_address' => $ipAddress,
-            'user_agent' => $userAgent,
-            'new_values' => array_merge([
-                'email' => $user->email,
-            ], $extraData),
-        ]);
+        try {
+            // Use user's DB connection for audit log to avoid FK constraint issues
+            $conn = $user->getConnectionName() ?: config('database.default');
+            $audit = new AuditLog();
+            $audit->setConnection($conn);
+            $audit->fill([
+                'user_id' => $user->id,
+                'company_id' => $user->company_id,
+                'action' => $action,
+                'entity_type' => 'user',
+                'entity_id' => $user->id,
+                'ip_address' => $ipAddress,
+                'user_agent' => $userAgent,
+                'new_values' => array_merge([
+                    'email' => $user->email,
+                ], $extraData),
+            ]);
+            $audit->save();
+        } catch (\Exception $e) {
+            // Audit log failure should not prevent password operations
+            Log::warning('Audit log failed for password operation', [
+                'action' => $action,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -409,7 +507,7 @@ class PasswordResetService
                 $user->email,
                 [
                     'name' => $user->full_name,
-                    'company' => $user->company?->name ?? 'TalentQX',
+                    'company' => $user->company?->name ?? $this->brandNameForUser($user),
                     'login_link' => $loginUrl,
                 ],
                 [

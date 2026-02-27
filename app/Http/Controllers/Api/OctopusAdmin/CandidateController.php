@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\OctopusAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\BehavioralProfile;
 use App\Models\CandidateCredential;
 use App\Models\CandidateScoringVector;
@@ -11,13 +12,19 @@ use App\Models\LanguageAssessment;
 use App\Models\PoolCandidate;
 use App\Helpers\RadarChartGenerator;
 use App\Jobs\SendInterviewInvitationJob;
+use App\Models\CandidateConsent;
 use App\Models\CandidateDecisionOverride;
+use App\Models\CandidatePhaseReview;
+use App\Models\DecisionAuditLog;
 use App\Models\InterviewInvitation;
+use App\Models\MarketplaceAccessRequest;
+use App\Models\VoiceTranscription;
 use App\Services\ExecutiveSummary\ExecutiveSummaryBuilder;
 use App\Services\Maritime\CertificateLifecycleService;
 use App\Services\Behavioral\VesselFitEvidenceService;
 use App\Services\Behavioral\VesselFitProvenanceService;
 use App\Services\Fleet\CrewSynergyEngineV2;
+use App\Services\KVKK\PoolCandidateErasureService;
 use App\Services\Trust\CrewReliabilityCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -429,12 +436,30 @@ class CandidateController extends Controller
             'expires_at' => 'nullable|date|after:now',
         ]);
 
+        // Fetch previous override for old_state tracking
+        $previousOverride = CandidateDecisionOverride::where('candidate_id', $candidate->id)
+            ->latest()
+            ->first();
+
         $override = CandidateDecisionOverride::create([
             'candidate_id' => $candidate->id,
             'decision' => $validated['decision'],
             'reason' => $validated['reason'],
             'created_by' => $request->user()?->id,
             'expires_at' => $validated['expires_at'] ?? null,
+        ]);
+
+        DecisionAuditLog::create([
+            'candidate_id' => $candidate->id,
+            'action' => DecisionAuditLog::ACTION_OVERRIDE,
+            'performed_by' => $request->user()?->id,
+            'old_state' => $previousOverride?->decision,
+            'new_state' => $validated['decision'],
+            'reason' => $validated['reason'],
+            'metadata' => [
+                'ip_address' => $request->ip(),
+                'override_id' => $override->id,
+            ],
         ]);
 
         return response()->json([
@@ -515,7 +540,7 @@ class CandidateController extends Controller
      *
      * Download decision packet PDF for shipowners.
      */
-    public function decisionPacketPdf(string $id)
+    public function decisionPacketPdf(string $id, Request $request)
     {
         $candidate = PoolCandidate::where('primary_industry', 'maritime')
             ->with(['trustProfile', 'contracts.latestAisVerification', 'credentials', 'certificates'])
@@ -581,6 +606,124 @@ class CandidateController extends Controller
             }
         }
 
+        // --- V2: English Gate / Voice Data ---
+        $englishGateData = null;
+        if ($interview) {
+            $meta = $interview->meta ?? [];
+            $langAssessment = LanguageAssessment::forCandidate($candidate->id);
+            $voiceTranscriptions = VoiceTranscription::where('interview_id', $interview->id)
+                ->where('status', 'done')
+                ->get();
+
+            $totalTranscriptLength = $voiceTranscriptions->sum(fn($vt) => mb_strlen($vt->transcript_text ?? ''));
+            $totalVoiceDuration = $voiceTranscriptions->sum('duration_ms');
+
+            $englishGateData = [
+                'cefr_level' => $meta['english_gate_cefr'] ?? $langAssessment?->estimated_level,
+                'confidence' => $meta['english_gate_confidence'] ?? $langAssessment?->confidence,
+                'declared_level' => $langAssessment?->declared_level,
+                'estimated_level' => $langAssessment?->estimated_level,
+                'locked_level' => $langAssessment?->locked_level,
+                'transcript_length' => $totalTranscriptLength,
+                'voice_duration_ms' => $totalVoiceDuration,
+                'voice_count' => $voiceTranscriptions->count(),
+                'provider' => $voiceTranscriptions->first()?->provider,
+                'model' => $voiceTranscriptions->first()?->model,
+            ];
+
+            // Only include if there's actual data
+            if (!$englishGateData['cefr_level'] && !$englishGateData['declared_level'] && $voiceTranscriptions->isEmpty()) {
+                $englishGateData = null;
+            }
+        }
+
+        // --- V2: Question Block Summary ---
+        $questionBlockSummary = null;
+        if ($interview && $interview->answers && $interview->answers->count() > 0) {
+            $answers = $interview->answers;
+            $questionBlockSummary = [
+                'core' => $answers->whereBetween('slot', [1, 12])->count(),
+                'role' => $answers->whereBetween('slot', [13, 18])->count(),
+                'safety' => $answers->whereBetween('slot', [19, 22])->count(),
+                'english' => $answers->whereBetween('slot', [23, 25])->count(),
+                'total' => $answers->count(),
+                'workflow' => ($interview->meta ?? [])['workflow'] ?? null,
+            ];
+        }
+
+        // --- V2: Admin Decision / Override ---
+        $phaseReviews = CandidatePhaseReview::where('candidate_id', $candidate->id)
+            ->orderByDesc('reviewed_at')
+            ->limit(10)
+            ->get();
+
+        $latestOverride = CandidateDecisionOverride::where('candidate_id', $candidate->id)
+            ->latest()
+            ->first();
+
+        $adminDecisionData = [
+            'phase_reviews' => $phaseReviews->map(fn($pr) => [
+                'phase_key' => $pr->phase_key,
+                'status' => $pr->status,
+                'review_notes' => $pr->review_notes,
+                'reviewed_at' => $pr->reviewed_at?->format('d M Y H:i'),
+            ])->toArray(),
+            'override' => $latestOverride ? [
+                'decision' => $latestOverride->decision,
+                'reason' => $latestOverride->reason,
+                'active' => $latestOverride->expires_at === null || $latestOverride->expires_at->isFuture(),
+                'created_at' => $latestOverride->created_at?->format('d M Y H:i'),
+                'expires_at' => $latestOverride->expires_at?->format('d M Y H:i'),
+            ] : null,
+        ];
+
+        // --- V2: Marketplace Data ---
+        $marketplaceData = MarketplaceAccessRequest::where('candidate_id', $candidate->id)
+            ->with('requestingCompany')
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn($mar) => [
+                'requesting_company' => $mar->requestingCompany?->name ?? 'Unknown',
+                'status' => $mar->status,
+                'requested_at' => $mar->created_at?->format('d M Y'),
+                'responded_at' => $mar->responded_at?->format('d M Y'),
+            ])
+            ->toArray();
+
+        // --- V2: Consent Snapshot ---
+        $consentSnapshot = [];
+        if ($interview) {
+            $consentSnapshot = CandidateConsent::where('form_interview_id', $interview->id)
+                ->get()
+                ->map(fn($c) => [
+                    'type' => $c->consent_type,
+                    'regulation' => $c->regulation,
+                    'version' => $c->consent_version,
+                    'granted' => $c->granted,
+                    'valid' => $c->isValid(),
+                    'consented_at' => $c->consented_at?->format('d M Y H:i'),
+                    'ip' => $c->ip_address,
+                ])
+                ->toArray();
+        }
+
+        // --- V2: Audit Log on Download ---
+        $name = str_replace(' ', '_', $candidate->first_name . '_' . $candidate->last_name);
+        $filename = "Decision_Packet_{$name}_" . date('Y-m-d') . '.pdf';
+
+        DecisionAuditLog::create([
+            'candidate_id' => $candidate->id,
+            'interview_id' => $interview?->id,
+            'action' => DecisionAuditLog::ACTION_DOWNLOAD_PACKET,
+            'performed_by' => $request->user()?->id,
+            'metadata' => [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'filename' => $filename,
+            ],
+        ]);
+
         $pdf = Pdf::loadView('pdf.decision-packet', [
             'candidate' => $candidate,
             'interview' => $interview,
@@ -593,14 +736,87 @@ class CandidateController extends Controller
             'certificateRisks' => $certificateRisks,
             'vesselFitEvidence' => $vesselFitEvidence,
             'compatibilityData' => $compatibilityData,
+            // V2 additions
+            'englishGateData' => $englishGateData,
+            'questionBlockSummary' => $questionBlockSummary,
+            'adminDecisionData' => $adminDecisionData,
+            'marketplaceData' => $marketplaceData,
+            'consentSnapshot' => $consentSnapshot,
         ]);
 
         $pdf->setPaper('A4', 'portrait');
 
-        $name = str_replace(' ', '_', $candidate->first_name . '_' . $candidate->last_name);
-        $filename = "Decision_Packet_{$name}_" . date('Y-m-d') . '.pdf';
-
         return $pdf->download($filename);
+    }
+
+    /**
+     * DELETE /v1/octopus/admin/candidates/{id}/erase
+     *
+     * KVKK right-to-erasure: anonymize all PII, cascade to voice/interviews/certificates.
+     */
+    public function eraseCandidate(string $id, Request $request, PoolCandidateErasureService $service): JsonResponse
+    {
+        $candidate = PoolCandidate::where('primary_industry', 'maritime')->find($id);
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|min:5|max:500',
+        ]);
+
+        $result = $service->erase($candidate, $validated['reason'], $request->user()?->id);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Candidate data erased successfully.',
+            'erased_types' => $result['erased_types'],
+        ]);
+    }
+
+    /**
+     * GET /v1/octopus/admin/candidates/{id}/data-export
+     *
+     * KVKK data portability: export all candidate data as JSON.
+     */
+    public function exportCandidateData(string $id, Request $request, PoolCandidateErasureService $service): JsonResponse
+    {
+        $candidate = PoolCandidate::where('primary_industry', 'maritime')->find($id);
+
+        if (!$candidate) {
+            return response()->json(['success' => false, 'message' => 'Candidate not found'], 404);
+        }
+
+        if ($candidate->is_erased) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Candidate data has already been erased.',
+            ], 410);
+        }
+
+        $data = $service->exportData($candidate);
+
+        // Audit log for the export action
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'kvkk_data_export',
+            'entity_type' => PoolCandidate::class,
+            'entity_id' => $candidate->id,
+            'metadata' => ['ip_address' => $request->ip()],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     private function formatLanguageAssessment(string $candidateId): ?array

@@ -57,6 +57,7 @@ class PackageController extends Controller
                 'price_try' => (float) $package->price_try,
                 'price_eur' => (float) $package->price_eur,
                 'description' => $package->description,
+                'features' => $package->features,
                 'is_featured' => $package->is_featured,
             ],
         ]);

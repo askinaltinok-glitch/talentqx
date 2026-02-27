@@ -3,6 +3,7 @@
 namespace App\Services\QRCode;
 
 use App\Models\Job;
+use App\Support\BrandConfig;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,10 +12,11 @@ class QRCodeService
     protected string $bucket = 'talentqx-files';
     protected string $baseUrl;
     protected ?bool $qrAvailable = null;
+    protected ?bool $s3Available = null;
 
     public function __construct()
     {
-        $this->baseUrl = config('app.url', 'https://talentqx.com');
+        $this->baseUrl = config('app.url', 'https://octopus-ai.net');
     }
 
     /**
@@ -26,6 +28,18 @@ class QRCodeService
             $this->qrAvailable = class_exists(\SimpleSoftwareIO\QrCode\Facades\QrCode::class);
         }
         return $this->qrAvailable;
+    }
+
+    /**
+     * Check if S3/MinIO storage is configured.
+     */
+    protected function isS3Available(): bool
+    {
+        if ($this->s3Available === null) {
+            $this->s3Available = !empty(config('filesystems.disks.s3.region'))
+                && !empty(config('filesystems.disks.s3.bucket'));
+        }
+        return $this->s3Available;
     }
 
     /**
@@ -41,9 +55,17 @@ class QRCodeService
 
         $applyUrl = $this->buildApplyUrl($job);
 
+        // Persist apply_url without triggering observers (prevents recursion via JobObserver)
+        $job->apply_url = $applyUrl;
+        $job->saveQuietly();
+
         if (!$this->isQrAvailable()) {
             Log::info('QR code library not available, skipping generation');
-            $job->update(['apply_url' => $applyUrl]);
+            return null;
+        }
+
+        // Skip S3 storage if not configured — apply_url is already set
+        if (!$this->isS3Available()) {
             return null;
         }
 
@@ -65,15 +87,13 @@ class QRCodeService
             ]);
 
             if (!$stored) {
-                Log::error('Failed to store QR code', ['path' => $filePath]);
+                Log::warning('Failed to store QR code to S3, apply_url still set', ['path' => $filePath]);
                 return null;
             }
 
-            // Update job record
-            $job->update([
-                'apply_url' => $applyUrl,
-                'qr_file_path' => $filePath,
-            ]);
+            // Update job record with file path (quiet to prevent observer recursion)
+            $job->qr_file_path = $filePath;
+            $job->saveQuietly();
 
             Log::info('QR code generated', [
                 'job_id' => $job->id,
@@ -84,7 +104,7 @@ class QRCodeService
             return $filePath;
 
         } catch (\Exception $e) {
-            Log::error('QR code generation failed', [
+            Log::warning('QR code file storage failed, apply_url still set', [
                 'job_id' => $job->id,
                 'error' => $e->getMessage(),
             ]);
@@ -140,7 +160,7 @@ class QRCodeService
 
     /**
      * Build the apply URL for a job using public token.
-     * URL format: /i/{public_token}
+     * Brand-aware: octopus → octopus-ai.net, talentqx → app.talentqx.com
      */
     public function buildApplyUrl(Job $job): string
     {
@@ -150,7 +170,14 @@ class QRCodeService
             $job->refresh();
         }
 
-        return "{$this->baseUrl}/i/{$job->public_token}";
+        // Resolve frontend domain from company's platform
+        $platform = $job->company?->platform ?? 'talentqx';
+        $frontendBase = match ($platform) {
+            'octopus' => 'https://octopus-ai.net',
+            default   => 'https://app.talentqx.com',
+        };
+
+        return "{$frontendBase}/i/{$job->public_token}";
     }
 
     /**

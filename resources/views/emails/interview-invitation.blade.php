@@ -29,7 +29,7 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <span class="emoji">{{ $brand['header_emoji'] ?? '' }}</span>
+        @include('emails.partials.logo')
         <h1>{{ $brand['name'] ?? 'Octopus AI' }}</h1>
     </div>
 

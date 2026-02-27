@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'name' => env('APP_NAME', 'TalentQX'),
+    'name' => env('APP_NAME', 'Octopus AI'),
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
-    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'https://octopus-ai.net')),
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'https://talentqx.com')),
     'timezone' => env('APP_TIMEZONE', 'Europe/Istanbul'),
     'locale' => env('APP_LOCALE', 'tr'),
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),

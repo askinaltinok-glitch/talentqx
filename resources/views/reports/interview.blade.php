@@ -578,7 +578,7 @@
         @if($branding['logo_url'])
             <img src="{{ $branding['logo_url'] }}" alt="Logo" class="cover-logo">
         @else
-            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;">{{ $branding['company_name'] ?? 'TalentQX' }}</div>
+            <div class="header-brand-text" style="font-size: 24pt; margin-bottom: 40px;">{{ $branding['company_name'] ?? 'Octopus AI' }}</div>
         @endif
 
         <h1 class="cover-title">{{ $locale === 'tr' ? 'Aday Değerlendirme Raporu' : 'Candidate Assessment Report' }}</h1>
@@ -633,7 +633,7 @@
     <div class="footer">
         <div class="footer-left">
             <span class="footer-confidential">{{ $locale === 'tr' ? 'Gizli' : 'Confidential' }}</span>
-            <span>{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+            <span>{{ $branding['company_name'] ?? 'Octopus AI' }}</span>
         </div>
         <span>{{ $locale === 'tr' ? 'Sayfa' : 'Page' }} 1 / 4</span>
     </div>
@@ -650,7 +650,7 @@
             @if($branding['logo_url'])
                 <img src="{{ $branding['logo_url'] }}" alt="Logo">
             @else
-                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'Octopus AI' }}</span>
             @endif
         </div>
         <div class="header-meta">
@@ -798,7 +798,7 @@
             @if($branding['logo_url'])
                 <img src="{{ $branding['logo_url'] }}" alt="Logo">
             @else
-                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'Octopus AI' }}</span>
             @endif
         </div>
         <div class="header-meta">
@@ -974,7 +974,7 @@
             @if($branding['logo_url'])
                 <img src="{{ $branding['logo_url'] }}" alt="Logo">
             @else
-                <span class="header-brand-text">{{ $branding['company_name'] ?? 'TalentQX' }}</span>
+                <span class="header-brand-text">{{ $branding['company_name'] ?? 'Octopus AI' }}</span>
             @endif
         </div>
         <div class="header-meta">
@@ -1075,7 +1075,7 @@
             @if($branding['company_name'])
                 {{ $branding['company_name'] }} |
             @endif
-            Powered by TalentQX
+            Powered by Octopus AI
         </p>
     </div>
 

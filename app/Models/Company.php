@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BrandConfig;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Company extends Model
 {
     use HasFactory, HasUuids;
+
+    public const PLATFORM_OCTOPUS = 'octopus';
+    public const PLATFORM_TALENTQX = 'talentqx';
 
     public static function booted(): void
     {
@@ -24,6 +28,7 @@ class Company extends Model
 
     protected $fillable = [
         'name',
+        'platform',
         'slug',
         'logo_url',
         'brand_email_reply_to',
@@ -53,6 +58,7 @@ class Company extends Model
         'billing_city',
         'billing_postal_code',
         'billing_email',
+        'billing_phone',
     ];
 
     protected $casts = [
@@ -81,6 +87,63 @@ class Company extends Model
      * Default grace period in days after subscription expires.
      */
     public const DEFAULT_GRACE_PERIOD_DAYS = 60;
+
+    public function scopeOctopus($query)
+    {
+        return $query->where('platform', self::PLATFORM_OCTOPUS);
+    }
+
+    public function scopeTalentqx($query)
+    {
+        return $query->where('platform', self::PLATFORM_TALENTQX);
+    }
+
+    public function scopeForPlatform($query, string $platform)
+    {
+        return $query->where('platform', $platform);
+    }
+
+    public function isOctopus(): bool
+    {
+        return $this->platform === self::PLATFORM_OCTOPUS;
+    }
+
+    public function isTalentqx(): bool
+    {
+        return $this->platform === self::PLATFORM_TALENTQX;
+    }
+
+    /**
+     * Get the full brand config array for this company's platform.
+     */
+    public function brandConfig(): array
+    {
+        return BrandConfig::forCompany($this);
+    }
+
+    /**
+     * Get the login URL for this company's platform.
+     */
+    public function getLoginUrl(): string
+    {
+        return BrandConfig::loginUrl($this->platform ?? self::PLATFORM_OCTOPUS);
+    }
+
+    /**
+     * Get the support email for this company's platform.
+     */
+    public function getSupportEmail(): string
+    {
+        return BrandConfig::supportEmail($this->platform ?? self::PLATFORM_OCTOPUS);
+    }
+
+    /**
+     * Get the brand display name for this company's platform.
+     */
+    public function getPlatformBrandName(): string
+    {
+        return BrandConfig::brandName($this->platform ?? self::PLATFORM_OCTOPUS);
+    }
 
     public function companyVessels(): HasMany
     {
@@ -212,7 +275,7 @@ class Company extends Model
      */
     public function getEmailReplyTo(): string
     {
-        return $this->brand_email_reply_to ?: config('mail.reply_to.address', 'support@talentqx.com');
+        return $this->brand_email_reply_to ?: config('mail.reply_to.address', 'support@octopus-ai.net');
     }
 
     /**
@@ -228,7 +291,7 @@ class Company extends Model
      */
     public function getEmailFromName(): string
     {
-        return "TalentQX | {$this->name}";
+        return "{$this->getPlatformBrandName()} | {$this->name}";
     }
 
     /**
@@ -347,6 +410,7 @@ class Company extends Model
             'city' => $this->billing_city,
             'postal_code' => $this->billing_postal_code,
             'email' => $this->billing_email ?: $this->users()->first()?->email,
+            'phone' => $this->billing_phone,
         ];
     }
 

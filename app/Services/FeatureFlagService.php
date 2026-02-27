@@ -36,6 +36,7 @@ class FeatureFlagService
     {
         return match ($featureKey) {
             'crew_synergy_engine_v2' => (bool) config('features.crew_synergy_engine_v2_global', false),
+            'competency_model_v1' => (bool) config('features.competency_model_v1', false),
             default => false,
         };
     }

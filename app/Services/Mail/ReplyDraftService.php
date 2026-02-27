@@ -111,7 +111,7 @@ class ReplyDraftService
 
         // Use persona if available, otherwise fall back to mailbox-based role
         if (!empty($persona['tone'])) {
-            $personaName = $persona['name'] ?? 'TalentQX';
+            $personaName = $persona['name'] ?? 'Octopus AI';
             $personaTitle = $persona['title'] ?? 'Team';
             $personaTone = $persona['tone'];
             $personaSignature = $persona['signature'] ?? "Best regards,\n{$personaName}";
@@ -120,11 +120,11 @@ class ReplyDraftService
             $signOff = "Sign off with:\n{$personaSignature}";
         } else {
             $roleInstructions = match ($mailbox) {
-                'crew' => 'You are a maritime recruitment specialist at TalentQX. You handle crew inquiries, seafarer applications, and certificate questions. Be knowledgeable about STCW, maritime ranks, and vessel types.',
-                'companies' => 'You are a B2B business development representative at TalentQX. You handle company partnerships, pricing inquiries, and service proposals for maritime and HR companies.',
-                default => 'You are a professional customer service representative at TalentQX, a maritime recruitment and HR technology company.',
+                'crew' => 'You are a maritime recruitment specialist at Octopus AI. You handle crew inquiries, seafarer applications, and certificate questions. Be knowledgeable about STCW, maritime ranks, and vessel types.',
+                'companies' => 'You are a B2B business development representative at Octopus AI. You handle company partnerships, pricing inquiries, and service proposals for maritime and HR companies.',
+                default => 'You are a professional customer service representative at Octopus AI, a maritime recruitment and HR technology company.',
             };
-            $signOff = 'Sign off as "TalentQX Team" or appropriate for the mailbox';
+            $signOff = 'Sign off as "Octopus AI Team" or appropriate for the mailbox';
         }
 
         // Build objection handling block if handlers exist for this industry
@@ -196,7 +196,7 @@ PROMPT;
     private function resolveFromEmail(string $mailbox): string
     {
         $mailboxes = config('crm_mailboxes.mailboxes', []);
-        return $mailboxes[$mailbox]['username'] ?? "info@talentqx.com";
+        return $mailboxes[$mailbox]['username'] ?? "info@octopus-ai.net";
     }
 
     /**
@@ -217,11 +217,11 @@ PROMPT;
 
         $personas = config('crm_mail.personas', []);
         return $personas[$personaKey] ?? [
-            'name' => 'TalentQX',
+            'name' => 'Octopus AI',
             'title' => 'Team',
-            'from_email' => 'info@talentqx.com',
+            'from_email' => 'info@octopus-ai.net',
             'tone' => 'Professional, concise',
-            'signature' => "Best regards,\nTalentQX Team",
+            'signature' => "Best regards,\nOctopus AI Team",
         ];
     }
 }

@@ -5,9 +5,11 @@ namespace App\Console\Commands;
 use App\Models\CandidateConsent;
 use App\Models\FormInterview;
 use App\Models\RetentionAuditLog;
+use App\Models\VoiceTranscription;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class RetentionCleanupCommand extends Command
 {
@@ -21,6 +23,8 @@ class RetentionCleanupCommand extends Command
     private int $deletedIncompleteCount = 0;
     private int $anonymizedCompletedCount = 0;
     private int $deletedOrphanConsentsCount = 0;
+    private int $deletedVoiceAudioCount = 0;
+    private int $anonymizedVoiceTranscriptsCount = 0;
     private int $errorsCount = 0;
 
     private int $batchSize;
@@ -58,6 +62,9 @@ class RetentionCleanupCommand extends Command
         // Step 3: Cleanup orphan consents
         $this->cleanupOrphanConsents();
 
+        // Step 4: Voice audio cleanup (delete files > 1y, anonymize transcripts > 2y)
+        $this->cleanupVoiceData();
+
         // Calculate duration
         $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
@@ -75,6 +82,8 @@ class RetentionCleanupCommand extends Command
                 ['Deleted (incomplete > 90d)', $this->deletedIncompleteCount],
                 ['Anonymized (completed > 2y)', $this->anonymizedCompletedCount],
                 ['Orphan consents deleted', $this->deletedOrphanConsentsCount],
+                ['Voice audio deleted (> 1y)', $this->deletedVoiceAudioCount],
+                ['Voice transcripts anonymized (> 2y)', $this->anonymizedVoiceTranscriptsCount],
                 ['Errors', $this->errorsCount],
                 ['Duration', $durationMs . 'ms'],
             ]
@@ -324,6 +333,73 @@ class RetentionCleanupCommand extends Command
     }
 
     /**
+     * Step 4: Cleanup voice data — delete audio files > 1 year, anonymize transcripts > 2 years
+     */
+    private function cleanupVoiceData(): void
+    {
+        $audioCutoff = now()->subDays(config('retention.periods.voice_audio.default', 365));
+        $transcriptCutoff = now()->subDays(config('retention.periods.voice_transcripts.default', 730));
+
+        // 4a: Delete audio files older than retention period
+        $this->info("Step 4a: Deleting voice audio files older than 1 year ({$audioCutoff->toDateString()})...");
+
+        $audioQuery = VoiceTranscription::whereNotNull('audio_path')
+            ->where('audio_path', '!=', '')
+            ->where('created_at', '<', $audioCutoff);
+
+        $audioTotal = $audioQuery->count();
+        $this->info("  Found {$audioTotal} voice audio records to purge");
+
+        if ($audioTotal > 0) {
+            $deletedAudio = 0;
+
+            $audioQuery->chunkById($this->batchSize, function ($batch) use (&$deletedAudio) {
+                foreach ($batch as $vt) {
+                    try {
+                        if (!$this->dryRun && $vt->audio_path) {
+                            Storage::disk('local')->delete($vt->audio_path);
+                            $vt->update([
+                                'audio_path' => null,
+                                'audio_size_bytes' => null,
+                                'audio_sha256' => null,
+                            ]);
+                        }
+                        $deletedAudio++;
+                    } catch (\Exception $e) {
+                        $this->errorsCount++;
+                        Log::error('Retention cleanup: Failed to delete voice audio', [
+                            'voice_transcription_id' => $vt->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+            $this->deletedVoiceAudioCount = $deletedAudio;
+            $this->info("  Total audio files purged: {$deletedAudio}");
+        }
+
+        // 4b: Anonymize transcripts older than 2 years
+        $this->info("Step 4b: Anonymizing voice transcripts older than 2 years ({$transcriptCutoff->toDateString()})...");
+
+        $transcriptQuery = VoiceTranscription::whereNotNull('transcript_text')
+            ->where('transcript_text', '!=', '[ANONYMIZED]')
+            ->where('created_at', '<', $transcriptCutoff);
+
+        $transcriptTotal = $transcriptQuery->count();
+        $this->info("  Found {$transcriptTotal} transcripts to anonymize");
+
+        if ($transcriptTotal > 0 && !$this->dryRun) {
+            $updated = $transcriptQuery->update(['transcript_text' => '[ANONYMIZED]']);
+            $this->anonymizedVoiceTranscriptsCount = $updated;
+        } else {
+            $this->anonymizedVoiceTranscriptsCount = $transcriptTotal;
+        }
+
+        $this->info("  Total transcripts anonymized: {$this->anonymizedVoiceTranscriptsCount}");
+    }
+
+    /**
      * Write audit log entry
      */
     private function writeAuditLog(int $durationMs): void
@@ -332,6 +408,15 @@ class RetentionCleanupCommand extends Command
         if ($this->dryRun) {
             $notes[] = 'dry-run';
         }
+
+        $voiceNotes = [];
+        if ($this->deletedVoiceAudioCount > 0) {
+            $voiceNotes[] = "voice_audio_deleted={$this->deletedVoiceAudioCount}";
+        }
+        if ($this->anonymizedVoiceTranscriptsCount > 0) {
+            $voiceNotes[] = "voice_transcripts_anonymized={$this->anonymizedVoiceTranscriptsCount}";
+        }
+        $notes = array_merge($notes, $voiceNotes);
 
         RetentionAuditLog::create([
             'run_at' => now(),

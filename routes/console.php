@@ -390,6 +390,16 @@ Schedule::call(function () {
   ->withoutOverlapping();
 
 // ===========================================
+// AUDIT LOG RETENTION CLEANUP (weekly Sunday 04:00 Istanbul)
+// ===========================================
+Schedule::command('retention:audit-cleanup --force')
+    ->weeklyOn(0, '04:00')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/audit-retention.log'));
+
+// ===========================================
 // MARKETPLACE — Expire pending access requests with expired tokens (every 30 min)
 // ===========================================
 Schedule::command('marketplace:expire-requests')
@@ -398,3 +408,11 @@ Schedule::command('marketplace:expire-requests')
     ->onOneServer()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/marketplace-expire.log'));
+
+// ===========================================
+// COMPANY PANEL — Appointment reminders (every minute)
+// ===========================================
+Schedule::job(new \App\Jobs\SendAppointmentReminderJob())
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

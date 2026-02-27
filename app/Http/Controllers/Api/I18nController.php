@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 
 class I18nController extends Controller
 {
-    private const SUPPORTED_LOCALES = ['en', 'tr', 'ru', 'az', 'fil', 'id', 'uk'];
+    private const SUPPORTED_LOCALES = ['en', 'tr', 'ru', 'az', 'fil', 'id', 'uk', 'de', 'fr', 'ar'];
     private const CACHE_VERSION = 'v1';
     private const CACHE_TTL = 3600; // 1 hour
 
@@ -25,6 +25,9 @@ class I18nController extends Controller
         'fil-ph' => 'fil', 'tl' => 'fil', 'tl-ph' => 'fil',
         'id-id' => 'id', 'ms-id' => 'id',
         'uk-ua' => 'uk',
+        'de-de' => 'de', 'de-at' => 'de', 'de-ch' => 'de',
+        'fr-fr' => 'fr', 'fr-be' => 'fr', 'fr-ch' => 'fr', 'fr-ca' => 'fr',
+        'ar-sa' => 'ar', 'ar-ae' => 'ar', 'ar-eg' => 'ar', 'ar-iq' => 'ar', 'ar-jo' => 'ar', 'ar-kw' => 'ar', 'ar-lb' => 'ar', 'ar-ma' => 'ar', 'ar-qa' => 'ar',
     ];
 
     public function index(Request $request): JsonResponse

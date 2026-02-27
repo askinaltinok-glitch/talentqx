@@ -249,7 +249,7 @@ class CrmLeadController extends Controller
             'attachment_ids.*' => ['uuid', 'exists:crm_files,id'],
         ]);
 
-        $fromEmail = config('mail.from.address', 'crew@talentqx.com');
+        $fromEmail = config('mail.from.address', 'crew@octopus-ai.net');
         $subject = $v['subject'] ?? '';
         $bodyText = $v['body_text'] ?? '';
         $bodyHtml = $v['body_html'] ?? null;
@@ -261,10 +261,16 @@ class CrmLeadController extends Controller
             $template = CrmEmailTemplate::findTemplate($v['template_key'], $industry, $lang);
 
             if ($template) {
+                $user = $request->user();
                 $vars = [
                     'contact_name' => $lead->contact?->full_name ?? 'there',
                     'company_name' => $lead->company?->name ?? $lead->lead_name,
                     'lead_name' => $lead->lead_name,
+                    'sender_name' => $request->input('sender_name', $user?->name ?? 'Octopus AI Team'),
+                    'sender_title' => $request->input('sender_title', $user?->title ?? ''),
+                    'package_name' => $request->input('package_name', 'Starter'),
+                    'price' => $request->input('price', ''),
+                    'trial_days' => $request->input('trial_days', '14'),
                 ];
                 $rendered = $template->render($vars);
                 $subject = $rendered['subject'];
@@ -274,7 +280,7 @@ class CrmLeadController extends Controller
         }
 
         // Create message record
-        $messageId = '<' . str()->uuid() . '@talentqx.com>';
+        $messageId = '<' . str()->uuid() . '@octopus-ai.net>';
 
         $emailMsg = CrmEmailMessage::create([
             'lead_id' => $id,
@@ -305,7 +311,7 @@ class CrmLeadController extends Controller
             }
 
             Mail::raw($bodyText, function ($message) use ($fromEmail, $v, $subject, $messageId, $attachmentPaths) {
-                $message->from($fromEmail, 'TalentQX')
+                $message->from($fromEmail, 'Octopus AI')
                         ->to($v['to_email'])
                         ->subject($subject);
 

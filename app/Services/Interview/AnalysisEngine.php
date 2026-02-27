@@ -22,17 +22,21 @@ class AnalysisEngine
             return $interview->analysis;
         }
 
-        $interview->load(['responses.question', 'job']);
+        $interview->load(['responses.question', 'job', 'candidate']);
 
         $responses = $this->prepareResponsesForAnalysis($interview);
         $competencies = $interview->job->getEffectiveCompetencies();
         $redFlags = $interview->job->getEffectiveRedFlags();
 
+        // Build cultural context from interview metadata
+        $culturalContext = $this->buildCulturalContext($interview);
+
         try {
             $analysisResult = $this->llmProvider->analyzeInterview(
                 $responses,
                 $competencies,
-                $redFlags
+                $redFlags,
+                $culturalContext
             );
 
             return $this->saveAnalysis($interview, $analysisResult, $competencies);
@@ -44,6 +48,23 @@ class AnalysisEngine
 
             throw $e;
         }
+    }
+
+    /**
+     * Build cultural context for AI analysis based on interview locale and candidate country.
+     */
+    private function buildCulturalContext(Interview $interview): array
+    {
+        $locale = $interview->language ?? $interview->job->locale ?? 'tr';
+        $countryCode = $interview->country_code
+            ?? $interview->candidate?->country_code
+            ?? 'TR';
+
+        return [
+            'locale' => $locale,
+            'country' => $countryCode,
+            'culture_notes' => '',
+        ];
     }
 
     private function prepareResponsesForAnalysis(Interview $interview): array
@@ -78,7 +99,9 @@ class AnalysisEngine
             // Get the AI model info from provider
             $aiModelInfo = $this->llmProvider->getModelInfo();
 
-            return InterviewAnalysis::create([
+            $analysis = new InterviewAnalysis();
+            $analysis->setConnection($interview->getConnectionName());
+            $analysis->fill([
                 'interview_id' => $interview->id,
                 'ai_model' => $aiModelInfo['model'] ?? config('services.openai.model'),
                 'ai_model_version' => $aiModelInfo['provider'] ?? 'openai',
@@ -92,6 +115,8 @@ class AnalysisEngine
                 'raw_ai_response' => $result,
                 'question_analyses' => $result['question_analyses'] ?? [],
             ]);
+            $analysis->save();
+            return $analysis;
         });
     }
 

@@ -59,6 +59,8 @@ class Candidate extends Model
         'visibility_scope',
         'marketplace_consent',
         'marketplace_consent_at',
+        'hired_email_sent_at',
+        'rejected_email_sent_at',
     ];
 
     protected $casts = [
@@ -70,6 +72,8 @@ class Candidate extends Model
         'status_changed_at' => 'datetime',
         'marketplace_consent' => 'boolean',
         'marketplace_consent_at' => 'datetime',
+        'hired_email_sent_at' => 'datetime',
+        'rejected_email_sent_at' => 'datetime',
     ];
 
     protected $attributes = [

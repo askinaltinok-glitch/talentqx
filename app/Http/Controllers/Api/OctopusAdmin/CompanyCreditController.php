@@ -19,7 +19,7 @@ class CompanyCreditController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Company::query();
+        $query = Company::octopus();
 
         if ($request->filled('q')) {
             $search = $request->q;
@@ -59,7 +59,7 @@ class CompanyCreditController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $company = Company::find($id);
+        $company = Company::octopus()->find($id);
         if (!$company) {
             return response()->json(['success' => false, 'message' => 'Company not found.'], 404);
         }
@@ -95,7 +95,7 @@ class CompanyCreditController extends Controller
      */
     public function addBonus(Request $request, string $id): JsonResponse
     {
-        $company = Company::find($id);
+        $company = Company::octopus()->find($id);
         if (!$company) {
             return response()->json(['success' => false, 'message' => 'Company not found.'], 404);
         }
@@ -128,7 +128,7 @@ class CompanyCreditController extends Controller
      */
     public function resetUsage(Request $request, string $id): JsonResponse
     {
-        $company = Company::find($id);
+        $company = Company::octopus()->find($id);
         if (!$company) {
             return response()->json(['success' => false, 'message' => 'Company not found.'], 404);
         }

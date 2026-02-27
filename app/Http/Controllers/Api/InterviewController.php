@@ -12,6 +12,7 @@ use App\Models\ResponseSimilarity;
 use App\Services\AntiCheat\AntiCheatService;
 use App\Services\Billing\CreditService;
 use App\Services\Interview\AnalysisEngine;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -423,8 +424,115 @@ class InterviewController extends Controller
                 'joined_at' => $interview->joined_at,
                 'late_minutes' => $interview->late_minutes,
                 'no_show_marked_at' => $interview->no_show_marked_at,
+                // Company Competency Model fit (computed on-the-fly)
+                ...$this->computeCompanyFitForInterview($interview),
             ],
         ]);
+    }
+
+    /**
+     * Compute company fit score from interview analysis + company competency model.
+     */
+    private function computeCompanyFitForInterview(Interview $interview): array
+    {
+        if (!config('features.competency_model_v1')) {
+            return [];
+        }
+
+        try {
+            $companyId = $interview->job?->company_id;
+            $competencyScores = $interview->analysis?->competency_scores;
+
+            if (!$companyId || !$competencyScores) {
+                return [];
+            }
+
+            $result = app(\App\Services\CompanyCompetencyService::class)
+                ->computeFromScores($competencyScores, $companyId);
+
+            if (!$result) {
+                return [];
+            }
+
+            return [
+                'company_fit_score' => $result['company_fit_score'],
+                'company_competency_scores' => $result['company_competency_scores'],
+            ];
+        } catch (\Throwable $e) {
+            \Log::warning('Company fit score computation failed for interview', [
+                'interview_id' => $interview->id,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Download interview report as PDF.
+     * GET /interviews/{id}/report.pdf
+     */
+    public function reportPdf(Request $request, string $id)
+    {
+        $user = $request->user();
+
+        $query = Interview::with([
+            'candidate',
+            'job.company',
+            'responses.question',
+            'analysis',
+        ]);
+
+        if (!$user->is_platform_admin) {
+            $query->whereHas('job', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
+
+        $interview = $query->find($id);
+
+        if (!$interview) {
+            return response()->json(['success' => false, 'message' => 'Mülakat bulunamadı'], 404);
+        }
+
+        if ($interview->status !== Interview::STATUS_COMPLETED) {
+            return response()->json(['success' => false, 'message' => 'Rapor sadece tamamlanmış mülakatlar için oluşturulabilir'], 400);
+        }
+
+        $analysis = $interview->analysis;
+        $candidate = $interview->candidate;
+        $job = $interview->job;
+        $company = $job?->company;
+
+        // Parse JSON fields
+        $competencyScores = is_string($analysis?->competency_scores) ? json_decode($analysis->competency_scores, true) : ($analysis?->competency_scores ?? []);
+        $behaviorAnalysis = is_string($analysis?->behavior_analysis) ? json_decode($analysis->behavior_analysis, true) : ($analysis?->behavior_analysis ?? []);
+        $redFlagAnalysis = is_string($analysis?->red_flag_analysis) ? json_decode($analysis->red_flag_analysis, true) : ($analysis?->red_flag_analysis ?? []);
+        $cultureFit = is_string($analysis?->culture_fit) ? json_decode($analysis->culture_fit, true) : ($analysis?->culture_fit ?? []);
+        $decisionSnapshot = is_string($analysis?->decision_snapshot) ? json_decode($analysis->decision_snapshot, true) : ($analysis?->decision_snapshot ?? []);
+        $questionAnalyses = is_string($analysis?->question_analyses) ? json_decode($analysis->question_analyses, true) : ($analysis?->question_analyses ?? []);
+
+        $pdf = Pdf::loadView('reports.interview-report', [
+            'interview' => $interview,
+            'candidate' => $candidate,
+            'job' => $job,
+            'company' => $company,
+            'analysis' => $analysis,
+            'competencyScores' => $competencyScores,
+            'behaviorAnalysis' => $behaviorAnalysis,
+            'redFlagAnalysis' => $redFlagAnalysis,
+            'cultureFit' => $cultureFit,
+            'decisionSnapshot' => $decisionSnapshot,
+            'questionAnalyses' => $questionAnalyses,
+            'generatedAt' => now()->format('d.m.Y H:i'),
+        ]);
+
+        $pdf->setPaper('a4', 'portrait');
+        $pdf->setOption('isPhpEnabled', true);
+
+        $candidateName = trim(($candidate->first_name ?? '') . ' ' . ($candidate->last_name ?? '')) ?: 'Aday';
+        $filename = "Mulakat-Raporu-{$candidateName}-" . now()->format('Ymd') . ".pdf";
+
+        return $pdf->download($filename);
     }
 
     public function analyze(Request $request, string $id): JsonResponse

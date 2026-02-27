@@ -11,6 +11,7 @@ use App\Services\Interview\QuestionGenerator;
 use App\Services\QRCode\QRCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class JobController extends Controller
@@ -109,6 +110,7 @@ class JobController extends Controller
             'competencies' => 'nullable|array',
             'interview_settings' => 'nullable|array',
             'closes_at' => 'nullable|date|after:today',
+            'locale' => 'sometimes|string|in:tr,en,de,fr,ar',
         ]);
 
         if (!$request->user()->company_id) {
@@ -165,8 +167,36 @@ class JobController extends Controller
             'competencies' => $competencies,
             'interview_settings' => $validated['interview_settings'] ?? null,
             'closes_at' => $validated['closes_at'] ?? null,
+            'locale' => $validated['locale'] ?? 'tr',
             'status' => 'draft',
         ]);
+
+        // Auto-generate questions (taxonomy → defaults, no AI for store)
+        $questionsCount = 0;
+        try {
+            $questions = $this->questionGenerator->generateForJob($job);
+            $questionsCount = count($questions);
+        } catch (\Exception $e) {
+            Log::warning('Auto question generation failed: ' . $e->getMessage(), [
+                'job_id' => $job->id,
+            ]);
+        }
+
+        // Auto-publish if questions were generated
+        if ($questionsCount > 0) {
+            $job->update([
+                'status' => 'active',
+                'published_at' => now(),
+            ]);
+        }
+
+        // Auto-generate QR code + apply URL
+        try {
+            $this->qrCodeService->generateForJob($job);
+            $job->refresh();
+        } catch (\Exception $e) {
+            Log::warning('Auto QR generation failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -177,6 +207,7 @@ class JobController extends Controller
                 'role_code' => $job->role_code,
                 'status' => $job->status,
                 'apply_url' => $job->apply_url,
+                'questions_count' => $questionsCount,
                 'created_at' => $job->created_at,
             ],
         ], 201);
@@ -186,7 +217,8 @@ class JobController extends Controller
     {
         $user = $request->user();
 
-        $query = Job::with(['template', 'jobPosition.subdomain.domain', 'jobPosition.archetype', 'questions', 'creator', 'branch', 'company']);
+        $query = Job::with(['template', 'jobPosition.subdomain.domain', 'jobPosition.archetype', 'questions', 'creator', 'branch', 'company'])
+            ->withCount(['candidates', 'interviews']);
 
         // Platform admin can see any job
         if (!$user->is_platform_admin) {
@@ -238,6 +270,7 @@ class JobController extends Controller
                     'name' => $job->branch->name,
                     'slug' => $job->branch->slug,
                 ] : null,
+                'locale' => $job->locale ?? 'tr',
                 'competencies' => $job->getEffectiveCompetencies(),
                 'red_flags' => $job->getEffectiveRedFlags(),
                 'question_rules' => $job->getEffectiveQuestionRules(),
@@ -246,11 +279,15 @@ class JobController extends Controller
                 'questions' => $job->questions->map(fn($q) => [
                     'id' => $q->id,
                     'order' => $q->question_order,
-                    'type' => $q->question_type,
-                    'text' => $q->question_text,
-                    'competency_code' => $q->competency_code,
+                    'question_text' => $q->question_text,
+                    'competency' => $q->competency_code,
                     'time_limit_seconds' => $q->time_limit_seconds,
                 ]),
+                'candidates_count' => $job->candidates_count ?? 0,
+                'interviews_count' => $job->interviews_count ?? 0,
+                'domain_name' => $job->jobPosition?->subdomain?->domain?->name_tr,
+                'subdomain_name' => $job->jobPosition?->subdomain?->name_tr,
+                'position_name' => $job->jobPosition?->name_tr,
                 'apply_url' => $job->apply_url,
                 'qr_code_url' => $job->qr_file_path ? $this->qrCodeService->getPublicUrl($job) : null,
                 'published_at' => $job->published_at,
@@ -280,6 +317,7 @@ class JobController extends Controller
             'competencies' => 'nullable|array',
             'interview_settings' => 'nullable|array',
             'closes_at' => 'nullable|date',
+            'locale' => 'sometimes|string|in:tr,en,de,fr,ar',
         ]);
 
         $job->update($validated);
@@ -364,7 +402,7 @@ class JobController extends Controller
         $regenerate = $request->boolean('regenerate', false);
 
         try {
-            $questions = $this->questionGenerator->generateForJob($job, $regenerate);
+            $questions = $this->questionGenerator->generateForJob($job, $regenerate, 'tr', true);
 
             return response()->json([
                 'success' => true,
@@ -436,14 +474,25 @@ class JobController extends Controller
 
         $job->refresh();
 
+        $data = [
+            'apply_url' => $job->apply_url,
+            'public_token' => $job->public_token,
+            'qr_code_url' => $this->qrCodeService->getPublicUrl($job),
+            'qr_file_path' => $job->qr_file_path,
+        ];
+
+        // Always include base64 QR for frontend display
+        if ($job->apply_url) {
+            try {
+                $data['qr_code_base64'] = $this->qrCodeService->generateBase64($job->apply_url, 400);
+            } catch (\Exception $e) {
+                $data['qr_code_base64'] = null;
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'apply_url' => $job->apply_url,
-                'public_token' => $job->public_token,
-                'qr_code_url' => $this->qrCodeService->getPublicUrl($job),
-                'qr_file_path' => $job->qr_file_path,
-            ],
+            'data' => $data,
         ]);
     }
 
@@ -513,7 +562,7 @@ class JobController extends Controller
         $data = [
             'job_id' => $job->id,
             'job_title' => $job->title,
-            'company_name' => $job->company->name ?? 'TalentQX',
+            'company_name' => $job->company->name ?? 'Octopus AI',
             'apply_url' => $applyUrl,
             'public_token' => $job->public_token,
             'qr_code_url' => $job->qr_file_path ? $this->qrCodeService->getPublicUrl($job) : null,
@@ -521,9 +570,12 @@ class JobController extends Controller
 
         // Try to generate base64 preview
         try {
-            $data['qr_base64'] = $this->qrCodeService->generateBase64($applyUrl, 400);
+            $base64 = $this->qrCodeService->generateBase64($applyUrl, 400);
+            $data['qr_base64'] = $base64;
+            $data['qr_code_base64'] = $base64;
         } catch (\Exception $e) {
             $data['qr_base64'] = null;
+            $data['qr_code_base64'] = null;
         }
 
         return response()->json([

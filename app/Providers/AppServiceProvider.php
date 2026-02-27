@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Job;
+use App\Models\PersonalAccessToken;
 use App\Observers\JobObserver;
 use App\Services\AI\LLMProviderFactory;
+use Laravel\Sanctum\Sanctum;
 use App\Services\AI\LLMProviderInterface;
 use App\Services\Ais\AisProviderInterface;
 use App\Services\Ais\HttpAisProvider;
@@ -59,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Use custom PersonalAccessToken for cross-database Sanctum auth
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         // Register model observers
         Job::observe(JobObserver::class);
 

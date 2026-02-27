@@ -48,6 +48,13 @@ class AuthController extends Controller
             ->where('email', $request->email)
             ->first();
 
+        // If not found in current brand DB, check the other DB (platform admins may be in default)
+        if (!$user) {
+            $altConnection = config('database.default') === 'mysql_talentqx' ? 'mysql' : 'mysql_talentqx';
+            $user = User::on($altConnection)->with(['company', 'role'])->where('email', $request->email)->first();
+        }
+
+
         if (!$user || !Hash::check($request->password, $user->password)) {
             RateLimiter::hit($key, 600); // 10 dk pencere
             throw ValidationException::withMessages([

@@ -33,7 +33,13 @@ class Interview extends Model
         'reminder_sent_at',
         'last_hour_reminder_sent_at',
         'completion_email_sent_at',
+        'company_notified_at',
         'scheduled_at',
+        // Email verification
+        'email_verification_code_hash',
+        'email_verification_expires_at',
+        'email_verification_attempts',
+        'email_verified_at',
         // Timing / punctuality
         'joined_at',
         'late_minutes',
@@ -51,7 +57,12 @@ class Interview extends Model
         'reminder_sent_at' => 'datetime',
         'last_hour_reminder_sent_at' => 'datetime',
         'completion_email_sent_at' => 'datetime',
+        'company_notified_at' => 'datetime',
         'scheduled_at' => 'datetime',
+        // Email verification
+        'email_verification_expires_at' => 'datetime',
+        'email_verification_attempts' => 'integer',
+        'email_verified_at' => 'datetime',
         // Timing / punctuality
         'joined_at' => 'datetime',
         'late_minutes' => 'integer',
@@ -144,6 +155,11 @@ class Interview extends Model
     public function getInterviewUrl(): string
     {
         return config('app.url') . '/i/' . $this->access_token;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->email_verified_at !== null;
     }
 
     public static function findByToken(string $token): ?self

@@ -16,8 +16,8 @@ class SmtpMailProvider implements MailProviderInterface
         ?string $bodyHtml = null,
         array $options = []
     ): array {
-        $messageId = '<' . Str::uuid() . '@talentqx.com>';
-        $fromName = $options['from_name'] ?? 'TalentQX';
+        $messageId = '<' . Str::uuid() . '@octopus-ai.net>';
+        $fromName = $options['from_name'] ?? 'Octopus AI';
         $inReplyTo = $options['in_reply_to'] ?? null;
 
         Mail::raw($bodyText, function ($message) use ($from, $to, $subject, $messageId, $fromName, $inReplyTo) {

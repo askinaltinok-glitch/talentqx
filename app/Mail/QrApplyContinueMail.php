@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Mail;
+
+use App\Models\Candidate;
+use App\Models\Interview;
+use App\Models\Job;
+use App\Support\BrandConfig;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class QrApplyContinueMail extends Mailable implements ShouldQueue
+{
+    use Queueable, SerializesModels;
+
+    public function __construct(
+        public Candidate $candidate,
+        public Job $job,
+        public Interview $interview,
+    ) {
+        $this->onQueue('emails');
+    }
+
+    public function envelope(): Envelope
+    {
+        $companyName = $this->job->company->name ?? $this->brandName();
+
+        return new Envelope(
+            subject: "Başvurunuzu Tamamlayın — {$companyName}",
+        );
+    }
+
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.qr-apply-continue',
+            with: [
+                'candidate' => $this->candidate,
+                'job' => $this->job,
+                'interview' => $this->interview,
+                'companyName' => $this->job->company->name ?? $this->brandName(),
+                'brandName' => $this->brandName(),
+                'interviewUrl' => $this->interview->getInterviewUrl(),
+            ],
+        );
+    }
+
+    private function brandName(): string
+    {
+        $platform = $this->job->company->platform ?? 'octopus';
+        return BrandConfig::brandName($platform);
+    }
+}

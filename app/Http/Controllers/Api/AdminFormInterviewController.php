@@ -13,6 +13,19 @@ class AdminFormInterviewController extends Controller
     public function __construct(
         private readonly ConsentService $consentService
     ) {}
+
+    /**
+     * Scope query to company if user is not a platform admin.
+     */
+    private function scopeToCompany($query, Request $request)
+    {
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id) {
+            $query->where('company_id', $user->company_id);
+        }
+        return $query;
+    }
+
     /**
      * List form interviews with filtering.
      *
@@ -23,6 +36,7 @@ class AdminFormInterviewController extends Controller
         $perPage = min((int)($request->input('per_page', 20)), 100);
 
         $query = FormInterview::query();
+        $this->scopeToCompany($query, $request);
 
         // Filters
         if ($request->filled('status')) {
@@ -71,6 +85,7 @@ class AdminFormInterviewController extends Controller
             $query->orderByDesc('created_at');
         }
 
+        $query->with('poolCandidate');
         $paginated = $query->paginate($perPage);
 
         $data = $paginated->getCollection()->map(function ($interview) {
@@ -80,6 +95,16 @@ class AdminFormInterviewController extends Controller
             }
 
             $answersCount = $interview->answers()->count();
+
+            // Resolve candidate name: poolCandidate first, then meta fallback
+            $candidateName = null;
+            if ($interview->poolCandidate) {
+                $candidateName = trim($interview->poolCandidate->first_name . ' ' . $interview->poolCandidate->last_name);
+            } elseif (is_array($interview->meta) && isset($interview->meta['candidate_name'])) {
+                $candidateName = $interview->meta['candidate_name'];
+            }
+
+            $jobTitle = $interview->meta['job_title'] ?? $interview->position_code;
 
             return [
                 'id' => $interview->id,
@@ -92,6 +117,8 @@ class AdminFormInterviewController extends Controller
                 'decision' => $interview->decision,
                 'risk_flags_count' => $riskFlagsCount,
                 'answers_count' => $answersCount,
+                'candidate_name' => $candidateName,
+                'job_title' => $jobTitle,
                 'created_at' => $interview->created_at->toIso8601String(),
                 'completed_at' => $interview->completed_at?->toIso8601String(),
             ];
@@ -114,9 +141,9 @@ class AdminFormInterviewController extends Controller
      *
      * GET /v1/admin/form-interviews/{id}
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $interview = FormInterview::with(['answers', 'consents'])->find($id);
+        $interview = FormInterview::with(['answers', 'consents', 'aiAnalysis'])->find($id);
 
         if (!$interview) {
             return response()->json([
@@ -125,8 +152,50 @@ class AdminFormInterviewController extends Controller
             ], 404);
         }
 
+        // Company users can only see their own interviews
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->company_id !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
         // Get consent status
         $consentStatus = $this->consentService->getConsentStatus($interview);
+
+        // Resolve candidate info
+        $candidateName = null;
+        $candidateEmail = null;
+        if ($interview->poolCandidate) {
+            $candidateName = trim($interview->poolCandidate->first_name . ' ' . $interview->poolCandidate->last_name);
+            $candidateEmail = $interview->poolCandidate->email;
+        } else {
+            $meta = $interview->meta ?? [];
+            $candidateName = $meta['candidate_name'] ?? null;
+            $candidateEmail = $meta['candidate_email'] ?? null;
+        }
+        $jobTitle = ($interview->meta ?? [])['job_title'] ?? $interview->position_code;
+
+        // Build AI analysis payload if available
+        $aiAnalysis = null;
+        if ($interview->aiAnalysis) {
+            $a = $interview->aiAnalysis;
+            $aiAnalysis = [
+                'scoring_method' => $a->scoring_method,
+                'ai_model' => $a->ai_model,
+                'ai_provider' => $a->ai_provider,
+                'overall_score' => $a->overall_score,
+                'competency_scores' => $a->competency_scores,
+                'behavior_analysis' => $a->behavior_analysis,
+                'red_flag_analysis' => $a->red_flag_analysis,
+                'culture_fit' => $a->culture_fit,
+                'decision_snapshot' => $a->decision_snapshot,
+                'question_analyses' => $a->question_analyses,
+                'analyzed_at' => $a->analyzed_at?->toIso8601String(),
+                'latency_ms' => $a->latency_ms,
+            ];
+        }
 
         return response()->json([
             'success' => true,
@@ -141,9 +210,14 @@ class AdminFormInterviewController extends Controller
                 'template_json_sha256' => $interview->template_json_sha256,
                 'meta' => $interview->meta,
                 'admin_notes' => $interview->admin_notes,
+                'candidate_name' => $candidateName,
+                'candidate_email' => $candidateEmail,
+                'job_title' => $jobTitle,
                 'competency_scores' => $interview->competency_scores,
                 'risk_flags' => $interview->risk_flags,
                 'final_score' => $interview->final_score,
+                'company_fit_score' => $interview->company_fit_score,
+                'company_competency_scores' => $interview->company_competency_scores,
                 'decision' => $interview->decision,
                 'decision_reason' => $interview->decision_reason,
                 // Calibration data
@@ -151,6 +225,8 @@ class AdminFormInterviewController extends Controller
                 'calibrated_score' => $interview->calibrated_score,
                 'z_score' => $interview->z_score,
                 'policy_code' => $interview->policy_code,
+                // AI Analysis
+                'ai_analysis' => $aiAnalysis,
                 // Consent status
                 'consent_status' => $consentStatus,
                 // Timestamps
@@ -178,8 +254,17 @@ class AdminFormInterviewController extends Controller
      *
      * DELETE /v1/admin/form-interviews/{id}
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
+        // Only platform admins can delete interviews
+        $user = $request->user();
+        if (!$user || !$user->is_platform_admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only platform admins can delete interviews.',
+            ], 403);
+        }
+
         $interview = FormInterview::find($id);
 
         if (!$interview) {
@@ -204,14 +289,17 @@ class AdminFormInterviewController extends Controller
      *
      * GET /v1/admin/form-interviews/stats
      */
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
-        $total = FormInterview::count();
-        $completed = FormInterview::where('status', FormInterview::STATUS_COMPLETED)->count();
-        $inProgress = FormInterview::where('status', FormInterview::STATUS_IN_PROGRESS)->count();
-        $draft = FormInterview::where('status', FormInterview::STATUS_DRAFT)->count();
+        $base = FormInterview::query();
+        $this->scopeToCompany($base, $request);
 
-        $byDecision = FormInterview::where('status', FormInterview::STATUS_COMPLETED)
+        $total = (clone $base)->count();
+        $completed = (clone $base)->where('status', FormInterview::STATUS_COMPLETED)->count();
+        $inProgress = (clone $base)->where('status', FormInterview::STATUS_IN_PROGRESS)->count();
+        $draft = (clone $base)->where('status', FormInterview::STATUS_DRAFT)->count();
+
+        $byDecision = (clone $base)->where('status', FormInterview::STATUS_COMPLETED)
             ->selectRaw('decision, COUNT(*) as count')
             ->whereNotNull('decision')
             ->groupBy('decision')
@@ -245,6 +333,15 @@ class AdminFormInterviewController extends Controller
         $interview = FormInterview::with(['answers', 'outcome'])->find($id);
 
         if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        // Company users can only see their own interviews
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->company_id !== $user->company_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Interview not found',
@@ -364,6 +461,15 @@ class AdminFormInterviewController extends Controller
             ], 404);
         }
 
+        // Company users can only update notes on their own interviews
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->company_id !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
         $data = $request->validate([
             'admin_notes' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -391,6 +497,15 @@ class AdminFormInterviewController extends Controller
         $interview = FormInterview::with(['answers', 'outcome'])->find($id);
 
         if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        // Company users can only see their own interviews
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->company_id !== $user->company_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Interview not found',
@@ -457,6 +572,15 @@ class AdminFormInterviewController extends Controller
         $interview = FormInterview::with('answers')->find($id);
 
         if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        // Company users can only see their own interviews
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->company_id !== $user->company_id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Interview not found',

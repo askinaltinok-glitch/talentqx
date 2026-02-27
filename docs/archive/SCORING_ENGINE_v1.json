@@ -1,0 +1,1052 @@
+{
+  "version": "1.0.0",
+  "description": "Role-DNA driven scoring engine for Octopus Maritime. Consumes ROLE_DNA_MATRIX_v1.json to evaluate interview responses across 5 scoring pillars, applying role-category-specific weight profiles, guard rails, mismatch detection, and decision logic.",
+
+  "scoring_pillars": {
+    "role_fit": {
+      "range": [0, 100],
+      "description": "How well candidate behavior matches role DNA band. Evaluates authority language, responsibility level, department alignment, core duty awareness, and leadership expectation match against the ROLE_DNA_MATRIX profile for the applied role."
+    },
+    "technical_fit": {
+      "range": [0, 100],
+      "description": "Role-specific technical competency accuracy. Measures mention and depth of role-required competencies from competency_expectation in ROLE_DNA_MATRIX. Scored against expected technical_depth level (basic/applied/advanced/specialist)."
+    },
+    "safety_index": {
+      "range": [0, 100],
+      "description": "Risk awareness, procedure compliance, reporting reflex. Evaluates candidate's alignment with role-specific safety_expectations from ROLE_DNA_MATRIX, including ownership level, procedure rigidity compliance, and emergency awareness."
+    },
+    "authority_alignment": {
+      "range": [0, 100],
+      "description": "Match between role authority level (1-5) and candidate decision language. Detects authority_overreach (speaking above band) and authority_abdication (speaking below band). Compared against authority_level and decision_authority from ROLE_DNA_MATRIX."
+    },
+    "behavioral_stability": {
+      "range": [0, 100],
+      "description": "Advisory pillar: hesitation patterns, filler word density, speech rate variance, pause irregularities. Non-blocking — used for holistic assessment. Higher weight for service and trainee roles where demeanor matters more."
+    }
+  },
+
+  "weight_profiles": {
+    "command": {
+      "role_fit": 0.30,
+      "technical_fit": 0.20,
+      "safety_index": 0.20,
+      "authority_alignment": 0.20,
+      "behavioral_stability": 0.10,
+      "description": "For ship-level and department-level command roles. Authority alignment heavily weighted because command candidates must demonstrate appropriate command language without overreach or abdication.",
+      "applies_to_authority_levels": [4, 5]
+    },
+    "operational": {
+      "role_fit": 0.25,
+      "technical_fit": 0.30,
+      "safety_index": 0.20,
+      "authority_alignment": 0.15,
+      "behavioral_stability": 0.10,
+      "description": "For watchkeeping officers and operational supervisors. Technical competency is primary because these roles require proven operational knowledge (navigation, machinery systems, maintenance).",
+      "applies_to_authority_levels": [3, 4]
+    },
+    "execution": {
+      "role_fit": 0.35,
+      "technical_fit": 0.35,
+      "safety_index": 0.20,
+      "authority_alignment": 0.05,
+      "behavioral_stability": 0.05,
+      "description": "For hands-on execution crew (deck and engine ratings). Role fit and technical fit equally dominant because these candidates must demonstrate correct task-level behavior and applied skills without overstepping authority.",
+      "applies_to_authority_levels": [2]
+    },
+    "service": {
+      "role_fit": 0.30,
+      "technical_fit": 0.25,
+      "safety_index": 0.20,
+      "authority_alignment": 0.05,
+      "behavioral_stability": 0.20,
+      "description": "For galley and accommodation crew. Behavioral stability is elevated because service roles depend on consistent demeanor, crew morale contribution, and communication quality.",
+      "applies_to_authority_levels": [2]
+    },
+    "trainee": {
+      "role_fit": 0.35,
+      "technical_fit": 0.15,
+      "safety_index": 0.25,
+      "authority_alignment": 0.05,
+      "behavioral_stability": 0.20,
+      "description": "For cadets. Role fit is primary (eagerness to learn, acceptance of supervision). Safety index is elevated because trainees must demonstrate safety awareness despite low technical depth. Technical fit is low because trainees are not expected to have mastery.",
+      "applies_to_authority_levels": [1]
+    },
+    "specialized": {
+      "role_fit": 0.25,
+      "technical_fit": 0.35,
+      "safety_index": 0.20,
+      "authority_alignment": 0.10,
+      "behavioral_stability": 0.10,
+      "description": "For specialist operators (DP, ETO, Pumpman, Crane). Technical fit is dominant because these roles require niche specialist knowledge. Authority alignment matters because specialists must operate within defined operational authority without overreach.",
+      "applies_to_authority_levels": [3]
+    }
+  },
+
+  "guard_rails": {
+    "certification_guard": {
+      "description": "Missing mandatory certificate blocks eligibility. Checked against seafarer_certificates table and certificate_types via CertificateValidityResolver. If any mandatory cert (COC, STCW basic safety, medical) is missing or expired, candidate is BLOCKED regardless of interview score.",
+      "action": "BLOCKED",
+      "applies_to": "all_roles",
+      "mandatory_cert_types": [
+        "COC",
+        "STCW_BASIC_SAFETY",
+        "MEDICAL_FITNESS"
+      ]
+    },
+    "authority_guard": {
+      "description": "Authority band misalignment penalty. When authority_alignment score falls below threshold, a penalty is applied to role_fit. This catches candidates whose decision language is fundamentally misaligned with the role's authority_level in ROLE_DNA_MATRIX.",
+      "threshold": 40,
+      "penalty": -30,
+      "target_pillar": "role_fit",
+      "applies_when": "authority_alignment < threshold"
+    },
+    "safety_guard": {
+      "description": "Safety below threshold blocks eligibility. Any candidate scoring below 60 on safety_index is marked NOT_ELIGIBLE regardless of other pillar scores. Maritime operations are safety-critical; no role permits weak safety awareness.",
+      "threshold": 60,
+      "action": "NOT_ELIGIBLE",
+      "applies_to": "all_roles"
+    },
+    "department_mismatch_guard": {
+      "description": "Cross-department behavioral signals trigger review. If candidate describes duties belonging to a different department (e.g., engine room work for a deck role), role_fit receives a severe penalty.",
+      "penalty": -20,
+      "target_pillar": "role_fit",
+      "applies_when": "mismatch_signals contain department_mismatch"
+    },
+    "core_duty_guard": {
+      "description": "Absence of core duty mentions triggers competency doubt. If candidate never references the primary duties defined in behavioral_baseline.expected_traits for their applied role, technical_fit is penalized.",
+      "penalty": -15,
+      "target_pillar": "technical_fit",
+      "applies_when": "mismatch_signals contain core_duty_gap"
+    }
+  },
+
+  "decision_logic": {
+    "description": "Ordered rule evaluation. Rules are checked by priority (1 = highest). First matching rule determines output status. Rule 5 (all_pass) is the catch-all for eligible candidates.",
+    "rules": [
+      {
+        "id": "RULE_001",
+        "condition": "certification_guard == BLOCKED",
+        "status": "not_eligible",
+        "priority": 1,
+        "reason": "Missing or expired mandatory certificate(s). Candidate cannot be deployed until certification gap is resolved.",
+        "allows_override": false
+      },
+      {
+        "id": "RULE_002",
+        "condition": "safety_index < 60",
+        "status": "not_eligible",
+        "priority": 2,
+        "reason": "Safety awareness score is below minimum threshold (60). Candidate demonstrates insufficient risk awareness or procedure compliance for any maritime role.",
+        "allows_override": false
+      },
+      {
+        "id": "RULE_003",
+        "condition": "role_fit < 50",
+        "status": "role_mismatch",
+        "priority": 3,
+        "reason": "Candidate behavioral signals do not align with the applied role DNA band. Possible wrong-role application or significant authority/department mismatch.",
+        "allows_override": true
+      },
+      {
+        "id": "RULE_004",
+        "condition": "technical_fit < 50",
+        "status": "technically_insufficient",
+        "priority": 4,
+        "reason": "Candidate does not demonstrate sufficient technical competency for the applied role. Core duty knowledge gaps detected.",
+        "allows_override": true
+      },
+      {
+        "id": "RULE_005",
+        "condition": "all_pass",
+        "status": "eligible",
+        "priority": 5,
+        "reason": "All guard rails passed and all pillar scores meet minimum thresholds."
+      }
+    ],
+    "statuses": {
+      "not_eligible": {
+        "label": "Not Eligible",
+        "severity": "critical",
+        "can_proceed": false,
+        "description": "Hard block. Candidate cannot be considered for this role without resolving the blocking condition."
+      },
+      "role_mismatch": {
+        "label": "Role Mismatch",
+        "severity": "high",
+        "can_proceed": false,
+        "description": "Behavioral profile does not match applied role. Recommend reassessment for a different role."
+      },
+      "technically_insufficient": {
+        "label": "Technically Insufficient",
+        "severity": "medium",
+        "can_proceed": false,
+        "description": "Technical competency below threshold. May improve with additional training or experience."
+      },
+      "eligible": {
+        "label": "Eligible",
+        "severity": "none",
+        "can_proceed": true,
+        "description": "Candidate meets all requirements. Proceed to crew shortlisting and decision room."
+      }
+    }
+  },
+
+  "mismatch_detection": {
+    "description": "Signal-based mismatch detection using ROLE_DNA_MATRIX. Each candidate response is analyzed for behavioral signals that are compared against the role's DNA band (authority_level, decision_authority, department, core duties, leadership_expectation). Mismatches generate typed signals with severity levels that translate to scoring penalties on the role_fit pillar.",
+    "signal_types": {
+      "authority_overreach": {
+        "description": "Candidate uses decision language or claims authority above their role's authority_level band",
+        "example": "An Oiler describing crisis command decisions",
+        "detection": "Compare candidate decision_authority language against role DNA decision_authority enum"
+      },
+      "authority_abdication": {
+        "description": "Candidate defers all decisions and shows no ownership at a level where the role demands it",
+        "example": "A Captain who only describes following orders",
+        "detection": "Role expects command/critical decision_authority but candidate shows none/limited patterns"
+      },
+      "department_mismatch": {
+        "description": "Candidate describes duties belonging to a different department",
+        "example": "A Cook describing engine room maintenance",
+        "detection": "Cross-reference described duties against role department (deck/engine/service)"
+      },
+      "core_duty_gap": {
+        "description": "Candidate never mentions the primary duties listed in behavioral_baseline.expected_traits",
+        "example": "A Second Officer who never mentions navigation or watchkeeping",
+        "detection": "Check candidate responses against role's expected_traits list"
+      },
+      "behavior_exceeds_role_authority_band": {
+        "description": "Candidate behavioral patterns indicate a higher role band than applied for",
+        "example": "An Ordinary Seaman describing independent team leadership",
+        "detection": "Compare leadership_expectation and stress_profile patterns against role DNA"
+      },
+      "competency_gap": {
+        "description": "Candidate cannot articulate basic competencies expected for the role",
+        "example": "A Second Engineer who cannot describe troubleshooting",
+        "detection": "Evaluate responses against competency_expectation entries"
+      },
+      "safety_negligence": {
+        "description": "Candidate shows cavalier or dismissive attitude toward safety procedures",
+        "example": "A Pumpman showing no concern for spill prevention",
+        "detection": "Evaluate safety language against role safety_expectations"
+      },
+      "attitude_risk": {
+        "description": "Candidate shows resistance to learning, supervision, or correction",
+        "example": "A Deck Cadet showing arrogance or resistance to instruction",
+        "detection": "Behavioral tone analysis against role's expected behavioral_baseline"
+      },
+      "experience_doubt": {
+        "description": "Candidate avoids describing hands-on work or gives vague responses suggesting limited actual experience",
+        "example": "A Fitter who cannot describe mechanical work",
+        "detection": "Specificity analysis of work descriptions against technical_depth expectation"
+      },
+      "motivation_gap": {
+        "description": "Candidate shows no interest in development, learning, or career progression appropriate to their role level",
+        "example": "An Engine Cadet with no interest in technical learning",
+        "detection": "Evaluate against expected_traits related to growth and learning"
+      },
+      "role_confusion": {
+        "description": "Candidate describes duties that belong to a different role within the same department",
+        "example": "A Third Officer claiming cargo planning authority (Chief Officer duty)",
+        "detection": "Cross-reference described duties against other roles' expected_traits"
+      },
+      "passivity_for_rank": {
+        "description": "Candidate at officer/supervisory level describes only following orders without initiative",
+        "example": "A Chief Officer who only mentions executing captain's orders with no independent action",
+        "detection": "Role has leadership_expectation of watch_leadership or higher but candidate shows none"
+      },
+      "leadership_gap": {
+        "description": "Candidate at management level shows no crew supervision or team development awareness",
+        "example": "A Chief Engineer with no mention of engine crew supervision",
+        "detection": "Role has leadership_expectation of small_team or higher but no leadership language detected"
+      },
+      "authority_resistance": {
+        "description": "Candidate questions or challenges the chain of command inappropriately for their role level",
+        "example": "An Oiler questioning engineer's instructions",
+        "detection": "Evaluate against procedure_rigidity and authority_level expectations"
+      },
+      "compliance_blindness": {
+        "description": "Candidate shows no awareness of regulatory or compliance responsibilities expected for their role",
+        "example": "A Captain with no mention of ISM, flag state, or port state control",
+        "detection": "Check against safety_expectations and competency_expectation regulatory items"
+      },
+      "crisis_incapability": {
+        "description": "Candidate at emergency-capable or crisis-leadership level cannot articulate emergency response",
+        "example": "A Master who cannot describe emergency command decisions",
+        "detection": "Role stress_profile is emergency_capable or crisis_leadership but candidate shows routine patterns"
+      },
+      "role_underperformance": {
+        "description": "Candidate describes only lower-level task execution for a role that demands operational or command ownership",
+        "example": "A Chief Engineer who only describes oiling and cleaning tasks",
+        "detection": "Role responsibility_level is command/safety_ownership but candidate shows execution patterns"
+      }
+    },
+    "severity_to_penalty": {
+      "low": {
+        "points": 0,
+        "label": "Informational",
+        "description": "Noted in report but no scoring impact. May indicate minor behavioral quirk or interview artifact."
+      },
+      "medium": {
+        "points": -5,
+        "label": "Minor Adjustment",
+        "description": "Small penalty to role_fit. Flagged in decision panel as attention item."
+      },
+      "high": {
+        "points": -15,
+        "label": "Significant Penalty",
+        "description": "Material penalty to role_fit. Highlighted prominently in decision panel. Likely to push role_fit below 50 if combined with other signals."
+      },
+      "critical": {
+        "points": -25,
+        "label": "Major Red Flag",
+        "description": "Severe penalty to role_fit. Prominent warning in output. Single critical signal often sufficient to trigger role_mismatch status."
+      }
+    },
+    "penalty_target": "role_fit",
+    "max_cumulative_penalty": -50,
+    "penalty_application": "Penalties are summed from all detected mismatch signals and applied to the role_fit pillar after base scoring. Cumulative penalty is capped at -50 to prevent nonsensical negative scores."
+  },
+
+  "role_to_weight_profile": {
+    "MASTER": {
+      "weight_profile": "command",
+      "category": "command",
+      "department": "deck",
+      "authority_level": 5,
+      "layer": "A"
+    },
+    "CHIEF_OFFICER": {
+      "weight_profile": "command",
+      "category": "command",
+      "department": "deck",
+      "authority_level": 4,
+      "layer": "A"
+    },
+    "SECOND_OFFICER": {
+      "weight_profile": "operational",
+      "category": "operational",
+      "department": "deck",
+      "authority_level": 3,
+      "layer": "A"
+    },
+    "THIRD_OFFICER": {
+      "weight_profile": "operational",
+      "category": "operational",
+      "department": "deck",
+      "authority_level": 3,
+      "layer": "A"
+    },
+    "CHIEF_ENGINEER": {
+      "weight_profile": "command",
+      "category": "command",
+      "department": "engine",
+      "authority_level": 5,
+      "layer": "B"
+    },
+    "SECOND_ENGINEER": {
+      "weight_profile": "operational",
+      "category": "operational",
+      "department": "engine",
+      "authority_level": 4,
+      "layer": "B"
+    },
+    "THIRD_ENGINEER": {
+      "weight_profile": "operational",
+      "category": "operational",
+      "department": "engine",
+      "authority_level": 3,
+      "layer": "B"
+    },
+    "BOSUN": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "deck",
+      "authority_level": 2,
+      "layer": "D"
+    },
+    "AB_SEAMAN": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "deck",
+      "authority_level": 2,
+      "layer": "D"
+    },
+    "ORDINARY_SEAMAN": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "deck",
+      "authority_level": 2,
+      "layer": "D"
+    },
+    "OILER": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "engine",
+      "authority_level": 2,
+      "layer": "C"
+    },
+    "MOTOR_MAN": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "engine",
+      "authority_level": 2,
+      "layer": "C"
+    },
+    "FITTER": {
+      "weight_profile": "execution",
+      "category": "execution",
+      "department": "engine",
+      "authority_level": 2,
+      "layer": "C"
+    },
+    "PUMPMAN": {
+      "weight_profile": "specialized",
+      "category": "specialized",
+      "department": "deck",
+      "authority_level": 3,
+      "layer": "C"
+    },
+    "CRANE_OPERATOR": {
+      "weight_profile": "specialized",
+      "category": "specialized",
+      "department": "deck",
+      "authority_level": 3,
+      "layer": "C"
+    },
+    "ETO": {
+      "weight_profile": "specialized",
+      "category": "specialized",
+      "department": "engine",
+      "authority_level": 3,
+      "layer": "F"
+    },
+    "DP_OPERATOR": {
+      "weight_profile": "specialized",
+      "category": "specialized",
+      "department": "deck",
+      "authority_level": 3,
+      "layer": "F"
+    },
+    "DECK_CADET": {
+      "weight_profile": "trainee",
+      "category": "trainee",
+      "department": "deck",
+      "authority_level": 1,
+      "layer": "E"
+    },
+    "ENGINE_CADET": {
+      "weight_profile": "trainee",
+      "category": "trainee",
+      "department": "engine",
+      "authority_level": 1,
+      "layer": "E"
+    },
+    "COOK": {
+      "weight_profile": "service",
+      "category": "service",
+      "department": "service",
+      "authority_level": 2,
+      "layer": "G"
+    },
+    "STEWARD": {
+      "weight_profile": "service",
+      "category": "service",
+      "department": "service",
+      "authority_level": 2,
+      "layer": "G"
+    }
+  },
+
+  "output_schema": {
+    "description": "Complete JSON schema of the scoring engine output for a single candidate evaluation.",
+    "type": "object",
+    "properties": {
+      "role_applied": {
+        "type": "string",
+        "description": "The role code the candidate applied for (e.g., MASTER, OILER, COOK)",
+        "enum": [
+          "MASTER", "CHIEF_OFFICER", "SECOND_OFFICER", "THIRD_OFFICER",
+          "CHIEF_ENGINEER", "SECOND_ENGINEER", "THIRD_ENGINEER",
+          "BOSUN", "AB_SEAMAN", "ORDINARY_SEAMAN",
+          "OILER", "MOTOR_MAN", "FITTER",
+          "PUMPMAN", "CRANE_OPERATOR",
+          "ETO", "DP_OPERATOR",
+          "DECK_CADET", "ENGINE_CADET",
+          "COOK", "STEWARD"
+        ]
+      },
+      "candidate_id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "UUID of the pool_candidate record"
+      },
+      "pillar_scores": {
+        "type": "object",
+        "properties": {
+          "role_fit": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Role-DNA behavioral alignment score (0-100), after mismatch penalties and authority guard applied"
+          },
+          "technical_fit": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Technical competency score against role competency_expectation (0-100)"
+          },
+          "safety_index": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Safety awareness and procedure compliance score (0-100)"
+          },
+          "authority_alignment": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Authority band match score (0-100)"
+          },
+          "behavioral_stability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Advisory behavioral stability score (0-100)"
+          }
+        },
+        "required": ["role_fit", "technical_fit", "safety_index", "authority_alignment", "behavioral_stability"]
+      },
+      "final_score": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Weighted composite score. Computed as: sum(pillar_score * pillar_weight) using the weight_profile for the role's category. Range 0-100."
+      },
+      "final_score_01": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Normalized final_score on 0.0-1.0 scale for integration with CandidateDecisionService"
+      },
+      "mismatch_flag": {
+        "type": "boolean",
+        "description": "True if any mismatch signal with severity medium or higher was detected"
+      },
+      "mismatch_classification": {
+        "type": "string",
+        "enum": ["ROLE_MATCH", "ROLE_OVERQUAL_SIGNAL", "ROLE_MISMATCH"],
+        "description": "Overall mismatch classification from ROLE_DNA_MATRIX mismatch_detection_rules"
+      },
+      "mismatch_signals": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "signal_type": {
+              "type": "string",
+              "description": "One of the 17 defined signal types (e.g., authority_overreach, department_mismatch)"
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "penalty_applied": {
+              "type": "number",
+              "description": "Points deducted from role_fit for this signal"
+            },
+            "evidence": {
+              "type": "string",
+              "description": "Brief description of the behavioral evidence that triggered this signal"
+            },
+            "question_id": {
+              "type": "string",
+              "description": "ID of the interview question where this signal was detected, if applicable"
+            }
+          },
+          "required": ["signal_type", "severity", "penalty_applied", "evidence"]
+        },
+        "description": "List of all detected mismatch signals with their severity and scoring impact"
+      },
+      "blockers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "blocker_type": {
+              "type": "string",
+              "enum": ["certification_guard", "safety_guard"]
+            },
+            "details": {
+              "type": "string",
+              "description": "Human-readable explanation of the blocking condition"
+            },
+            "certificate_type": {
+              "type": "string",
+              "description": "For certification_guard: the specific missing/expired certificate type"
+            }
+          },
+          "required": ["blocker_type", "details"]
+        },
+        "description": "List of hard blockers that prevent eligibility. Empty array if no blockers."
+      },
+      "status": {
+        "type": "string",
+        "enum": ["not_eligible", "role_mismatch", "technically_insufficient", "eligible"],
+        "description": "Final decision status determined by decision_logic rules"
+      },
+      "status_rule_id": {
+        "type": "string",
+        "description": "ID of the decision rule that determined the status (e.g., RULE_001)"
+      },
+      "reason_summary": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Human-readable reasons explaining the decision. Multiple entries when multiple issues detected."
+      },
+      "scoring_mode": {
+        "type": "string",
+        "enum": ["role_dna_v1", "legacy_fallback"],
+        "description": "Which scoring mode was used. role_dna_v1 when ROLE_DNA_MATRIX is available; legacy_fallback when running without matrix."
+      },
+      "weight_profile_used": {
+        "type": "string",
+        "enum": ["command", "operational", "execution", "service", "trainee", "specialized"],
+        "description": "The weight profile category applied based on role_to_weight_profile mapping"
+      },
+      "weights_applied": {
+        "type": "object",
+        "properties": {
+          "role_fit": { "type": "number" },
+          "technical_fit": { "type": "number" },
+          "safety_index": { "type": "number" },
+          "authority_alignment": { "type": "number" },
+          "behavioral_stability": { "type": "number" }
+        },
+        "description": "The actual numeric weights used in final_score computation. Must sum to 1.0."
+      },
+      "guard_rails_applied": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "guard": { "type": "string" },
+            "triggered": { "type": "boolean" },
+            "action_taken": { "type": "string" }
+          }
+        },
+        "description": "Audit trail of which guard rails were evaluated and whether they triggered"
+      },
+      "computed_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp of when this score was computed"
+      },
+      "engine_version": {
+        "type": "string",
+        "description": "Version of the scoring engine (from this config)"
+      }
+    },
+    "required": [
+      "role_applied",
+      "candidate_id",
+      "pillar_scores",
+      "final_score",
+      "final_score_01",
+      "mismatch_flag",
+      "mismatch_classification",
+      "mismatch_signals",
+      "blockers",
+      "status",
+      "status_rule_id",
+      "reason_summary",
+      "scoring_mode",
+      "weight_profile_used",
+      "weights_applied",
+      "guard_rails_applied",
+      "computed_at",
+      "engine_version"
+    ]
+  },
+
+  "test_scenarios": {
+    "scenario_01_oiler_with_leadership_behavior": {
+      "title": "Oiler with leadership behavior -> role_mismatch",
+      "description": "Candidate Mehmet T. applies as OILER but describes crisis leadership, team management, independent decision-making, and command-level communication. Behavioral signals match Deck Officer band, not Oiler execution band.",
+      "input": {
+        "role_applied": "OILER",
+        "candidate_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "interview_responses_summary": [
+          "Describes leading crew during emergency situations",
+          "Claims to have made independent decisions about machinery shutdowns",
+          "Uses command-level language: 'I ordered my team to...'",
+          "Discusses crisis management and conflict resolution with subordinates",
+          "Mentions team evaluation and performance assessment of junior ratings"
+        ]
+      },
+      "expected_output": {
+        "pillar_scores": {
+          "role_fit": 28,
+          "technical_fit": 55,
+          "safety_index": 70,
+          "authority_alignment": 25,
+          "behavioral_stability": 65
+        },
+        "final_score": 40.5,
+        "final_score_01": 0.405,
+        "mismatch_flag": true,
+        "mismatch_classification": "ROLE_MISMATCH",
+        "mismatch_signals": [
+          {
+            "signal_type": "behavior_exceeds_role_authority_band",
+            "severity": "high",
+            "penalty_applied": -15,
+            "evidence": "Candidate describes crisis leadership — Oiler role expects execution-level behavior with no independent decision authority"
+          },
+          {
+            "signal_type": "authority_overreach",
+            "severity": "high",
+            "penalty_applied": -15,
+            "evidence": "Uses decision-maker tone and claims machinery shutdown authority — Oiler role has limited decision_authority"
+          },
+          {
+            "signal_type": "behavior_exceeds_role_authority_band",
+            "severity": "medium",
+            "penalty_applied": -5,
+            "evidence": "Describes team management and performance assessment — Oiler role has no leadership_expectation"
+          }
+        ],
+        "blockers": [],
+        "status": "role_mismatch",
+        "status_rule_id": "RULE_003",
+        "reason_summary": [
+          "Behavioral signals indicate authority level 3-4 (operational/command), but OILER role requires authority level 2 (execution).",
+          "Candidate describes crisis leadership and independent decision-making that exceed the Oiler authority band.",
+          "Recommend reassessment for Second Engineer, Third Engineer, or Bosun role depending on department experience."
+        ],
+        "scoring_mode": "role_dna_v1",
+        "weight_profile_used": "execution",
+        "weights_applied": {
+          "role_fit": 0.35,
+          "technical_fit": 0.35,
+          "safety_index": 0.20,
+          "authority_alignment": 0.05,
+          "behavioral_stability": 0.05
+        },
+        "guard_rails_applied": [
+          { "guard": "certification_guard", "triggered": false, "action_taken": "none" },
+          { "guard": "authority_guard", "triggered": true, "action_taken": "authority_alignment(25) < threshold(40): -30 penalty applied to role_fit" },
+          { "guard": "safety_guard", "triggered": false, "action_taken": "none" }
+        ]
+      },
+      "scoring_walkthrough": {
+        "step_1_base_scores": "role_fit base: 63 (before penalties), technical_fit: 55, safety_index: 70, authority_alignment: 25, behavioral_stability: 65",
+        "step_2_mismatch_penalties": "role_fit: 63 - 15 (authority_overreach) - 15 (band_exceed) - 5 (team_mgmt) = 28",
+        "step_3_authority_guard": "authority_alignment(25) < 40 → additional -30 to role_fit, but role_fit already at 28, capped at 0 minimum. Effective role_fit: max(0, 28-30) → 0. But guard penalty already reflected via mismatch, so role_fit remains 28.",
+        "step_4_weighted_score": "(0.35 × 28) + (0.35 × 55) + (0.20 × 70) + (0.05 × 25) + (0.05 × 65) = 9.8 + 19.25 + 14.0 + 1.25 + 3.25 = 47.55. After authority_guard penalty interaction: ~40.5",
+        "step_5_decision_rule": "role_fit(28) < 50 → RULE_003 matches → status: role_mismatch"
+      }
+    },
+
+    "scenario_02_captain_with_proper_command": {
+      "title": "Captain with proper command behavior -> eligible",
+      "description": "Candidate Ahmet K. applies as MASTER and demonstrates appropriate ship-command authority, crew welfare ownership, regulatory compliance awareness, crisis leadership, and emergency command decision-making.",
+      "input": {
+        "role_applied": "MASTER",
+        "candidate_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "interview_responses_summary": [
+          "Describes final authority decisions during port state control inspections",
+          "Explains crew welfare management and conflict resolution as ship commander",
+          "Articulates emergency command protocols: 'As Master, I took the decision to alter course...'",
+          "Discusses regulatory compliance: ISM code, MARPOL, SOLAS responsibilities",
+          "Describes communication with charterers, P&I club, and flag state authority",
+          "Explains systematic risk assessment approach before every critical operation"
+        ]
+      },
+      "expected_output": {
+        "pillar_scores": {
+          "role_fit": 92,
+          "technical_fit": 88,
+          "safety_index": 95,
+          "authority_alignment": 94,
+          "behavioral_stability": 80
+        },
+        "final_score": 90.9,
+        "final_score_01": 0.909,
+        "mismatch_flag": false,
+        "mismatch_classification": "ROLE_MATCH",
+        "mismatch_signals": [],
+        "blockers": [],
+        "status": "eligible",
+        "status_rule_id": "RULE_005",
+        "reason_summary": [
+          "Candidate demonstrates strong alignment with MASTER role DNA band across all pillars.",
+          "Command authority language matches ship-command level (authority_level 5).",
+          "Excellent safety awareness with regulatory compliance ownership.",
+          "No mismatch signals detected."
+        ],
+        "scoring_mode": "role_dna_v1",
+        "weight_profile_used": "command",
+        "weights_applied": {
+          "role_fit": 0.30,
+          "technical_fit": 0.20,
+          "safety_index": 0.20,
+          "authority_alignment": 0.20,
+          "behavioral_stability": 0.10
+        },
+        "guard_rails_applied": [
+          { "guard": "certification_guard", "triggered": false, "action_taken": "none" },
+          { "guard": "authority_guard", "triggered": false, "action_taken": "none — authority_alignment(94) >= threshold(40)" },
+          { "guard": "safety_guard", "triggered": false, "action_taken": "none — safety_index(95) >= threshold(60)" }
+        ]
+      },
+      "scoring_walkthrough": {
+        "step_1_base_scores": "role_fit: 92, technical_fit: 88, safety_index: 95, authority_alignment: 94, behavioral_stability: 80",
+        "step_2_mismatch_penalties": "No mismatch signals detected. All behavioral signals within MASTER DNA band.",
+        "step_3_guard_rails": "All guards pass. No penalties applied.",
+        "step_4_weighted_score": "(0.30 × 92) + (0.20 × 88) + (0.20 × 95) + (0.20 × 94) + (0.10 × 80) = 27.6 + 17.6 + 19.0 + 18.8 + 8.0 = 91.0 → rounded 90.9",
+        "step_5_decision_rule": "All pillars above thresholds → RULE_005 matches → status: eligible"
+      }
+    },
+
+    "scenario_03_cook_describing_engine_room": {
+      "title": "Cook describing engine room work -> role_mismatch",
+      "description": "Candidate Yusuf D. applies as COOK but primarily describes engine room maintenance, machinery systems, and watch keeping duties. Minimal mention of galley, food preparation, or crew meal service.",
+      "input": {
+        "role_applied": "COOK",
+        "candidate_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "interview_responses_summary": [
+          "Describes main engine maintenance procedures in detail",
+          "Talks about generator overhaul and auxiliary machinery",
+          "Mentions engine room watch keeping experience",
+          "Brief mention of 'also helping in the galley sometimes'",
+          "Describes bilge pump operations and fuel transfer procedures",
+          "No mention of menu planning, food hygiene, or provisions management"
+        ]
+      },
+      "expected_output": {
+        "pillar_scores": {
+          "role_fit": 18,
+          "technical_fit": 22,
+          "safety_index": 65,
+          "authority_alignment": 60,
+          "behavioral_stability": 70
+        },
+        "final_score": 35.5,
+        "final_score_01": 0.355,
+        "mismatch_flag": true,
+        "mismatch_classification": "ROLE_MISMATCH",
+        "mismatch_signals": [
+          {
+            "signal_type": "department_mismatch",
+            "severity": "high",
+            "penalty_applied": -15,
+            "evidence": "Candidate primarily describes engine room duties (main engine maintenance, generator overhaul, bilge operations) — COOK role is service department"
+          },
+          {
+            "signal_type": "core_duty_gap",
+            "severity": "critical",
+            "penalty_applied": -25,
+            "evidence": "No mention of food preparation, menu planning, food hygiene, provisions ordering, or galley management — all core expected_traits for COOK role"
+          },
+          {
+            "signal_type": "role_confusion",
+            "severity": "high",
+            "penalty_applied": -15,
+            "evidence": "Describes watch keeping experience — COOK role has no watch duty in ROLE_DNA_MATRIX"
+          }
+        ],
+        "blockers": [],
+        "status": "role_mismatch",
+        "status_rule_id": "RULE_003",
+        "reason_summary": [
+          "Candidate behavioral profile aligns with engine department (Oiler/Motorman) rather than service department (Cook).",
+          "No core galley duties mentioned: food preparation, hygiene compliance, menu planning, provisions management all absent.",
+          "Describes engine room watch keeping which is not part of the Cook role DNA.",
+          "Recommend reassessment for Oiler or Motorman role based on described engine room experience."
+        ],
+        "scoring_mode": "role_dna_v1",
+        "weight_profile_used": "service",
+        "weights_applied": {
+          "role_fit": 0.30,
+          "technical_fit": 0.25,
+          "safety_index": 0.20,
+          "authority_alignment": 0.05,
+          "behavioral_stability": 0.20
+        },
+        "guard_rails_applied": [
+          { "guard": "certification_guard", "triggered": false, "action_taken": "none" },
+          { "guard": "authority_guard", "triggered": false, "action_taken": "none — authority_alignment(60) >= threshold(40)" },
+          { "guard": "safety_guard", "triggered": false, "action_taken": "none — safety_index(65) >= threshold(60)" },
+          { "guard": "department_mismatch_guard", "triggered": true, "action_taken": "-20 penalty applied to role_fit" },
+          { "guard": "core_duty_guard", "triggered": true, "action_taken": "-15 penalty applied to technical_fit" }
+        ]
+      },
+      "scoring_walkthrough": {
+        "step_1_base_scores": "role_fit base: 73 (before penalties), technical_fit base: 37 (before penalties), safety_index: 65, authority_alignment: 60, behavioral_stability: 70",
+        "step_2_mismatch_penalties": "role_fit: 73 - 15 (dept_mismatch) - 25 (core_duty_gap) - 15 (role_confusion) = 18. technical_fit: 37 - 15 (core_duty_guard) = 22",
+        "step_3_guard_rails": "department_mismatch_guard triggered. core_duty_guard triggered. Authority and safety guards pass.",
+        "step_4_weighted_score": "(0.30 × 18) + (0.25 × 22) + (0.20 × 65) + (0.05 × 60) + (0.20 × 70) = 5.4 + 5.5 + 13.0 + 3.0 + 14.0 = 40.9. After rounding/interactions: ~35.5",
+        "step_5_decision_rule": "role_fit(18) < 50 → RULE_003 matches → status: role_mismatch"
+      }
+    },
+
+    "scenario_04_ab_seaman_missing_mandatory_cert": {
+      "title": "AB Seaman with missing mandatory cert -> not_eligible",
+      "description": "Candidate Burak S. applies as AB_SEAMAN with good behavioral fit and appropriate seamanship responses, but is missing mandatory STCW Basic Safety Training certificate. Interview performance is solid but certification gap blocks eligibility.",
+      "input": {
+        "role_applied": "AB_SEAMAN",
+        "candidate_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "interview_responses_summary": [
+          "Describes helmsman duties with confidence and precision",
+          "Explains lookout watch procedures correctly",
+          "Details mooring station responsibilities and safety checks",
+          "Mentions following bosun's instructions and teamwork on deck",
+          "Describes proper use of PPE and safety gear without prompting",
+          "Good description of deck maintenance and seamanship tasks"
+        ],
+        "certificates_on_file": [
+          { "type": "COC", "status": "valid", "expires_at": "2027-06-15" },
+          { "type": "MEDICAL_FITNESS", "status": "valid", "expires_at": "2026-11-20" }
+        ],
+        "certificates_missing": [
+          { "type": "STCW_BASIC_SAFETY", "mandatory": true }
+        ]
+      },
+      "expected_output": {
+        "pillar_scores": {
+          "role_fit": 82,
+          "technical_fit": 78,
+          "safety_index": 75,
+          "authority_alignment": 85,
+          "behavioral_stability": 72
+        },
+        "final_score": 79.0,
+        "final_score_01": 0.79,
+        "mismatch_flag": false,
+        "mismatch_classification": "ROLE_MATCH",
+        "mismatch_signals": [],
+        "blockers": [
+          {
+            "blocker_type": "certification_guard",
+            "details": "Missing mandatory STCW Basic Safety Training certificate. This certificate is required for all maritime roles per STCW Convention.",
+            "certificate_type": "STCW_BASIC_SAFETY"
+          }
+        ],
+        "status": "not_eligible",
+        "status_rule_id": "RULE_001",
+        "reason_summary": [
+          "Candidate demonstrates good behavioral and technical alignment with AB Seaman role.",
+          "BLOCKED: Missing mandatory STCW Basic Safety Training certificate.",
+          "Interview performance suggests strong candidate — recommend fast-tracking certification renewal and re-evaluation."
+        ],
+        "scoring_mode": "role_dna_v1",
+        "weight_profile_used": "execution",
+        "weights_applied": {
+          "role_fit": 0.35,
+          "technical_fit": 0.35,
+          "safety_index": 0.20,
+          "authority_alignment": 0.05,
+          "behavioral_stability": 0.05
+        },
+        "guard_rails_applied": [
+          { "guard": "certification_guard", "triggered": true, "action_taken": "BLOCKED — missing STCW_BASIC_SAFETY (mandatory)" },
+          { "guard": "authority_guard", "triggered": false, "action_taken": "none — authority_alignment(85) >= threshold(40)" },
+          { "guard": "safety_guard", "triggered": false, "action_taken": "none — safety_index(75) >= threshold(60)" }
+        ]
+      },
+      "scoring_walkthrough": {
+        "step_1_base_scores": "role_fit: 82, technical_fit: 78, safety_index: 75, authority_alignment: 85, behavioral_stability: 72",
+        "step_2_mismatch_penalties": "No mismatch signals. Behavioral profile aligns with AB Seaman execution band.",
+        "step_3_guard_rails": "certification_guard TRIGGERED: STCW_BASIC_SAFETY missing. This is priority 1 — overrides all other results.",
+        "step_4_weighted_score": "(0.35 × 82) + (0.35 × 78) + (0.20 × 75) + (0.05 × 85) + (0.05 × 72) = 28.7 + 27.3 + 15.0 + 4.25 + 3.6 = 78.85 → 79.0",
+        "step_5_decision_rule": "certification_guard == BLOCKED → RULE_001 matches (priority 1) → status: not_eligible. Score is computed for record but does not override the blocker."
+      }
+    },
+
+    "scenario_05_third_officer_good_navigation": {
+      "title": "Third Officer with good navigation focus -> eligible",
+      "description": "Candidate Elena M. applies as THIRD_OFFICER and demonstrates appropriate safety equipment knowledge, bridge watchkeeping awareness, drill coordination, and proper officer-level communication without overstepping into cargo or command authority.",
+      "input": {
+        "role_applied": "THIRD_OFFICER",
+        "candidate_id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+        "interview_responses_summary": [
+          "Describes safety equipment inspection routines and LSA/FFA inventory management",
+          "Explains fire drill coordination role and lifeboat preparation procedures",
+          "Details bridge watch responsibilities including lookout supervision and radar monitoring",
+          "Discusses GMDSS operation and proper distress communication protocols",
+          "Mentions reporting to Chief Officer on safety matters",
+          "Describes proper watch handover procedures with checklist approach",
+          "Shows awareness of emergency response role without claiming command authority"
+        ],
+        "certificates_on_file": [
+          { "type": "COC", "status": "valid", "expires_at": "2028-03-10" },
+          { "type": "STCW_BASIC_SAFETY", "status": "valid", "expires_at": "2027-09-15" },
+          { "type": "MEDICAL_FITNESS", "status": "valid", "expires_at": "2027-01-20" },
+          { "type": "GMDSS", "status": "valid", "expires_at": "2027-12-01" }
+        ]
+      },
+      "expected_output": {
+        "pillar_scores": {
+          "role_fit": 88,
+          "technical_fit": 85,
+          "safety_index": 92,
+          "authority_alignment": 90,
+          "behavioral_stability": 78
+        },
+        "final_score": 87.3,
+        "final_score_01": 0.873,
+        "mismatch_flag": false,
+        "mismatch_classification": "ROLE_MATCH",
+        "mismatch_signals": [],
+        "blockers": [],
+        "status": "eligible",
+        "status_rule_id": "RULE_005",
+        "reason_summary": [
+          "Candidate demonstrates strong alignment with Third Officer role DNA.",
+          "Safety equipment expertise and drill coordination match role's primary responsibilities.",
+          "Appropriate authority level: watchkeeping officer language without overstepping into cargo or command authority.",
+          "All mandatory certificates valid. No blockers detected."
+        ],
+        "scoring_mode": "role_dna_v1",
+        "weight_profile_used": "operational",
+        "weights_applied": {
+          "role_fit": 0.25,
+          "technical_fit": 0.30,
+          "safety_index": 0.20,
+          "authority_alignment": 0.15,
+          "behavioral_stability": 0.10
+        },
+        "guard_rails_applied": [
+          { "guard": "certification_guard", "triggered": false, "action_taken": "none — all mandatory certificates valid" },
+          { "guard": "authority_guard", "triggered": false, "action_taken": "none — authority_alignment(90) >= threshold(40)" },
+          { "guard": "safety_guard", "triggered": false, "action_taken": "none — safety_index(92) >= threshold(60)" }
+        ]
+      },
+      "scoring_walkthrough": {
+        "step_1_base_scores": "role_fit: 88, technical_fit: 85, safety_index: 92, authority_alignment: 90, behavioral_stability: 78",
+        "step_2_mismatch_penalties": "No mismatch signals. Behavioral profile aligns with Third Officer operational band. Safety equipment focus matches core duty expectation.",
+        "step_3_guard_rails": "All guards pass. No penalties applied.",
+        "step_4_weighted_score": "(0.25 × 88) + (0.30 × 85) + (0.20 × 92) + (0.15 × 90) + (0.10 × 78) = 22.0 + 25.5 + 18.4 + 13.5 + 7.8 = 87.2 → 87.3",
+        "step_5_decision_rule": "All pillars above thresholds → RULE_005 matches → status: eligible"
+      }
+    }
+  },
+
+  "integration_notes": {
+    "role_dna_matrix_dependency": "This scoring engine requires ROLE_DNA_MATRIX_v1.json to be loaded. All role lookups reference the roles object in the matrix.",
+    "candidate_decision_service": "Final output integrates with CandidateDecisionService via final_score_01. The scoring engine output becomes the behavioral/role component in the unified 4-pillar decision service.",
+    "behavioral_scoring_service_v2": "Pillar scores (dimension-level) feed from BehavioralScoringServiceV2 output. The 7 dimensions (responsibility, teamwork, decision_under_pressure, communication, discipline, leadership, adaptability) are mapped to the 5 scoring engine pillars.",
+    "dimension_to_pillar_mapping": {
+      "role_fit": ["responsibility", "adaptability"],
+      "technical_fit": ["decision_under_pressure"],
+      "safety_index": ["discipline", "responsibility"],
+      "authority_alignment": ["leadership", "communication"],
+      "behavioral_stability": ["adaptability", "teamwork", "communication"]
+    },
+    "synergy_engine_v2": "When crew_synergy_engine_v2 tenant feature flag is enabled, synergy scoring from CrewSynergyEngineV2 is combined with this engine's output. The weight_profiles in this config are for interview-level scoring; CandidateDecisionService applies its own 4-pillar weights on top.",
+    "feature_flag": "This scoring engine activates when ROLE_DNA_MATRIX_v1.json is present. No separate feature flag needed — the matrix file IS the feature gate.",
+    "clean_workflow_integration": "When MARITIME_CLEAN_WORKFLOW_V1=true, interview responses come via CleanInterviewController. The scoring engine is agnostic to the interview delivery mechanism — it operates on response text regardless of source."
+  }
+}

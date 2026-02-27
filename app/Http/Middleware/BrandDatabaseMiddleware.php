@@ -18,7 +18,20 @@ class BrandDatabaseMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $brandKey = strtolower($request->header('X-Brand-Key', 'octopus'));
+        // Company panel always uses the default (mysql) database — it's an internal management tool
+        if (str_starts_with($request->path(), 'api/v1/company-panel')) {
+            $brandKey = 'octopus'; // keeps default mysql connection
+            DB::setDefaultConnection('mysql');
+            $cachePrefix = 'talentqx_octopus_cache_';
+
+            app()->instance('current_brand', $brandKey);
+            config(['cache.prefix' => $cachePrefix]);
+            Cache::forgetDriver(config('cache.default'));
+
+            return $next($request);
+        }
+
+        $brandKey = strtolower($request->header('X-Brand-Key', 'talentqx'));
 
         if ($brandKey === 'talentqx') {
             DB::setDefaultConnection('mysql_talentqx');

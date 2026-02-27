@@ -142,6 +142,15 @@ class MarketplaceAccessController extends Controller
         $requesterEmail = $accessRequest->requestingUser?->email;
         if ($requesterEmail) {
             Mail::to($requesterEmail)->queue(new MarketplaceAccessRespondedMail($accessRequest, 'approved'));
+
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    'marketplace_access_approved',
+                    $requesterEmail,
+                    "Marketplace access approved: {$accessRequest->id}",
+                    ['request_id' => $accessRequest->id]
+                );
+            } catch (\Throwable) {}
         }
 
         return response()->json([
@@ -209,6 +218,15 @@ class MarketplaceAccessController extends Controller
         $requesterEmail = $accessRequest->requestingUser?->email;
         if ($requesterEmail) {
             Mail::to($requesterEmail)->queue(new MarketplaceAccessRespondedMail($accessRequest, 'rejected'));
+
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    'marketplace_access_rejected',
+                    $requesterEmail,
+                    "Marketplace access rejected: {$accessRequest->id}",
+                    ['request_id' => $accessRequest->id]
+                );
+            } catch (\Throwable) {}
         }
 
         return response()->json([

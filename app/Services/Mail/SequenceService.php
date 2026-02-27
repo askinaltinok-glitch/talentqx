@@ -252,9 +252,9 @@ class SequenceService
         $mailboxes = config('crm_mailboxes.mailboxes', []);
 
         if ($lead->industry_code === 'maritime') {
-            return $mailboxes['crew']['username'] ?? 'crew@talentqx.com';
+            return $mailboxes['crew']['username'] ?? 'crew@octopus-ai.net';
         }
 
-        return $mailboxes['companies']['username'] ?? 'companies@talentqx.com';
+        return $mailboxes['companies']['username'] ?? 'companies@octopus-ai.net';
     }
 }

@@ -90,6 +90,15 @@ class SendCredentialReminderJob implements ShouldQueue
             $reminderLog->markSent();
             $emailLog->update(['status' => 'sent', 'smtp_response' => 'OK', 'sent_at' => now()]);
 
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    'credential_reminder',
+                    $candidate->email,
+                    "Credential reminder: {$candidate->first_name} {$candidate->last_name}",
+                    ['candidate_id' => $candidate->id, 'credential_id' => $this->credentialId]
+                );
+            } catch (\Throwable) {}
+
             // Update credential last reminded timestamp
             $credential->update(['last_reminded_at' => now()]);
 

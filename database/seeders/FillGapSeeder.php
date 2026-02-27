@@ -14,7 +14,14 @@ class FillGapSeeder extends Seeder
 {
     public function run(): void
     {
-        $competencies = DB::table('competencies')->pluck('id', 'code')->toArray();
+        // Build case-insensitive competency map (talentqx_hr uses UPPERCASE, octopus uses mixed)
+        $rawCompetencies = DB::table('competencies')->pluck('id', 'code')->toArray();
+        $competencies = [];
+        foreach ($rawCompetencies as $code => $id) {
+            $competencies[$code] = $id;
+            $competencies[strtoupper($code)] = $id;
+            $competencies[strtolower($code)] = $id;
+        }
         $subdomains   = DB::table('job_subdomains')->pluck('id', 'code')->toArray();
 
         // ── 1. Position Definitions ─────────────────────────────────
@@ -218,17 +225,28 @@ class FillGapSeeder extends Seeder
                     continue;
                 }
 
-                // Skip if questions already exist for this position
+                // Skip if all 8 questions already exist for this position
                 $existing = DB::table('position_questions')
                     ->where('position_id', $position->id)
                     ->where('is_active', true)
                     ->count();
-                if ($existing > 0) {
+                if ($existing >= 8) {
                     $this->command->info("Questions already exist for {$posCode} ({$existing}), skipping.");
                     continue;
                 }
+                // Track existing competencies to avoid duplicates
+                $existingCompCodes = DB::table('position_questions')
+                    ->join('competencies', 'competencies.id', '=', 'position_questions.competency_id')
+                    ->where('position_questions.position_id', $position->id)
+                    ->pluck('competencies.code')
+                    ->map(fn($c) => strtoupper($c))
+                    ->toArray();
 
                 foreach ($questions as $i => $q) {
+                    // Skip if this competency's question already exists for this position
+                    if (in_array(strtoupper($q[1]), $existingCompCodes)) {
+                        continue;
+                    }
                     $compId = $competencies[$q[1]] ?? null;
                     if (!$compId) {
                         $this->command->warn("Competency not found: {$q[1]} for {$posCode}");

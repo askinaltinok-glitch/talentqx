@@ -158,7 +158,7 @@ return [
     */
 
     'web_push' => [
-        'subject'     => env('VAPID_SUBJECT', 'mailto:noreply@octopus-ai.net'),
+        'subject'     => env('VAPID_SUBJECT', 'mailto:noreply@talentqx.com'),
         'public_key'  => env('VAPID_PUBLIC_KEY', ''),
         'private_key' => env('VAPID_PRIVATE_KEY', ''),
     ],

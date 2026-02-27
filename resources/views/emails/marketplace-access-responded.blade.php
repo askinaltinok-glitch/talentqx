@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; padding: 20px 0 10px;">
+        <img src="https://talentqx.com/assets/octopus-logo-email.png" alt="Octopus AI" style="max-height: 48px; margin-bottom: 12px;">
+    </div>
     @if($outcome === 'approved')
     <h2 style="color: #059669;">Candidate Access Request — Approved</h2>
     <p>Your access request has been <strong style="color: #059669;">approved</strong>.</p>

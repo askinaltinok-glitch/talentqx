@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\OctopusAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\ImportRun;
 use App\Services\Import\CrewRosterImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CrewRosterImportController extends Controller
 {
@@ -22,7 +24,7 @@ class CrewRosterImportController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'file'       => 'required|file|mimes:xlsx,xls|max:20480',
-            'company_id' => 'required|uuid',
+            'company_id' => ['required', 'uuid', Rule::exists('companies', 'id')->where('platform', Company::PLATFORM_OCTOPUS)],
         ]);
 
         if ($validator->fails()) {
@@ -58,7 +60,7 @@ class CrewRosterImportController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'file'       => 'required|file|mimes:xlsx,xls|max:20480',
-            'company_id' => 'required|uuid',
+            'company_id' => ['required', 'uuid', Rule::exists('companies', 'id')->where('platform', Company::PLATFORM_OCTOPUS)],
         ]);
 
         if ($validator->fails()) {

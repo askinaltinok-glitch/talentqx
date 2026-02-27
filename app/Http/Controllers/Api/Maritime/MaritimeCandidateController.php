@@ -12,6 +12,8 @@ use App\Models\PoolCandidate;
 use App\Services\ML\ModelFeatureService;
 use App\Services\PoolCandidateService;
 use App\Services\Maritime\EmailVerificationService;
+use App\Services\Maritime\MaritimeOtpVerificationService;
+use App\Models\InterviewInvitation;
 use App\Services\Security\RecaptchaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -274,6 +276,34 @@ class MaritimeCandidateController extends Controller
                 ],
             ];
 
+            // Immediate verification v1: existing candidate that hasn't verified → resend OTP
+            if (config('maritime.immediate_verification_v1')) {
+                if (!$existing->email_verified_at) {
+                    try {
+                        app(MaritimeOtpVerificationService::class)->sendCode($existing);
+                    } catch (\Throwable $e) {
+                        Log::warning('OTP resend failed for existing candidate', [
+                            'candidate_id' => $existing->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                    $response['data']['requires_verification'] = true;
+                    $response['data']['masked_email'] = $this->maskEmail($existing->email);
+                    return response()->json($response);
+                }
+
+                // Already verified — check for existing invitation/interview
+                $existingInvitation = InterviewInvitation::where('pool_candidate_id', $existing->id)
+                    ->whereIn('status', [InterviewInvitation::STATUS_INVITED, InterviewInvitation::STATUS_STARTED])
+                    ->where('expires_at', '>', now())
+                    ->latest()
+                    ->first();
+                if ($existingInvitation) {
+                    $response['data']['invitation_token'] = $existingInvitation->invitation_token;
+                    return response()->json($response);
+                }
+            }
+
             // If auto_start_interview requested, check for existing in-progress interview or start new one
             if ($data['auto_start_interview'] ?? false) {
                 $activeInterview = $existing->formInterviews()
@@ -421,8 +451,23 @@ class MaritimeCandidateController extends Controller
             ],
         ];
 
-        // Clean workflow v1: separate application from interview
-        if (config('maritime.clean_workflow_v1')) {
+        // Immediate OTP verification v1: send OTP instantly, no delayed invitation
+        if (config('maritime.immediate_verification_v1')) {
+            $candidate->update(['application_completed_at' => now()]);
+            try {
+                app(MaritimeOtpVerificationService::class)->sendCode($candidate);
+            } catch (\Throwable $e) {
+                Log::error('OTP send failed for new candidate', [
+                    'candidate_id' => $candidate->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            $response['data']['requires_verification'] = true;
+            $response['data']['masked_email'] = $this->maskEmail($candidate->email);
+            // OTP email includes "application received" message — no separate email needed
+            // No SendInterviewInvitationJob — invitation created after OTP verification
+        } elseif (config('maritime.clean_workflow_v1')) {
+            // Clean workflow v1: separate application from interview
             $candidate->update(['application_completed_at' => now()]);
             \App\Jobs\SendInterviewInvitationJob::dispatch($candidate->id)
                 ->delay(now()->addMinutes(config('maritime.interview_invite_delay_minutes', 5)));
@@ -448,14 +493,18 @@ class MaritimeCandidateController extends Controller
             }
         }
 
-        // Send "Başvuru Alındı" email
-        SendCandidateEmailJob::dispatchSafe($candidate->id, 'application_received');
+        // Send "Başvuru Alındı" email — skip when OTP is active (OTP email includes this)
+        if (!config('maritime.immediate_verification_v1')) {
+            SendCandidateEmailJob::dispatchSafe($candidate->id, 'application_received');
+        }
 
-        // Send email verification link
-        try {
-            app(EmailVerificationService::class)->sendVerification($candidate);
-        } catch (\Throwable $e) {
-            Log::warning('Email verification dispatch failed', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
+        // Send email verification link — skip when OTP is active (OTP replaces link verification)
+        if (!config('maritime.immediate_verification_v1')) {
+            try {
+                app(EmailVerificationService::class)->sendVerification($candidate);
+            } catch (\Throwable $e) {
+                Log::warning('Email verification dispatch failed', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
+            }
         }
 
         // Timeline: applied event
@@ -896,6 +945,143 @@ class MaritimeCandidateController extends Controller
             'success' => true,
             'data' => $certificates,
         ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/verify-otp
+     *
+     * Verify 6-digit OTP code and create interview invitation.
+     */
+    public function verifyOtp(Request $request, string $candidateId): JsonResponse
+    {
+        $this->resolveLocale($request);
+
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'code' => ['required', 'string', 'size:6', 'regex:/^\d{6}$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid code format.',
+                'messages' => $validator->errors(),
+            ], 422);
+        }
+
+        $result = app(MaritimeOtpVerificationService::class)->verifyCode($candidate, $request->input('code'));
+
+        if ($result !== true) {
+            $candidate->refresh();
+            $attemptsLeft = max(0, 5 - $candidate->email_verification_otp_attempts);
+
+            return response()->json([
+                'success' => false,
+                'error' => $result,
+                'data' => ['attempts_left' => $attemptsLeft],
+            ], 422);
+        }
+
+        // OTP verified — reuse existing valid invitation or create new one
+        $existingInvitation = InterviewInvitation::where('pool_candidate_id', $candidate->id)
+            ->whereIn('status', [InterviewInvitation::STATUS_INVITED, InterviewInvitation::STATUS_STARTED])
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        if ($existingInvitation) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Email verified successfully.',
+                'data' => [
+                    'invitation_token' => $existingInvitation->invitation_token,
+                    'candidate_id' => $candidate->id,
+                ],
+            ]);
+        }
+
+        $invitation = InterviewInvitation::create([
+            'pool_candidate_id' => $candidate->id,
+            'locale' => $candidate->preferred_language ?? 'en',
+            'meta' => [
+                'rank' => $candidate->rank ?? $candidate->source_meta['rank'] ?? null,
+                'department' => $candidate->source_meta['department'] ?? null,
+                'question_bank_v1' => config('maritime.question_bank_v1', false),
+                'source' => 'otp_verification',
+            ],
+        ]);
+
+        Log::info('OTP verified — invitation created', [
+            'candidate_id' => $candidate->id,
+            'invitation_id' => $invitation->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email verified successfully.',
+            'data' => [
+                'invitation_token' => $invitation->invitation_token,
+                'candidate_id' => $candidate->id,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/maritime/candidates/{id}/resend-otp
+     *
+     * Resend OTP code with 60-second cooldown.
+     */
+    public function resendOtp(Request $request, string $candidateId): JsonResponse
+    {
+        $this->resolveLocale($request);
+
+        $candidate = PoolCandidate::find($candidateId);
+        if (!$candidate) {
+            return response()->json(['success' => false, 'error' => 'Candidate not found.'], 404);
+        }
+
+        if ($candidate->email_verified_at) {
+            return response()->json(['success' => true, 'message' => 'Email already verified.']);
+        }
+
+        // Throttle: 60-second cooldown since last send
+        if ($candidate->email_verification_sent_at &&
+            $candidate->email_verification_sent_at->diffInSeconds(now()) < 60) {
+            $remaining = 60 - $candidate->email_verification_sent_at->diffInSeconds(now());
+            return response()->json([
+                'success' => false,
+                'error' => 'Please wait before requesting a new code.',
+                'data' => ['cooldown_seconds' => (int) $remaining],
+            ], 429);
+        }
+
+        app(MaritimeOtpVerificationService::class)->sendCode($candidate);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code sent.',
+        ]);
+    }
+
+    /**
+     * Mask email: j***@gmail.com
+     */
+    private function maskEmail(string $email): string
+    {
+        $parts = explode('@', $email);
+        if (count($parts) !== 2) {
+            return '***@***.***';
+        }
+        $local = $parts[0];
+        $domain = $parts[1];
+        $maskedLocal = strlen($local) > 1
+            ? $local[0] . str_repeat('*', min(strlen($local) - 1, 3))
+            : $local;
+        return $maskedLocal . '@' . $domain;
     }
 
     /**
@@ -1364,7 +1550,7 @@ class MaritimeCandidateController extends Controller
             $candidate->save();
         }
 
-        $referralUrl = "https://octopus-ai.net/{$candidate->preferred_language}/maritime/apply?ref={$candidate->referral_code}";
+        $referralUrl = config('app.frontend_url', 'https://octopus-ai.net') . "/{$candidate->preferred_language}/maritime/apply?ref={$candidate->referral_code}";
 
         return response()->json([
             'success' => true,

@@ -166,7 +166,7 @@ class PrivacyController extends Controller
                     ],
                     [
                         'title' => '6. İletişim',
-                        'content' => 'Haklarınızı kullanmak için privacy@talentqx.com adresine başvurabilirsiniz.',
+                        'content' => 'Haklarınızı kullanmak için privacy@octopus-ai.net adresine başvurabilirsiniz.',
                     ],
                 ],
                 default => [
@@ -214,7 +214,7 @@ class PrivacyController extends Controller
                 ],
                 [
                     'title' => '6. Contact',
-                    'content' => 'To exercise your rights, please contact privacy@talentqx.com.',
+                    'content' => 'To exercise your rights, please contact privacy@octopus-ai.net.',
                 ],
             ],
             'GDPR' => [
@@ -244,7 +244,7 @@ class PrivacyController extends Controller
                 ],
                 [
                     'title' => '7. Contact & Complaints',
-                    'content' => 'Contact our DPO at privacy@talentqx.com. You may also lodge a complaint with your supervisory authority.',
+                    'content' => 'Contact our DPO at privacy@octopus-ai.net. You may also lodge a complaint with your supervisory authority.',
                 ],
             ],
             default => [
@@ -266,7 +266,7 @@ class PrivacyController extends Controller
                 ],
                 [
                     'title' => '5. Contact',
-                    'content' => 'For privacy inquiries, contact privacy@talentqx.com.',
+                    'content' => 'For privacy inquiries, contact privacy@octopus-ai.net.',
                 ],
             ],
         };

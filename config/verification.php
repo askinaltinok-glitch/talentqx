@@ -23,7 +23,7 @@ return [
     'verimor' => [
         'api_id' => env('VERIMOR_API_ID'),
         'api_key' => env('VERIMOR_API_KEY'),
-        'sender' => env('VERIMOR_SENDER', 'TalentQX'),
+        'sender' => env('VERIMOR_SENDER', 'OctopusAI'),
     ],
 
     // Verification code settings

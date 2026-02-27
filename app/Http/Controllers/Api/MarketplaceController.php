@@ -343,6 +343,15 @@ class MarketplaceController extends Controller
         $adminEmail = config('mail.admin_address', 'admin@octopus-ai.net');
         Mail::to($adminEmail)->queue(new MarketplaceAccessRequestedMail($accessRequest));
 
+        try {
+            app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                'marketplace_access_requested',
+                $adminEmail,
+                "Marketplace access request: {$accessRequest->id}",
+                ['request_id' => $accessRequest->id]
+            );
+        } catch (\Throwable) {}
+
         return response()->json([
             'success' => true,
             'data' => [

@@ -19,6 +19,7 @@ class CreditPackage extends Model
         'price_try',
         'price_eur',
         'description',
+        'features',
         'is_active',
         'is_featured',
         'sort_order',
@@ -28,6 +29,7 @@ class CreditPackage extends Model
         'credits' => 'integer',
         'price_try' => 'decimal:2',
         'price_eur' => 'decimal:2',
+        'features' => 'array',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
         'sort_order' => 'integer',
@@ -121,6 +123,7 @@ class CreditPackage extends Model
             'price_per_credit' => round($this->getPricePerCredit($currency), 2),
             'currency' => $currency,
             'description' => $this->description,
+            'features' => $this->features,
             'is_featured' => $this->is_featured,
         ];
     }

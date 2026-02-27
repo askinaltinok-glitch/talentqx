@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'default' => 'octopus',
+    'default' => 'talentqx',
 
     'brands' => [
         'octopus' => [
@@ -14,6 +14,7 @@ return [
             'noreply_name'    => 'Octopus AI',
             'privacy_url'     => 'https://octopus-ai.net/privacy',
             'website_url'     => 'https://octopus-ai.net',
+            'logo_url'        => 'https://talentqx.com/assets/octopus-logo-email.png',
             'header_emoji'    => "\xF0\x9F\x90\x99", // octopus emoji
             'subjects' => [
                 'application_received' => [
@@ -50,6 +51,7 @@ return [
             'noreply_name'    => 'TalentQX',
             'privacy_url'     => 'https://talentqx.com/privacy',
             'website_url'     => 'https://talentqx.com',
+            'logo_url'        => 'https://talentqx.com/assets/logo-email.png',
             'header_emoji'    => "\xF0\x9F\x92\xBC", // briefcase emoji
             'subjects' => [
                 'application_received' => [

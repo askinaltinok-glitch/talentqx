@@ -83,21 +83,23 @@ class SendSubscriptionReminders extends Command
     {
         $plan = strtoupper($company->subscription_plan);
         $expiresAt = $company->subscription_ends_at->format('d M Y');
+        $brandName = ($company->platform ?? 'octopus') === 'octopus' ? 'Octopus AI' : 'TalentQX';
+        $supportEmail = ($company->platform ?? 'octopus') === 'octopus' ? 'support@octopus-ai.net' : 'support@talentqx.com';
 
         return <<<TEXT
 Dear {$company->name},
 
-Your Octopus AI {$plan} subscription will expire on {$expiresAt} ({$days} day(s) remaining).
+Your {$brandName} {$plan} subscription will expire on {$expiresAt} ({$days} day(s) remaining).
 
 After expiration, you will enter a 60-day grace period with limited access. To ensure uninterrupted service, please contact your account manager to renew.
 
 Current plan: {$plan}
 Credits remaining: {$company->getRemainingCredits()}
 
-Contact us at support@octopus-ai.net for renewal.
+Contact us at {$supportEmail} for renewal.
 
 Best regards,
-Octopus AI Team
+{$brandName} Team
 TEXT;
     }
 }

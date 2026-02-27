@@ -35,13 +35,13 @@ return [
     ],
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'noreply@talentqx.com'),
-        'name' => env('MAIL_FROM_NAME', 'TalentQX'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@octopus-ai.net'),
+        'name' => env('MAIL_FROM_NAME', 'Octopus AI'),
     ],
 
     'reply_to' => [
-        'address' => env('MAIL_REPLY_TO_ADDRESS', 'support@talentqx.com'),
-        'name' => env('MAIL_REPLY_TO_NAME', 'TalentQX Support'),
+        'address' => env('MAIL_REPLY_TO_ADDRESS', 'support@octopus-ai.net'),
+        'name' => env('MAIL_REPLY_TO_NAME', 'Octopus AI Support'),
     ],
 
     /*

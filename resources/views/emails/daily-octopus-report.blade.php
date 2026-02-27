@@ -47,7 +47,8 @@
 <div class="wrapper">
     {{-- ===== HEADER ===== --}}
     <div class="header">
-        <h1>🐙 Octopus AI — Günlük Operasyon Raporu</h1>
+        <img src="https://talentqx.com/assets/octopus-logo-email.png" alt="Octopus AI" style="max-height: 48px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">
+        <h1>Octopus AI — Günlük Operasyon Raporu</h1>
         <p>{{ $metrics['date_label'] }} &bull; Maritime Talent Intelligence Platform</p>
     </div>
 

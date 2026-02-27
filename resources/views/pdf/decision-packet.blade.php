@@ -50,9 +50,9 @@
 <body>
 
 <div class="footer">
-    <div class="footer-left">Octopus AI &mdash; Decision Packet</div>
+    <div class="footer-left">Octopus AI &mdash; Decision Packet v2</div>
     <div class="footer-center">CONFIDENTIAL</div>
-    <div class="footer-right">Generated {{ now()->format('d M Y H:i') }} UTC</div>
+    <div class="footer-right">Generated {{ now()->format('d M Y H:i') }} UTC &middot; System: Octopus AI</div>
 </div>
 
 <!-- PAGE 1: EXECUTIVE SNAPSHOT -->
@@ -376,14 +376,150 @@
 </table>
 @endif
 
+{{-- PAGE 3: DECISION PACKET V2 — English Gate, Question Blocks, Admin Decision, Marketplace, Consent --}}
+@if(!empty($englishGateData) || !empty($questionBlockSummary) || !empty($adminDecisionData['phase_reviews']) || !empty($adminDecisionData['override']) || !empty($marketplaceData) || !empty($consentSnapshot))
+<div class="page-break"></div>
+<div class="header">
+    <div class="header-left"><div class="brand">OCTOPUS AI</div><div class="brand-sub">Maritime Intelligence Platform</div></div>
+    <div class="header-right"><div class="report-title">Extended Assessment</div><div class="report-meta">{{ $candidate->first_name }} {{ $candidate->last_name }}<br>Generated {{ now()->format('d M Y') }}</div></div>
+</div>
+
+{{-- SECTION C: English Gate --}}
+@if(!empty($englishGateData))
+<div class="section-title">C. English Gate Assessment</div>
+<div class="tile-row">
+    <div class="tile"><div class="tile-inner">
+        <div class="tile-label">CEFR Level</div>
+        <div class="tile-value">{{ strtoupper($englishGateData['cefr_level'] ?? 'N/A') }}</div>
+    </div></div>
+    <div class="tile"><div class="tile-inner">
+        <div class="tile-label">Confidence</div>
+        <div class="tile-value">{{ $englishGateData['confidence'] !== null ? round($englishGateData['confidence'] * 100) . '%' : 'N/A' }}</div>
+    </div></div>
+    <div class="tile"><div class="tile-inner">
+        <div class="tile-label">Transcript Length</div>
+        <div class="tile-value">{{ number_format($englishGateData['transcript_length'] ?? 0) }}</div>
+        <div class="tile-sub">characters ({{ $englishGateData['voice_count'] ?? 0 }} recordings)</div>
+    </div></div>
+    <div class="tile"><div class="tile-inner">
+        <div class="tile-label">Voice Duration</div>
+        <div class="tile-value">{{ $englishGateData['voice_duration_ms'] ? round($englishGateData['voice_duration_ms'] / 1000, 1) . 's' : 'N/A' }}</div>
+        <div class="tile-sub">{{ $englishGateData['provider'] ?? '' }} {{ $englishGateData['model'] ?? '' }}</div>
+    </div></div>
+</div>
+<table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+        <tr><td style="font-weight:bold;">Declared Level</td><td>{{ strtoupper($englishGateData['declared_level'] ?? 'N/A') }}</td></tr>
+        <tr><td style="font-weight:bold;">Estimated Level</td><td>{{ strtoupper($englishGateData['estimated_level'] ?? 'N/A') }}</td></tr>
+        <tr><td style="font-weight:bold;">Locked Level</td><td>@if($englishGateData['locked_level'])<span style="font-weight:bold;color:#15803d;">{{ strtoupper($englishGateData['locked_level']) }}</span>@else<span style="color:#94a3b8;">Not locked</span>@endif</td></tr>
+    </tbody>
+</table>
+@endif
+
+{{-- SECTION D: Question Block Summary --}}
+@if(!empty($questionBlockSummary))
+<div class="section-title">D. Question Block Summary</div>
+<table>
+    <thead><tr><th>Block</th><th>Slot Range</th><th>Questions</th></tr></thead>
+    <tbody>
+        <tr><td style="font-weight:bold;">CORE</td><td>1–12</td><td style="text-align:center;font-weight:bold;">{{ $questionBlockSummary['core'] }}</td></tr>
+        <tr><td style="font-weight:bold;">ROLE</td><td>13–18</td><td style="text-align:center;font-weight:bold;">{{ $questionBlockSummary['role'] }}</td></tr>
+        <tr><td style="font-weight:bold;">SAFETY</td><td>19–22</td><td style="text-align:center;font-weight:bold;">{{ $questionBlockSummary['safety'] }}</td></tr>
+        <tr><td style="font-weight:bold;">ENGLISH</td><td>23–25</td><td style="text-align:center;font-weight:bold;">{{ $questionBlockSummary['english'] }}</td></tr>
+        <tr style="background:#f1f5f9;"><td style="font-weight:bold;">TOTAL</td><td></td><td style="text-align:center;font-weight:bold;">{{ $questionBlockSummary['total'] }}</td></tr>
+    </tbody>
+</table>
+@if($questionBlockSummary['workflow'])
+<p style="font-size:8px;color:#64748b;margin-top:2px;">Workflow: {{ $questionBlockSummary['workflow'] }}</p>
+@endif
+@endif
+
+{{-- SECTION E: Admin Decision / Override --}}
+@if(!empty($adminDecisionData['override']) || (!empty($adminDecisionData['phase_reviews']) && count($adminDecisionData['phase_reviews']) > 0))
+<div class="section-title">E. Admin Decision & Override</div>
+@if(!empty($adminDecisionData['override']))
+@php
+    $ovr = $adminDecisionData['override'];
+    $ovrBadge = match($ovr['decision']) { 'approve'=>'badge-approve','reject'=>'badge-reject',default=>'badge-review' };
+@endphp
+<div style="border:1px solid {{ $ovr['active'] ? '#bfdbfe' : '#e2e8f0' }};background:{{ $ovr['active'] ? '#eff6ff' : '#f8fafc' }};border-radius:4px;padding:8px 12px;margin-bottom:8px;">
+    <div style="display:table;width:100%;">
+        <div style="display:table-cell;width:30%;"><span class="badge {{ $ovrBadge }}">{{ strtoupper($ovr['decision']) }}</span> @if($ovr['active'])<span style="font-size:7px;color:#2563eb;font-weight:bold;margin-left:4px;">ACTIVE</span>@else<span style="font-size:7px;color:#94a3b8;margin-left:4px;">EXPIRED</span>@endif</div>
+        <div style="display:table-cell;font-size:8px;color:#64748b;">Created: {{ $ovr['created_at'] ?? 'N/A' }} @if($ovr['expires_at'])&middot; Expires: {{ $ovr['expires_at'] }}@endif</div>
+    </div>
+    <div style="font-size:9px;color:#475569;margin-top:4px;">{{ $ovr['reason'] }}</div>
+</div>
+@endif
+
+@if(!empty($adminDecisionData['phase_reviews']) && count($adminDecisionData['phase_reviews']) > 0)
+<table>
+    <thead><tr><th>Phase</th><th>Status</th><th>Notes</th><th>Reviewed At</th></tr></thead>
+    <tbody>
+        @foreach($adminDecisionData['phase_reviews'] as $pr)
+        <tr>
+            <td style="font-weight:bold;">{{ strtoupper(str_replace('_', ' ', $pr['phase_key'])) }}</td>
+            <td><span style="font-weight:bold;color:{{ $pr['status'] === 'approved' ? '#15803d' : ($pr['status'] === 'rejected' ? '#dc2626' : '#b45309') }};">{{ strtoupper($pr['status']) }}</span></td>
+            <td style="font-size:8px;color:#475569;">{{ \Illuminate\Support\Str::limit($pr['review_notes'] ?? '', 80) }}</td>
+            <td style="font-size:8px;">{{ $pr['reviewed_at'] ?? 'N/A' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+@endif
+
+{{-- SECTION F: Marketplace --}}
+@if(!empty($marketplaceData))
+<div class="section-title">F. Marketplace Interest</div>
+<table>
+    <thead><tr><th>Requesting Company</th><th>Status</th><th>Requested</th><th>Responded</th></tr></thead>
+    <tbody>
+        @foreach($marketplaceData as $mar)
+        <tr>
+            <td style="font-weight:bold;">{{ $mar['requesting_company'] }}</td>
+            <td><span style="font-weight:bold;color:{{ $mar['status'] === 'approved' ? '#15803d' : ($mar['status'] === 'rejected' ? '#dc2626' : ($mar['status'] === 'pending' ? '#b45309' : '#64748b')) }};">{{ strtoupper($mar['status']) }}</span></td>
+            <td>{{ $mar['requested_at'] ?? 'N/A' }}</td>
+            <td>{{ $mar['responded_at'] ?? '—' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+{{-- SECTION G: Consent Snapshot --}}
+@if(!empty($consentSnapshot))
+<div class="section-title">G. Consent Record</div>
+<table>
+    <thead><tr><th>Type</th><th>Regulation</th><th>Version</th><th>Granted</th><th>Valid</th><th>Date</th></tr></thead>
+    <tbody>
+        @foreach($consentSnapshot as $consent)
+        <tr>
+            <td style="font-weight:bold;">{{ strtoupper(str_replace('_', ' ', $consent['type'])) }}</td>
+            <td>{{ $consent['regulation'] ?? '—' }}</td>
+            <td>{{ $consent['version'] ?? '—' }}</td>
+            <td style="color:{{ $consent['granted'] ? '#15803d' : '#dc2626' }};font-weight:bold;">{{ $consent['granted'] ? 'YES' : 'NO' }}</td>
+            <td style="color:{{ $consent['valid'] ? '#15803d' : '#dc2626' }};font-weight:bold;">{{ $consent['valid'] ? 'YES' : 'NO' }}</td>
+            <td style="font-size:8px;">{{ $consent['consented_at'] ?? 'N/A' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+<p style="font-size:7px;color:#94a3b8;margin-top:2px;">IP addresses redacted from PDF output for privacy.</p>
+@endif
+
+@endif
+{{-- END PAGE 3 --}}
+
 <div class="confidentiality">
     <strong>AUDIT TRAIL</strong><br>
+    Decision Packet v2 &middot; Generated: {{ now()->format('d M Y H:i:s') }} UTC &middot; System: Octopus AI<br>
     Trust Profile: {{ $trustProfile?->id ?? 'N/A' }} &middot; Computed: {{ $trustProfile?->computed_at?->format('d M Y H:i') ?? 'N/A' }} UTC<br>
     @if($execSummary['calibration_context']['fleet_type'] ?? null)
     Fleet: {{ $execSummary['calibration_context']['fleet_type'] }} &middot; Review Threshold: {{ $execSummary['calibration_context']['review_threshold'] }}
     @endif
     <br>
-    <strong>DISCLAIMER:</strong> Generated automatically by Octopus AI. Independent verification recommended.
+    <strong>DISCLAIMER:</strong> This document is a point-in-time snapshot. Data reflects the state at generation time. Subsequent changes to candidate data are not retroactively applied. Generated automatically by Octopus AI. Independent verification recommended.
     <br>Octopus AI &copy; {{ date('Y') }}. CONFIDENTIAL. Report ID: {{ strtoupper(substr(md5($candidate->id . now()->toDateString()), 0, 12)) }}
 </div>
 

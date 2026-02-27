@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\OctopusAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\CompanyVesselRequirementOverride;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CompanyVesselRequirementOverrideController extends Controller
 {
@@ -26,7 +28,7 @@ class CompanyVesselRequirementOverrideController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'company_id' => 'required|uuid|exists:companies,id',
+            'company_id' => ['required', 'uuid', Rule::exists('companies', 'id')->where('platform', Company::PLATFORM_OCTOPUS)],
             'vessel_type_key' => 'required|string|max:50',
             'overrides_json' => 'required|array',
         ]);

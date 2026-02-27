@@ -61,12 +61,20 @@ class PoolCandidate extends Model
         'video_assessment_required',
         'last_assessed_at',
         'is_demo',
+        'is_erased',
+        'erased_at',
+        'erasure_reason',
         'logbook_activated_at',
         'last_seen_at',
         'availability_status',
         'availability_updated_at',
         'contract_end_estimate',
         'application_completed_at',
+        'email_verified_at',
+        'email_verification_otp_hash',
+        'email_verification_otp_expires_at',
+        'email_verification_otp_attempts',
+        'email_verification_sent_at',
     ];
 
     protected $hidden = [
@@ -114,6 +122,8 @@ class PoolCandidate extends Model
         'source_meta' => 'array',
         'seafarer' => 'boolean',
         'is_demo' => 'boolean',
+        'is_erased' => 'boolean',
+        'erased_at' => 'datetime',
         'english_assessment_required' => 'boolean',
         'video_assessment_required' => 'boolean',
         'last_assessed_at' => 'datetime',
@@ -123,6 +133,9 @@ class PoolCandidate extends Model
         'availability_updated_at' => 'datetime',
         'contract_end_estimate' => 'date',
         'application_completed_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+        'email_verification_otp_expires_at' => 'datetime',
+        'email_verification_sent_at' => 'datetime',
     ];
 
     // Visa status constants
@@ -601,6 +614,14 @@ class PoolCandidate extends Model
     public function scopeInPool($query)
     {
         return $query->where('status', self::STATUS_IN_POOL);
+    }
+
+    /**
+     * Scope: exclude erased candidates.
+     */
+    public function scopeNotErased($query)
+    {
+        return $query->where('is_erased', false);
     }
 
     /**

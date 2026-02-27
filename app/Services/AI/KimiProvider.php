@@ -31,8 +31,9 @@ class KimiProvider implements LLMProviderInterface
 
     public function generateQuestions(array $competencies, array $questionRules, array $context = []): array
     {
-        $systemPrompt = $this->buildQuestionGenerationSystemPrompt();
-        $userPrompt = $this->buildQuestionGenerationUserPrompt($competencies, $questionRules, $context);
+        $locale = $context['locale'] ?? 'tr';
+        $systemPrompt = $this->buildQuestionGenerationSystemPrompt($locale);
+        $userPrompt = $this->buildQuestionGenerationUserPrompt($competencies, $questionRules, $context, $locale);
 
         $response = $this->chat($systemPrompt, $userPrompt, [
             'response_format' => ['type' => 'json_object'],
@@ -41,10 +42,25 @@ class KimiProvider implements LLMProviderInterface
         return $this->parseJsonResponse($response);
     }
 
-    public function analyzeInterview(array $responses, array $competencies, array $redFlags): array
+    public function analyzeInterview(array $responses, array $competencies, array $redFlags, array $culturalContext = []): array
     {
         $systemPrompt = $this->buildAnalysisSystemPrompt($competencies, $redFlags);
         $userPrompt = $this->buildAnalysisUserPrompt($responses);
+
+        $response = $this->chat($systemPrompt, $userPrompt, [
+            'response_format' => ['type' => 'json_object'],
+        ]);
+
+        return $this->parseJsonResponse($response);
+    }
+
+    public function analyzeFormInterview(array $responses, array $competencies, array $culturalContext = []): array
+    {
+        // Delegate to the same prompt structure as OpenAIProvider
+        // Kimi uses the same chat completion format
+        $locale = $culturalContext['locale'] ?? 'tr';
+        $systemPrompt = $this->buildFormInterviewAnalysisSystemPrompt($competencies, $culturalContext, $locale);
+        $userPrompt = $this->buildFormInterviewAnalysisUserPrompt($responses, $culturalContext, $locale);
 
         $response = $this->chat($systemPrompt, $userPrompt, [
             'response_format' => ['type' => 'json_object'],
@@ -165,59 +181,106 @@ class KimiProvider implements LLMProviderInterface
         return $count > 0 ? round($totalConfidence / $count, 4) : 0.85;
     }
 
-    private function buildQuestionGenerationSystemPrompt(): string
+    private function buildQuestionGenerationSystemPrompt(string $locale = 'tr'): string
     {
+        $localeInstructions = [
+            'tr' => [
+                'role' => 'Sen deneyimli bir İK mülakat uzmanısın. Verilen yetkinlik seti ve kurallara göre mülakat soruları üreteceksin.',
+                'rules' => "KURALLAR:\n1. Her soru tek bir yetkinliği ölçmeli\n2. Sorular Türkçe ve anlaşılır olmalı\n3. Senaryo soruları gerçekçi iş durumlarına dayanmalı\n4. Davranışsal sorular STAR metoduna uygun olmalı\n5. Teknik sorular pozisyona özgü olmalı\n6. Sektöre ve iş tanımına uygun sorular üret",
+                'footer' => 'Sadece JSON formatında cevap ver, başka açıklama ekleme.',
+            ],
+            'en' => [
+                'role' => 'You are an experienced HR interview specialist. You will generate interview questions based on the given competency set and rules.',
+                'rules' => "RULES:\n1. Each question must measure a single competency\n2. Questions must be in English, clear and professional\n3. Scenario questions must be based on realistic work situations\n4. Behavioral questions must follow the STAR method\n5. Technical questions must be position-specific\n6. Generate questions relevant to the industry and job description",
+                'footer' => 'Respond ONLY in JSON format, do not add any other explanation.',
+            ],
+            'de' => [
+                'role' => 'Sie sind ein erfahrener HR-Interview-Spezialist. Sie werden Interviewfragen basierend auf dem gegebenen Kompetenzset und den Regeln generieren.',
+                'rules' => "REGELN:\n1. Jede Frage muss eine einzelne Kompetenz messen\n2. Fragen müssen auf Deutsch, klar und professionell sein\n3. Szenariofragen müssen auf realistischen Arbeitssituationen basieren\n4. Verhaltensfragen müssen der STAR-Methode folgen\n5. Technische Fragen müssen positionsspezifisch sein\n6. Generieren Sie Fragen, die zur Branche und Stellenbeschreibung passen",
+                'footer' => 'Antworten Sie NUR im JSON-Format, fügen Sie keine weitere Erklärung hinzu.',
+            ],
+            'fr' => [
+                'role' => 'Vous êtes un spécialiste expérimenté en entretiens RH. Vous allez générer des questions d\'entretien basées sur l\'ensemble de compétences et les règles données.',
+                'rules' => "RÈGLES :\n1. Chaque question doit mesurer une seule compétence\n2. Les questions doivent être en français, claires et professionnelles\n3. Les questions de mise en situation doivent être basées sur des situations de travail réalistes\n4. Les questions comportementales doivent suivre la méthode STAR\n5. Les questions techniques doivent être spécifiques au poste\n6. Générez des questions pertinentes pour le secteur et la description du poste",
+                'footer' => 'Répondez UNIQUEMENT en format JSON, n\'ajoutez aucune autre explication.',
+            ],
+            'ar' => [
+                'role' => 'أنت متخصص خبير في مقابلات الموارد البشرية. ستقوم بإنشاء أسئلة مقابلة بناءً على مجموعة الكفاءات والقواعد المعطاة.',
+                'rules' => "القواعد:\n1. يجب أن يقيس كل سؤال كفاءة واحدة\n2. يجب أن تكون الأسئلة باللغة العربية وواضحة ومهنية\n3. يجب أن تستند أسئلة السيناريو إلى مواقف عمل واقعية\n4. يجب أن تتبع الأسئلة السلوكية طريقة STAR\n5. يجب أن تكون الأسئلة التقنية خاصة بالمنصب\n6. أنشئ أسئلة ذات صلة بالقطاع والوصف الوظيفي",
+                'footer' => 'أجب بتنسيق JSON فقط، لا تضف أي شرح آخر.',
+            ],
+        ];
+
+        $inst = $localeInstructions[$locale] ?? $localeInstructions['tr'];
+
         return <<<PROMPT
-Sen deneyimli bir HR mulakat uzmanisin. Verilen yetkinlik seti ve kurallara gore mulakat sorulari ureteceksin.
+{$inst['role']}
 
-KURALLAR:
-1. Her soru tek bir yetkinligi olcmeli
-2. Sorular Turkce ve anlasilir olmali
-3. Senaryo sorulari gercekci is durumlarina dayanmali
-4. Davranissal sorular STAR metoduna uygun olmali
-5. Teknik sorular pozisyona ozgu olmali
+{$inst['rules']}
 
-CIKTI FORMATI (JSON):
+CIKTI FORMATI / OUTPUT FORMAT (JSON):
 {
     "questions": [
         {
             "question_type": "technical|behavioral|scenario|culture",
-            "question_text": "Soru metni",
-            "competency_code": "yetkinlik_kodu",
-            "ideal_answer_points": ["Beklenen cevap maddesi 1", "Madde 2", "Madde 3"],
+            "question_text": "Question text",
+            "competency_code": "competency_code",
+            "ideal_answer_points": ["Expected point 1", "Point 2", "Point 3"],
             "time_limit_seconds": 180
         }
     ]
 }
 
-Sadece JSON formatinda cevap ver, baska aciklama ekleme.
+{$inst['footer']}
 PROMPT;
     }
 
-    private function buildQuestionGenerationUserPrompt(array $competencies, array $questionRules, array $context): string
+    private function buildQuestionGenerationUserPrompt(array $competencies, array $questionRules, array $context, string $locale = 'tr'): string
     {
         $competenciesJson = json_encode($competencies, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         $rulesJson = json_encode($questionRules, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
-        $prompt = <<<PROMPT
-YETKINLIK SETI:
-{$competenciesJson}
+        $langLabels = [
+            'tr' => ['competencies' => 'YETKİNLİK SETİ', 'rules' => 'SORU ÜRETİM KURALLARI', 'position' => 'POZİSYON', 'sector' => 'SEKTÖR BAĞLAMI', 'domain' => 'Sektör', 'subdomain' => 'Alt Kol', 'title' => 'Pozisyon', 'desc' => 'İş Tanımı', 'samples' => 'ÖRNEK SORULAR (bunlara benzer üret)', 'footer' => 'Yukarıdaki yetkinliklere ve kurallara göre mülakat sorularını JSON formatında üret.'],
+            'en' => ['competencies' => 'COMPETENCY SET', 'rules' => 'QUESTION GENERATION RULES', 'position' => 'POSITION', 'sector' => 'SECTOR CONTEXT', 'domain' => 'Industry', 'subdomain' => 'Sub-sector', 'title' => 'Position', 'desc' => 'Job Description', 'samples' => 'SAMPLE QUESTIONS (generate similar)', 'footer' => 'Generate interview questions in JSON format based on the competencies and rules above.'],
+            'de' => ['competencies' => 'KOMPETENZSET', 'rules' => 'FRAGENGENERIERUNGSREGELN', 'position' => 'POSITION', 'sector' => 'BRANCHENKONTEXT', 'domain' => 'Branche', 'subdomain' => 'Unterbereich', 'title' => 'Position', 'desc' => 'Stellenbeschreibung', 'samples' => 'BEISPIELFRAGEN (ähnliche generieren)', 'footer' => 'Generieren Sie Interviewfragen im JSON-Format basierend auf den obigen Kompetenzen und Regeln.'],
+            'fr' => ['competencies' => 'ENSEMBLE DE COMPÉTENCES', 'rules' => 'RÈGLES DE GÉNÉRATION', 'position' => 'POSTE', 'sector' => 'CONTEXTE SECTORIEL', 'domain' => 'Secteur', 'subdomain' => 'Sous-secteur', 'title' => 'Poste', 'desc' => 'Description du poste', 'samples' => 'QUESTIONS EXEMPLES (générer similaires)', 'footer' => 'Générez des questions d\'entretien au format JSON basées sur les compétences et règles ci-dessus.'],
+            'ar' => ['competencies' => 'مجموعة الكفاءات', 'rules' => 'قواعد إنشاء الأسئلة', 'position' => 'المنصب', 'sector' => 'سياق القطاع', 'domain' => 'القطاع', 'subdomain' => 'القطاع الفرعي', 'title' => 'المنصب', 'desc' => 'الوصف الوظيفي', 'samples' => 'أسئلة نموذجية (أنشئ مشابهة)', 'footer' => 'أنشئ أسئلة المقابلة بتنسيق JSON بناءً على الكفاءات والقواعد أعلاه.'],
+        ];
 
-SORU URETIM KURALLARI:
-{$rulesJson}
+        $l = $langLabels[$locale] ?? $langLabels['tr'];
 
-PROMPT;
+        $prompt = "{$l['competencies']}:\n{$competenciesJson}\n\n{$l['rules']}:\n{$rulesJson}\n\n";
 
         if (!empty($context['position_name'])) {
-            $prompt .= "\nPOZISYON: " . $context['position_name'];
+            $prompt .= "{$l['position']}: " . $context['position_name'] . "\n";
+        }
+
+        // Sector context block
+        $hasSector = !empty($context['domain']) || !empty($context['subdomain']) || !empty($context['job_description']);
+        if ($hasSector) {
+            $prompt .= "\n{$l['sector']}:\n";
+            if (!empty($context['domain'])) {
+                $prompt .= "- {$l['domain']}: {$context['domain']}\n";
+            }
+            if (!empty($context['subdomain'])) {
+                $prompt .= "- {$l['subdomain']}: {$context['subdomain']}\n";
+            }
+            if (!empty($context['job_title'])) {
+                $prompt .= "- {$l['title']}: {$context['job_title']}\n";
+            }
+            if (!empty($context['job_description'])) {
+                $desc = mb_substr($context['job_description'], 0, 500);
+                $prompt .= "- {$l['desc']}: {$desc}\n";
+            }
         }
 
         if (!empty($context['sample_questions'])) {
             $samplesJson = json_encode($context['sample_questions'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $prompt .= "\n\nORNEK SORULAR (bunlara benzer uret):\n{$samplesJson}";
+            $prompt .= "\n{$l['samples']}:\n{$samplesJson}";
         }
 
-        $prompt .= "\n\nYukaridaki yetkinliklere ve kurallara gore mulakat sorularini JSON formatinda uret.";
+        $prompt .= "\n\n{$l['footer']}";
 
         return $prompt;
     }
@@ -449,6 +512,78 @@ PROMPT;
             'provider' => 'kimi',
             'model' => $this->model,
         ];
+    }
+
+    private function buildFormInterviewAnalysisSystemPrompt(array $competencies, array $culturalContext, string $locale): string
+    {
+        $competenciesJson = json_encode($competencies, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        $localeInstructions = [
+            'tr' => [
+                'role' => 'Sen deneyimli bir IK analisti ve davranis bilimleri uzmanisin. Yazili mulakat cevaplarini analiz edecek ve detayli degerlendirme yapacaksin.',
+                'rules' => "1. Her yetkinligi 0-100 arasi puanla\n2. Puanlama somut kanita dayali olmali\n3. Kirmizi bayraklari tespit et\n4. Kultur uyumunu degerlendir\n5. Karar onerisini hire/hold/reject olarak belirt\n6. Bos/kisa cevaplari dusuk puanla",
+                'format_note' => 'Sadece JSON formatinda cevap ver.',
+            ],
+            'en' => [
+                'role' => 'You are an experienced HR analyst. Analyze written interview responses and provide detailed assessment.',
+                'rules' => "1. Score each competency 0-100\n2. Evidence-based scoring\n3. Detect red flags\n4. Evaluate culture fit\n5. Recommendation: hire/hold/reject\n6. Score empty/short answers low",
+                'format_note' => 'Respond ONLY in JSON format.',
+            ],
+        ];
+
+        $inst = $localeInstructions[$locale] ?? $localeInstructions['tr'];
+
+        return <<<PROMPT
+{$inst['role']}
+
+COMPETENCY SET:
+{$competenciesJson}
+
+RULES:
+{$inst['rules']}
+
+CRITICAL RED FLAGS — AUTO REJECT:
+- Violence/threat → max 30, reject
+- Profanity → max 30, reject
+- Discrimination → reject
+
+OUTPUT FORMAT (JSON):
+{
+    "competency_scores": { "code": { "score": 85, "raw_score": 4.25, "max_score": 5, "evidence": ["..."], "improvement_areas": ["..."] } },
+    "overall_score": 78.5,
+    "behavior_analysis": { "clarity_score": 80, "consistency_score": 85, "stress_tolerance": 75, "communication_style": "professional", "confidence_level": "medium-high" },
+    "red_flag_analysis": { "flags_detected": false, "flags": [], "overall_risk": "none" },
+    "culture_fit": { "discipline_fit": 80, "overall_fit": 82, "notes": "..." },
+    "decision_snapshot": { "recommendation": "hire|hold|reject", "confidence_percent": 78, "reasons": ["..."], "suggested_questions": ["..."] },
+    "question_analyses": [{ "question_order": 1, "score": 4, "competency_code": "...", "analysis": "...", "positive_points": ["..."], "negative_points": ["..."] }]
+}
+
+{$inst['format_note']}
+PROMPT;
+    }
+
+    private function buildFormInterviewAnalysisUserPrompt(array $responses, array $culturalContext, string $locale): string
+    {
+        $prompt = "WRITTEN INTERVIEW RESPONSES:\n\n";
+
+        foreach ($responses as $index => $response) {
+            $order = $index + 1;
+            $prompt .= "--- QUESTION {$order} ---\n";
+            $prompt .= "Question: {$response['question_text']}\n";
+            $prompt .= "Competency: {$response['competency_code']}\n";
+            $prompt .= "Answer ({$response['answer_length']} chars):\n";
+            $prompt .= "{$response['answer_text']}\n\n";
+        }
+
+        if (!empty($culturalContext['position'])) {
+            $prompt .= "POSITION: {$culturalContext['position']}\n";
+        }
+        if (!empty($culturalContext['industry'])) {
+            $prompt .= "INDUSTRY: {$culturalContext['industry']}\n";
+        }
+
+        $prompt .= "\nAnalyze the written responses above and produce a detailed JSON report.";
+        return $prompt;
     }
 
     public function improveJobDescription(string $title, string $description, string $positionType = ''): array

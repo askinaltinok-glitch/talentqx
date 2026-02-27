@@ -73,29 +73,33 @@ class AnalyzeInterviewJob implements ShouldQueue
                 ]);
 
                 // Save analysis with insufficient_evidence status (no AI call)
-                InterviewAnalysis::updateOrCreate(
-                    ['interview_id' => $this->interview->id],
-                    [
-                        'overall_score' => null,
-                        'competency_scores' => [],
-                        'behavior_analysis' => [],
-                        'red_flag_analysis' => [],
-                        'culture_fit' => null,
-                        'decision_snapshot' => [
-                            'status' => 'insufficient_evidence',
-                            'blocked_reason_code' => GuardrailResult::STATUS_INSUFFICIENT_EVIDENCE,
-                            'valid_answer_count' => $validAnswerCount,
-                            'required_answer_count' => GuardrailResult::MIN_ANSWERED_QUESTIONS,
-                        ],
-                        'question_analyses' => [],
-                        'analyzed_at' => now(),
-                    ]
-                );
+                $analysis = InterviewAnalysis::on($this->interview->getConnectionName())
+                    ->updateOrCreate(
+                        ['interview_id' => $this->interview->id],
+                        [
+                            'overall_score' => null,
+                            'competency_scores' => [],
+                            'behavior_analysis' => [],
+                            'red_flag_analysis' => [],
+                            'culture_fit' => null,
+                            'decision_snapshot' => [
+                                'status' => 'insufficient_evidence',
+                                'blocked_reason_code' => GuardrailResult::STATUS_INSUFFICIENT_EVIDENCE,
+                                'valid_answer_count' => $validAnswerCount,
+                                'required_answer_count' => GuardrailResult::MIN_ANSWERED_QUESTIONS,
+                            ],
+                            'question_analyses' => [],
+                            'analyzed_at' => now(),
+                        ]
+                    );
 
                 $this->interview->candidate->updateStatus(
                     'insufficient_data',
                     'Yetersiz veri: Degerlendirme icin en az ' . GuardrailResult::MIN_ANSWERED_QUESTIONS . ' detayli cevap gerekli.'
                 );
+
+                // Still notify company even for insufficient_evidence
+                NotifyCompanyOfCandidateJob::dispatch($this->interview);
 
                 Log::info("Interview {$this->interview->id} marked as insufficient_evidence");
                 return;
@@ -123,6 +127,9 @@ class AnalyzeInterviewJob implements ShouldQueue
                 'under_review',
                 'AI analizi tamamlandi. Puan: ' . $analysis->overall_score
             );
+
+            // Step 4: Notify company about the new candidate
+            NotifyCompanyOfCandidateJob::dispatch($this->interview);
 
         } catch (\Exception $e) {
             Log::error('Interview analysis failed', [

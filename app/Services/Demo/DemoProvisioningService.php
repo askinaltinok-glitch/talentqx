@@ -6,6 +6,7 @@ use App\Mail\DemoWelcomeMail;
 use App\Models\Company;
 use App\Models\Lead;
 use App\Models\User;
+use App\Support\BrandConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -45,10 +46,11 @@ class DemoProvisioningService
             $baseSlug = Str::slug($lead->company_name ?: $lead->contact_name);
             $slug = $this->generateUniqueSlug($baseSlug);
 
-            // Create company
+            // Create company — platform is set from current brand context
             $company = Company::create([
                 'name' => $lead->company_name ?: "{$lead->contact_name} Demo",
                 'slug' => $slug,
+                'platform' => BrandConfig::currentPlatform(),
                 'city' => $lead->city,
                 'subscription_plan' => 'free',
                 'monthly_credits' => self::DEMO_CREDITS,
@@ -75,6 +77,15 @@ class DemoProvisioningService
 
             // Send welcome email
             Mail::to($user->email)->send(new DemoWelcomeMail($user, $password, $company));
+
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    'demo_welcome',
+                    $user->email,
+                    "Demo welcome: {$company->name}",
+                    ['company_id' => $company->id]
+                );
+            } catch (\Throwable) {}
 
             // Log activity on lead
             $lead->activities()->create([

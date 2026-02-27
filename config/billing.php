@@ -19,7 +19,7 @@ return [
     'grace_period_days' => env('BILLING_GRACE_PERIOD_DAYS', 60),
 
     // Sales contact information
-    'sales_email' => env('BILLING_SALES_EMAIL', 'sales@talentqx.com'),
+    'sales_email' => env('BILLING_SALES_EMAIL', 'sales@octopus-ai.net'),
     'sales_phone' => env('BILLING_SALES_PHONE', '+90 212 123 45 67'),
 
     // Future: Stripe configuration

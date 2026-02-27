@@ -16,6 +16,7 @@ class AdminNotification extends Model
     const TYPE_DEMO_REQUEST        = 'demo_request';
     const TYPE_INTERVIEW_COMPLETED = 'interview_completed';
     const TYPE_COMPANY_ONBOARD     = 'company_onboard';
+    const TYPE_EMAIL_SENT          = 'email_sent';
 
     protected $fillable = [
         'type',

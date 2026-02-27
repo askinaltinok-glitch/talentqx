@@ -40,6 +40,15 @@ class DemoRequestController extends Controller
         $to = config('services.demo_request_to');
         if ($to) {
             Mail::to($to)->queue(new DemoRequestReceivedMail($demo));
+
+            try {
+                app(\App\Services\AdminNotificationService::class)->notifyEmailSent(
+                    'demo_request_received',
+                    $to,
+                    "Demo request email: {$data['company']}",
+                    ['demo_request_id' => $demo->id]
+                );
+            } catch (\Throwable) {}
         }
 
         // Admin push notification (fail-safe)

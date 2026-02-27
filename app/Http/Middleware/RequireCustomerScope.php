@@ -31,9 +31,26 @@ class RequireCustomerScope
         'v1/assessment-results/dashboard-stats',
         'v1/employees',
         'v1/form-interviews',
+        'v1/taxonomy',
+
+        // Admin features accessible to company users (tenant-scoped on backend)
+        'v1/admin/interview-templates',
+        'v1/admin/analytics',
+        'v1/admin/packages',
+        'v1/admin/assessments',
+        'v1/admin/certifications',
+        'v1/admin/form-interviews',
+        'v1/admin/talent-requests',
+        'v1/admin/presentations',
+
+        // Pool candidates (tenant-scoped)
+        'v1/pool-candidates',
 
         // Reports (protected endpoints for generating/viewing)
         'v1/reports',
+
+        // Payments & billing
+        'v1/payments',
 
         // Marketplace (premium features)
         'v1/marketplace',
@@ -43,6 +60,10 @@ class RequireCustomerScope
 
         // Portal (fleet, manning, roster, crew planning)
         'v1/portal',
+
+        // Competency models (company self-service)
+        'v1/competency-models',
+        'v1/competency-library',
     ];
 
     /**
