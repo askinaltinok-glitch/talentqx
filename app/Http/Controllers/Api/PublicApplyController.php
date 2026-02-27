@@ -70,6 +70,104 @@ class PublicApplyController extends Controller
     }
 
     /**
+     * Resolve the correct DB connection for an access_token (interview token).
+     */
+    private function resolveConnectionForAccessToken(string $accessToken): void
+    {
+        if (DB::table('interviews')->where('access_token', $accessToken)->exists()) {
+            return;
+        }
+
+        if (config('database.connections.mysql_talentqx') &&
+            DB::connection('mysql_talentqx')->table('interviews')->where('access_token', $accessToken)->exists()) {
+            config(['database.default' => 'mysql_talentqx']);
+            DB::purge('mysql');
+            return;
+        }
+
+        if (config('database.default') !== 'mysql' &&
+            DB::connection('mysql')->table('interviews')->where('access_token', $accessToken)->exists()) {
+            config(['database.default' => 'mysql']);
+            DB::purge('mysql_talentqx');
+        }
+    }
+
+    /**
+     * Resume interview from access_token link.
+     * GET /qr-apply/resume/{accessToken}
+     */
+    public function resume(string $accessToken): JsonResponse
+    {
+        $this->resolveConnectionForAccessToken($accessToken);
+
+        $interview = Interview::with(['candidate', 'job.company', 'job.questions', 'job.branch', 'responses'])
+            ->where('access_token', $accessToken)
+            ->first();
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Başvuru bulunamadı veya link geçersiz.',
+            ], 404);
+        }
+
+        $job = $interview->job;
+        $candidate = $interview->candidate;
+
+        $status = $interview->status;
+        if ($status !== Interview::STATUS_COMPLETED && !$interview->isTokenValid()) {
+            $status = 'expired';
+        }
+
+        $questions = $job->questions->map(fn($q) => [
+            'id' => $q->id,
+            'questionId' => $q->question_order ?? $q->id,
+            'group' => $q->category ?? 'A',
+            'textTr' => $q->question_text,
+            'text' => $q->question_text,
+            'dimension' => $q->dimension ?? 'general',
+        ]);
+
+        $answeredQuestionIds = $interview->responses->pluck('question_id')->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $status,
+                'emailVerified' => $interview->isEmailVerified(),
+                'applicationId' => $interview->access_token,
+                'job' => [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'description' => $job->description,
+                    'tenant' => [
+                        'id' => $job->company->id,
+                        'name' => $job->company->name,
+                        'logoUrl' => $job->company->logo_url,
+                        'primaryColor' => $job->company->primary_color ?? '#2563eb',
+                    ],
+                    'role' => [
+                        'id' => $job->id,
+                        'name' => $job->title,
+                        'nameTr' => $job->title,
+                    ],
+                    'branch' => $job->branch ? [
+                        'id' => $job->branch->id,
+                        'name' => $job->branch->name,
+                        'city' => $job->branch->city,
+                        'district' => $job->branch->district,
+                    ] : null,
+                    'questions' => $questions,
+                ],
+                'answeredQuestionIds' => $answeredQuestionIds,
+                'scheduledAt' => $interview->scheduled_at?->toIso8601String(),
+                'maskedEmail' => $candidate ? $this->maskEmail($candidate->email) : null,
+                'publicToken' => $job->public_token,
+            ],
+        ]);
+    }
+
+    /**
      * Get job info for landing page.
      * GET /qr-apply/{token}
      */

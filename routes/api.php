@@ -497,6 +497,8 @@ Route::prefix('v1')->group(function () {
     // /i/{token} frontend -> /api/v1/qr-apply/{token}
     // ===========================================
     Route::prefix('qr-apply')->group(function () {
+        // Resume interview from access_token (must be before /{token})
+        Route::get('/resume/{accessToken}', [PublicApplyController::class, 'resume']);
         // GET job info for QR landing page
         Route::get('/{token}', [PublicApplyController::class, 'show']);
         // POST start application (create candidate + interview)
