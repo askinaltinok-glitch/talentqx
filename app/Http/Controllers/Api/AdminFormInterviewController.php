@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FormInterview;
+use App\Models\Interview;
 use App\Services\Consent\ConsentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -146,10 +147,8 @@ class AdminFormInterviewController extends Controller
         $interview = FormInterview::with(['answers', 'consents', 'aiAnalysis'])->find($id);
 
         if (!$interview) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Interview not found',
-            ], 404);
+            // Fallback: check QR Apply interviews table
+            return $this->showQrApplyInterview($request, $id);
         }
 
         // Company users can only see their own interviews
@@ -245,6 +244,114 @@ class AdminFormInterviewController extends Controller
                     'positive_signals' => $a->positive_signals,
                     'created_at' => $a->created_at?->toIso8601String(),
                 ]),
+            ],
+        ]);
+    }
+
+    /**
+     * Fallback: show a QR Apply interview from the interviews table,
+     * mapped to FormInterviewDetail format.
+     */
+    private function showQrApplyInterview(Request $request, string $id): JsonResponse
+    {
+        $interview = Interview::with(['candidate', 'job.company', 'job.questions', 'responses', 'analysis'])
+            ->find($id);
+
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        $user = $request->user();
+        if ($user && !$user->is_platform_admin && $user->company_id && $interview->job?->company_id !== $user->company_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Interview not found',
+            ], 404);
+        }
+
+        $candidate = $interview->candidate;
+        $job = $interview->job;
+        $candidateName = $candidate ? trim($candidate->first_name . ' ' . $candidate->last_name) : null;
+
+        // Map AI analysis
+        $aiAnalysis = null;
+        if ($interview->analysis) {
+            $a = $interview->analysis;
+            $aiAnalysis = [
+                'scoring_method' => $a->scoring_method ?? 'ai',
+                'ai_model' => $a->ai_model ?? null,
+                'ai_provider' => $a->ai_provider ?? null,
+                'overall_score' => $a->overall_score,
+                'competency_scores' => $a->competency_scores,
+                'behavior_analysis' => $a->behavior_analysis,
+                'red_flag_analysis' => $a->red_flag_analysis,
+                'culture_fit' => $a->culture_fit,
+                'decision_snapshot' => $a->decision_snapshot,
+                'question_analyses' => $a->question_analyses,
+                'analyzed_at' => $a->analyzed_at?->toIso8601String(),
+                'latency_ms' => $a->latency_ms ?? null,
+            ];
+        }
+
+        // Map responses to answers format
+        $questions = $job ? $job->questions->keyBy('id') : collect();
+        $answers = $interview->responses->map(function ($r, $idx) use ($questions) {
+            $q = $questions->get($r->question_id);
+            return [
+                'id' => $r->id,
+                'slot' => $r->response_order ?? ($idx + 1),
+                'competency' => $q->dimension ?? 'general',
+                'question' => $q->question_text ?? '',
+                'answer' => $r->transcript,
+                'score' => null,
+                'score_reason' => null,
+                'red_flags' => null,
+                'positive_signals' => null,
+                'created_at' => $r->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $interview->id,
+                'version' => '1.0',
+                'language' => 'tr',
+                'position_code' => $job->title ?? 'qr_apply',
+                'template_position_code' => $job->title ?? 'qr_apply',
+                'industry_code' => null,
+                'status' => $interview->status,
+                'template_json_sha256' => null,
+                'meta' => [
+                    'source' => 'qr_apply',
+                    'candidate_name' => $candidateName,
+                    'candidate_email' => $candidate?->email,
+                    'job_title' => $job?->title,
+                ],
+                'admin_notes' => null,
+                'candidate_name' => $candidateName,
+                'candidate_email' => $candidate?->email,
+                'job_title' => $job?->title,
+                'competency_scores' => $aiAnalysis ? ($aiAnalysis['competency_scores'] ?? null) : null,
+                'risk_flags' => $aiAnalysis ? ($aiAnalysis['red_flag_analysis']['flags'] ?? null) : null,
+                'final_score' => $aiAnalysis ? ($aiAnalysis['overall_score'] ?? null) : null,
+                'company_fit_score' => null,
+                'company_competency_scores' => null,
+                'decision' => $aiAnalysis ? ($aiAnalysis['decision_snapshot']['recommendation'] ?? null) : null,
+                'decision_reason' => $aiAnalysis ? implode('; ', $aiAnalysis['decision_snapshot']['reasons'] ?? []) : null,
+                'raw_final_score' => null,
+                'calibrated_score' => null,
+                'z_score' => null,
+                'policy_code' => null,
+                'ai_analysis' => $aiAnalysis,
+                'consent_status' => null,
+                'created_at' => $interview->created_at->toIso8601String(),
+                'updated_at' => $interview->updated_at->toIso8601String(),
+                'completed_at' => $interview->completed_at?->toIso8601String(),
+                'answers' => $answers,
             ],
         ]);
     }
