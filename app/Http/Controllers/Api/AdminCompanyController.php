@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiSetting;
 use App\Models\AuditLog;
 use App\Models\Company;
+use App\Models\CreditUsageLog;
 use App\Services\AI\AiSettingService;
 use App\Services\AI\LLMProviderFactory;
 use App\Services\Billing\CreditService;
@@ -34,14 +35,16 @@ class AdminCompanyController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Company::query();
+        $query = Company::withCount(['candidates', 'jobs', 'users']);
 
-        // Search filter (name, slug)
+        // Search filter (name, slug, email)
         if ($request->filled('q')) {
             $search = $request->q;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('slug', 'like', "%{$search}%");
+                  ->orWhere('trade_name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -53,6 +56,11 @@ class AdminCompanyController extends Controller
         // Premium filter
         if ($request->has('premium')) {
             $query->where('is_premium', filter_var($request->premium, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        // Platform filter
+        if ($request->filled('platform')) {
+            $query->where('platform', $request->platform);
         }
 
         // Status filter (computed - requires post-query filtering)
@@ -67,8 +75,20 @@ class AdminCompanyController extends Controller
             })->values();
         }
 
+        // Batch-load total consumption per company (single query)
+        $companyIds = $companies->pluck('id');
+        $consumptionMap = CreditUsageLog::whereIn('company_id', $companyIds)
+            ->where('action', CreditUsageLog::ACTION_DEDUCT)
+            ->selectRaw('company_id, SUM(amount) as total')
+            ->groupBy('company_id')
+            ->pluck('total', 'company_id');
+
         // Format response
-        $data = $companies->map(fn ($company) => $this->formatCompany($company));
+        $data = $companies->map(fn ($company) => $this->formatCompany(
+            $company,
+            false,
+            (int) ($consumptionMap[$company->id] ?? 0)
+        ));
 
         return response()->json([
             'success' => true,
@@ -496,36 +516,154 @@ class AdminCompanyController extends Controller
     }
 
     /**
+     * POST /v1/admin/companies/{id}/logo
+     * Upload company logo.
+     */
+    public function uploadLogo(Request $request, string $id): JsonResponse
+    {
+        $company = Company::find($id);
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'not_found', 'message' => 'Company not found.'],
+            ], 404);
+        }
+
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $file = $request->file('logo');
+        $ext = $file->getClientOriginalExtension();
+
+        // Delete old logo files
+        foreach (['jpeg', 'jpg', 'png', 'webp'] as $oldExt) {
+            $oldPath = "company-logos/{$company->id}.{$oldExt}";
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        // Store new logo
+        $path = $file->storeAs('company-logos', "{$company->id}.{$ext}", 'public');
+        $logoUrl = '/storage/' . $path;
+
+        $company->update(['logo_url' => $logoUrl]);
+
+        Log::info('Admin uploaded company logo', [
+            'admin_id' => $request->user()->id,
+            'company_id' => $company->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['logo_url' => $this->resolveLogoUrl($logoUrl)],
+        ]);
+    }
+
+    /**
+     * DELETE /v1/admin/companies/{id}/logo
+     * Delete company logo.
+     */
+    public function deleteLogo(Request $request, string $id): JsonResponse
+    {
+        $company = Company::find($id);
+
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'not_found', 'message' => 'Company not found.'],
+            ], 404);
+        }
+
+        foreach (['jpeg', 'jpg', 'png', 'webp'] as $ext) {
+            $path = "company-logos/{$company->id}.{$ext}";
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+            }
+        }
+
+        $company->update(['logo_url' => null]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo deleted.',
+        ]);
+    }
+
+    /**
      * Format company for API response.
      */
-    private function formatCompany(Company $company, bool $detailed = false): array
+    private function resolveLogoUrl(?string $logoUrl): ?string
     {
+        if (!$logoUrl) return null;
+        // Relative /storage/... → absolute https://talentqx.com/api/storage/...
+        if (str_starts_with($logoUrl, '/storage/')) {
+            return rtrim(config('app.url'), '/') . '/api' . $logoUrl;
+        }
+        return $logoUrl;
+    }
+
+    private function formatCompany(Company $company, bool $detailed = false, int $totalConsumption = 0): array
+    {
+        $credits = $this->creditService->getCreditStatus($company);
+
         $data = [
             'id' => $company->id,
             'name' => $company->name,
+            'trade_name' => $company->trade_name,
             'slug' => $company->slug,
+            'platform' => $company->platform,
+            'logo_url' => $this->resolveLogoUrl($company->logo_url),
+            'email' => $company->email,
+            'phone' => $company->phone,
+            'website' => $company->website,
             'subscription_plan' => $company->subscription_plan,
             'is_premium' => $company->is_premium,
             'subscription_ends_at' => $company->subscription_ends_at?->toIso8601String(),
             'grace_period_ends_at' => $company->grace_period_ends_at?->toIso8601String(),
-            'computed_status' => $company->getComputedStatus(),
-            'credits' => $this->creditService->getCreditStatus($company),
+            'subscription_status' => $company->getSubscriptionStatus(),
+            'monthly_credits' => $company->monthly_credits,
+            'bonus_credits' => $company->bonus_credits,
+            'credits_used' => $company->credits_used,
+            'grace_credits_total' => $credits['grace_total'] ?? 0,
+            'grace_credits_used' => $credits['grace_used'] ?? 0,
+            'remaining' => $credits['remaining'] ?? 0,
+            'status' => $credits['status'] ?? 'active',
+            // Billing
+            'billing' => [
+                'legal_name' => $company->legal_name,
+                'tax_number' => $company->tax_number,
+                'tax_office' => $company->tax_office,
+                'billing_type' => $company->billing_type,
+                'billing_address' => $company->billing_address,
+                'billing_city' => $company->billing_city,
+                'billing_email' => $company->billing_email,
+                'billing_phone' => $company->billing_phone,
+            ],
+            // Counts (populated by withCount in index)
+            'candidates_count' => $company->candidates_count ?? null,
+            'jobs_count' => $company->jobs_count ?? null,
+            'users_count' => $company->users_count ?? null,
+            'total_consumption' => $totalConsumption,
+            'created_at' => $company->created_at->toIso8601String(),
             'updated_at' => $company->updated_at->toIso8601String(),
         ];
 
         if ($detailed) {
-            $data['logo_url'] = $company->logo_url;
-            $data['city'] = $company->city;
-            $data['country'] = $company->country;
-            $data['created_at'] = $company->created_at->toIso8601String();
-            $data['user_count'] = $company->users()->count();
-            $data['job_count'] = $company->jobs()->count();
-            $data['candidate_count'] = $company->candidates()->count();
+            // Override counts with fresh queries if withCount wasn't used
+            $data['candidates_count'] = $data['candidates_count'] ?? $company->candidates()->count();
+            $data['jobs_count'] = $data['jobs_count'] ?? $company->jobs()->count();
+            $data['users_count'] = $data['users_count'] ?? $company->users()->count();
             $data['recent_applications_count'] = $company->candidates()
                 ->where('created_at', '>=', now()->subDays(30))
                 ->count();
             $data['has_marketplace_access'] = $company->hasMarketplaceAccess();
             $data['credit_history'] = $this->creditService->getUsageHistory($company, 10);
+            $data['total_consumption'] = $totalConsumption ?: (int) CreditUsageLog::where('company_id', $company->id)
+                ->where('action', CreditUsageLog::ACTION_DEDUCT)
+                ->sum('amount');
 
             // Get company AI settings
             $aiSettings = AiSetting::getForCompany($company->id);

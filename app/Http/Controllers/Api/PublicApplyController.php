@@ -233,7 +233,7 @@ class PublicApplyController extends Controller
                     'tenant' => [
                         'id' => $job->company->id,
                         'name' => $job->company->name,
-                        'logoUrl' => $job->company->logo_url,
+                        'logoUrl' => $job->company->getLogoUrl(),
                         'primaryColor' => $job->company->primary_color ?? '#2563eb',
                     ],
                     'role' => [
@@ -302,7 +302,7 @@ class PublicApplyController extends Controller
                 'tenant' => [
                     'id' => $job->company->id,
                     'name' => $job->company->name,
-                    'logoUrl' => $job->company->logo_url,
+                    'logoUrl' => $job->company->getLogoUrl(),
                     'primaryColor' => $job->company->primary_color ?? '#2563eb',
                 ],
                 'role' => [

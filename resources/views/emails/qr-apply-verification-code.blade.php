@@ -7,7 +7,11 @@
 <body style="margin: 0; padding: 0; background: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
 <div style="max-width: 600px; margin: 0 auto; background: #ffffff;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 40px; text-align: center;">
-        @include('emails.partials.logo')
+        @if(!empty($companyLogoUrl))
+            <img src="{{ $companyLogoUrl }}" alt="{{ $companyName }}" style="max-height: 64px; margin: 0 auto 8px; display: block; border-radius: 8px;">
+        @else
+            @include('emails.partials.logo')
+        @endif
         <h1 style="color: #ffffff; font-size: 22px; margin: 0; font-weight: 600;">{{ $companyName }}</h1>
     </div>
 

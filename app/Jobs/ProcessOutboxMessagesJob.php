@@ -199,12 +199,22 @@ class ProcessOutboxMessagesJob implements ShouldQueue
             $company = Company::find($message->company_id);
         }
 
-        // Determine FROM name (tenant-branded)
-        $fromName = $company
-            ? $company->getEmailFromName()
-            : config('mail.from.name', 'Octopus AI');
+        // Determine platform for brand-aware from address
+        $platform = $company?->platform
+            ?? ($message->metadata['platform'] ?? null);
 
-        $fromAddress = config('mail.from.address', 'noreply@octopus-ai.net');
+        // Determine FROM name and address (brand-aware)
+        if ($company) {
+            $fromName = $company->getEmailFromName();
+        } elseif ($platform === 'octopus') {
+            $fromName = 'Octopus AI';
+        } else {
+            $fromName = config('mail.from.name', 'TalentQX');
+        }
+
+        $fromAddress = ($platform === 'octopus')
+            ? 'noreply@octopus-ai.net'
+            : config('mail.from.address', 'noreply@talentqx.com');
 
         // Extract attachments from metadata
         $attachments = $message->metadata['attachments'] ?? [];

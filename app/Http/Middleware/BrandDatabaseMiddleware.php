@@ -18,9 +18,11 @@ class BrandDatabaseMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Company panel always uses the default (mysql) database — it's an internal management tool
-        if (str_starts_with($request->path(), 'api/v1/company-panel')) {
-            $brandKey = 'octopus'; // keeps default mysql connection
+        // Company panel, Octopus admin, and Maritime routes always use the default (mysql/octopus) database
+        if (str_starts_with($request->path(), 'api/v1/company-panel')
+            || str_starts_with($request->path(), 'api/v1/octopus/')
+            || str_starts_with($request->path(), 'api/v1/maritime')) {
+            $brandKey = 'octopus';
             DB::setDefaultConnection('mysql');
             $cachePrefix = 'talentqx_octopus_cache_';
 
@@ -31,7 +33,9 @@ class BrandDatabaseMiddleware
             return $next($request);
         }
 
-        $brandKey = strtolower($request->header('X-Brand-Key', 'talentqx'));
+        // Check header first, then body 'platform' param (for cross-origin requests where custom headers may be blocked)
+        $brandKey = strtolower($request->header('X-Brand-Key', ''))
+            ?: strtolower($request->input('platform', 'talentqx'));
 
         if ($brandKey === 'talentqx') {
             DB::setDefaultConnection('mysql_talentqx');

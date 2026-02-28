@@ -389,6 +389,70 @@ class JobController extends Controller
         ]);
     }
 
+    /**
+     * POST /portal/jobs/{id}/close — Deactivate an active job.
+     */
+    public function close(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $query = Job::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $job = $query->findOrFail($id);
+
+        if ($job->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Yalnızca aktif ilanlar kapatılabilir.',
+            ], 422);
+        }
+
+        $job->update(['status' => 'closed']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $job->id,
+                'status' => $job->status,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /portal/jobs/{id}/reactivate — Reactivate a closed job.
+     */
+    public function reactivate(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $query = Job::query();
+
+        if (!$user->is_platform_admin) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $job = $query->findOrFail($id);
+
+        if ($job->status !== 'closed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Yalnızca kapatılmış ilanlar tekrar aktif edilebilir.',
+            ], 422);
+        }
+
+        $job->update(['status' => 'active']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $job->id,
+                'status' => $job->status,
+            ],
+        ]);
+    }
+
     public function generateQuestions(Request $request, string $id): JsonResponse
     {
         $user = $request->user();

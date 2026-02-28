@@ -28,6 +28,7 @@ class Company extends Model
 
     protected $fillable = [
         'name',
+        'trade_name',
         'platform',
         'slug',
         'logo_url',
@@ -35,6 +36,7 @@ class Company extends Model
         'brand_primary_color',
         'address',
         'city',
+        'district',
         'country',
         'timezone',
         'fleet_size',
@@ -59,6 +61,9 @@ class Company extends Model
         'billing_postal_code',
         'billing_email',
         'billing_phone',
+        'phone',
+        'website',
+        'email',
     ];
 
     protected $casts = [
@@ -295,11 +300,35 @@ class Company extends Model
     }
 
     /**
-     * Get company logo URL or null.
+     * Get company logo as a full public URL or null.
      */
     public function getLogoUrl(): ?string
     {
-        return $this->logo_url;
+        if (!$this->logo_url) {
+            return null;
+        }
+
+        // Already an absolute URL
+        if (str_starts_with($this->logo_url, 'http')) {
+            return $this->logo_url;
+        }
+
+        // DB stores "/storage/company-logos/..." but Nginx serves at "/api/storage/..."
+        $path = $this->logo_url;
+        if (str_starts_with($path, '/storage/')) {
+            $path = '/api' . $path;
+        }
+
+        $baseUrl = rtrim(config('app.url'), '/');
+        return $baseUrl . $path;
+    }
+
+    /**
+     * Get the display name: trade_name if set, otherwise name.
+     */
+    public function getDisplayName(): string
+    {
+        return $this->trade_name ?: $this->name;
     }
 
     /**

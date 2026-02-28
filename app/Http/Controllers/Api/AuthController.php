@@ -86,6 +86,7 @@ class AuthController extends Controller
                     'full_name' => $user->full_name,
                     'role' => $user->role?->name,
                     'is_platform_admin' => $user->isPlatformAdmin(),
+                    'is_octopus_admin' => $user->isOctopusAdmin(),
                     'must_change_password' => $user->mustChangePassword(),
                     'company' => $user->company ? [
                         'id' => $user->company->id,

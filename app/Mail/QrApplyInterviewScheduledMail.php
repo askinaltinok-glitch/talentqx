@@ -36,6 +36,8 @@ class QrApplyInterviewScheduledMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $logoUrl = $this->job->company->getLogoUrl();
+
         return new Content(
             view: 'emails.qr-apply-interview-scheduled',
             with: [
@@ -46,6 +48,7 @@ class QrApplyInterviewScheduledMail extends Mailable implements ShouldQueue
                 'brandName' => $this->brandName(),
                 'scheduledAt' => $this->interview->scheduled_at,
                 'interviewUrl' => $this->interview->getInterviewUrl(),
+                'companyLogoUrl' => $logoUrl ? rtrim(config('app.url'), '/') . $logoUrl : null,
             ],
         );
     }

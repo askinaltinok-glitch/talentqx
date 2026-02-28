@@ -34,7 +34,7 @@ class InterviewController extends Controller
 
         $query = Interview::with([
             'candidate:id,first_name,last_name,email,phone,job_id',
-            'candidate.job:id,title,company_id',
+            'candidate.job:id,title,locale,company_id',
             'candidate.job.company:id,name',
             'analysis:id,interview_id,overall_score,decision_snapshot'
         ]);
@@ -62,38 +62,73 @@ class InterviewController extends Controller
             $query->where('candidate_id', $request->candidate_id);
         }
 
+        // Decision filter (from analysis snapshot)
+        if ($request->filled('decision')) {
+            $decision = $request->decision;
+            $query->whereHas('analysis', function ($q) use ($decision) {
+                $q->where('decision_snapshot->recommendation', $decision)
+                  ->orWhere('decision_snapshot->final_decision', $decision);
+            });
+        }
+
+        // Search by candidate name or email
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->whereHas('candidate', function ($q) use ($term) {
+                $q->where('first_name', 'like', "%{$term}%")
+                  ->orWhere('last_name', 'like', "%{$term}%")
+                  ->orWhere('email', 'like', "%{$term}%");
+            });
+        }
+
         $query->orderByDesc('created_at');
 
         $interviews = $query->paginate($request->get('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $interviews->map(fn($interview) => [
-                'id' => $interview->id,
-                'status' => $interview->status,
-                'created_at' => $interview->created_at,
-                'started_at' => $interview->started_at,
-                'completed_at' => $interview->completed_at,
-                'duration_minutes' => $interview->duration_minutes,
-                'candidate' => $interview->candidate ? [
-                    'id' => $interview->candidate->id,
-                    'first_name' => $interview->candidate->first_name,
-                    'last_name' => $interview->candidate->last_name,
-                    'email' => $interview->candidate->email,
-                    'job' => $interview->candidate->job ? [
-                        'id' => $interview->candidate->job->id,
-                        'title' => $interview->candidate->job->title,
-                        'company' => $interview->candidate->job->company ? [
-                            'id' => $interview->candidate->job->company->id,
-                            'name' => $interview->candidate->job->company->name,
+            'data' => $interviews->map(function ($interview) {
+                $candidate = $interview->candidate;
+                $analysis = $interview->analysis;
+                $job = $candidate?->job;
+                $decision = $analysis?->decision_snapshot['recommendation'] ?? $analysis?->decision_snapshot['final_decision'] ?? null;
+
+                return [
+                    'id' => $interview->id,
+                    'status' => $interview->status,
+                    'created_at' => $interview->created_at,
+                    'started_at' => $interview->started_at,
+                    'completed_at' => $interview->completed_at,
+                    'duration_minutes' => $interview->duration_minutes,
+                    // Flat fields for portal frontend
+                    'candidate_name' => $candidate ? trim($candidate->first_name . ' ' . $candidate->last_name) : null,
+                    'candidate_email' => $candidate?->email,
+                    'position_code' => $job?->title ?? '—',
+                    'language' => $interview->language ?? $job?->locale ?? null,
+                    'final_score' => $analysis?->overall_score,
+                    'decision' => $decision,
+                    'decision_reason' => $analysis?->decision_snapshot['reason'] ?? null,
+                    // Nested (backward compat)
+                    'candidate' => $candidate ? [
+                        'id' => $candidate->id,
+                        'first_name' => $candidate->first_name,
+                        'last_name' => $candidate->last_name,
+                        'email' => $candidate->email,
+                        'job' => $job ? [
+                            'id' => $job->id,
+                            'title' => $job->title,
+                            'company' => $job->company ? [
+                                'id' => $job->company->id,
+                                'name' => $job->company->name,
+                            ] : null,
                         ] : null,
                     ] : null,
-                ] : null,
-                'analysis' => $interview->analysis ? [
-                    'overall_score' => $interview->analysis->overall_score,
-                    'recommendation' => $interview->analysis->decision_snapshot['recommendation'] ?? null,
-                ] : null,
-            ]),
+                    'analysis' => $analysis ? [
+                        'overall_score' => $analysis->overall_score,
+                        'recommendation' => $decision,
+                    ] : null,
+                ];
+            }),
             'meta' => [
                 'current_page' => $interviews->currentPage(),
                 'per_page' => $interviews->perPage(),
@@ -465,6 +500,45 @@ class InterviewController extends Controller
             ]);
             return [];
         }
+    }
+
+    /**
+     * Delete an interview (platform admin only).
+     * DELETE /interviews/{id}
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->is_platform_admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu işlem için yetkiniz yok.',
+            ], 403);
+        }
+
+        $interview = Interview::find($id);
+        if (!$interview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mülakat bulunamadı.',
+            ], 404);
+        }
+
+        // Delete related records
+        $interview->responses()->delete();
+        $interview->analysis()->delete();
+        $interview->delete();
+
+        \Log::info('Platform admin deleted interview', [
+            'admin_id' => $user->id,
+            'interview_id' => $id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mülakat silindi.',
+        ]);
     }
 
     /**

@@ -36,6 +36,8 @@ class QrApplyContinueMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $logoUrl = $this->job->company->getLogoUrl();
+
         return new Content(
             view: 'emails.qr-apply-continue',
             with: [
@@ -45,6 +47,7 @@ class QrApplyContinueMail extends Mailable implements ShouldQueue
                 'companyName' => $this->job->company->name ?? $this->brandName(),
                 'brandName' => $this->brandName(),
                 'interviewUrl' => $this->interview->getInterviewUrl(),
+                'companyLogoUrl' => $logoUrl ? rtrim(config('app.url'), '/') . $logoUrl : null,
             ],
         );
     }

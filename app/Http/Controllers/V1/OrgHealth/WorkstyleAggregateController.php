@@ -10,7 +10,17 @@ class WorkstyleAggregateController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = $request->user()->company_id;
+        $user = $request->user();
+
+        // Only hr_manager, admin, or platform admin can access aggregate data
+        if (!$user->isAdmin() && !$user->isPlatformAdmin() && $user->role?->name !== 'hr_manager') {
+            return response()->json([
+                'error' => 'forbidden',
+                'message' => 'HR manager access required.',
+            ], 403);
+        }
+
+        $tenantId = $user->company_id;
 
         $dimensions = ['planning_score', 'social_score', 'cooperation_score', 'stability_score', 'adaptability_score'];
 

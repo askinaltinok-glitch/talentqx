@@ -416,3 +416,13 @@ Schedule::job(new \App\Jobs\SendAppointmentReminderJob())
     ->everyMinute()
     ->withoutOverlapping()
     ->onOneServer();
+
+// ===========================================
+// ORGHEALTH — Abandon stale assessments (daily at 04:00 Istanbul)
+// ===========================================
+Schedule::call(function () {
+    BrandRunner::forEachBrand(fn () => Artisan::call('orghealth:abandon-stale', ['--days' => 7]));
+})->name('orghealth:abandon-stale:all-brands')
+  ->dailyAt('04:00')
+  ->timezone('Europe/Istanbul')
+  ->withoutOverlapping();

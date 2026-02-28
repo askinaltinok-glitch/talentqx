@@ -13,8 +13,9 @@ class OrgEmployee extends Model
     protected $table = 'org_employees';
     protected $fillable = [
         'tenant_id','external_employee_ref','full_name','email','phone_e164',
-        'department_code','position_code','status',
+        'department_code','position_code','hire_date','status',
     ];
+    protected $casts = ['hire_date' => 'date'];
 
     public function consents() { return $this->hasMany(OrgEmployeeConsent::class, 'employee_id'); }
     public function assessments() { return $this->hasMany(OrgAssessment::class, 'employee_id'); }

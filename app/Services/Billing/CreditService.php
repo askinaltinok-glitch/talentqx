@@ -420,11 +420,15 @@ class CreditService
     public function getUsageHistory(Company $company, int $limit = 50): array
     {
         return CreditUsageLog::where('company_id', $company->id)
-            ->with(['interview:id,candidate_id', 'interview.candidate:id,first_name,last_name', 'creator:id,name'])
+            ->with(['interview:id,candidate_id', 'interview.candidate:id,first_name,last_name', 'creator:id,first_name,last_name'])
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get()
             ->map(function ($log) {
+                $creatorName = null;
+                if ($log->creator) {
+                    $creatorName = trim($log->creator->first_name . ' ' . $log->creator->last_name);
+                }
                 return [
                     'id' => $log->id,
                     'action' => $log->action,
@@ -434,7 +438,7 @@ class CreditService
                     'reason' => $log->reason,
                     'interview_id' => $log->interview_id,
                     'candidate_name' => $log->interview?->candidate?->full_name,
-                    'created_by' => $log->creator?->name,
+                    'created_by' => $creatorName,
                     'created_at' => $log->created_at->toIso8601String(),
                 ];
             })

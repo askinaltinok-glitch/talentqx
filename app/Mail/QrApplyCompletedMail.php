@@ -34,6 +34,8 @@ class QrApplyCompletedMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $logoUrl = $this->job->company->getLogoUrl();
+
         return new Content(
             view: 'emails.qr-apply-completed',
             with: [
@@ -42,6 +44,7 @@ class QrApplyCompletedMail extends Mailable implements ShouldQueue
                 'companyName' => $this->job->company->name ?? $this->brandName(),
                 'positionTitle' => $this->job->title ?? 'Belirtilmemiş',
                 'brandName' => $this->brandName(),
+                'companyLogoUrl' => $logoUrl ? rtrim(config('app.url'), '/') . $logoUrl : null,
             ],
         );
     }

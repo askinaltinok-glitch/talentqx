@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\V1\OrgHealth;
 
-use App\Domains\OrgHealth\WorkStyle\WorkstyleScoringService;
+use App\Domains\OrgHealth\Pulse\PulseRiskService;
+use App\Domains\OrgHealth\Pulse\PulseScoringService;
+use App\Domains\OrgHealth\Pulse\PulseSuggestionService;
 use App\Http\Controllers\Controller;
 use App\Models\OrgAssessment;
 use App\Models\OrgEmployee;
@@ -10,9 +12,10 @@ use App\Models\OrgEmployeeConsent;
 use App\Models\OrgQuestionnaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class WorkstyleAssessmentController extends Controller
+class PulseAssessmentController extends Controller
 {
     public function start(Request $request, string $employeeId)
     {
@@ -27,6 +30,7 @@ class WorkstyleAssessmentController extends Controller
             throw ValidationException::withMessages(['employee' => 'Employee is not active.']);
         }
 
+        // Check consent
         $consent = OrgEmployeeConsent::query()
             ->where('tenant_id', $tenantId)
             ->where('employee_id', $employee->id)
@@ -37,25 +41,26 @@ class WorkstyleAssessmentController extends Controller
             throw ValidationException::withMessages(['consent' => 'Consent is required.']);
         }
 
-        // 30-day cooldown check
+        // Cooldown check using company pulse_frequency setting
         $lastCompleted = OrgAssessment::query()
             ->where('tenant_id', $tenantId)
             ->where('employee_id', $employee->id)
             ->where('status', 'completed')
             ->whereNotNull('next_due_at')
+            ->whereHas('questionnaire', fn($q) => $q->where('code', 'pulse'))
             ->orderByDesc('completed_at')
             ->first();
 
         if ($lastCompleted && $lastCompleted->next_due_at && now()->lessThan($lastCompleted->next_due_at)) {
             return response()->json([
                 'error' => 'cooldown',
-                'message' => 'Assessment cooldown period has not ended yet.',
+                'message' => 'Pulse assessment cooldown period has not ended yet.',
                 'next_due_at' => $lastCompleted->next_due_at->toIso8601String(),
             ], 422);
         }
 
         $questionnaire = OrgQuestionnaire::query()
-            ->where('code', 'workstyle')
+            ->where('code', 'pulse')
             ->where('status', 'active')
             ->where(function ($qq) use ($tenantId) {
                 $qq->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
@@ -63,15 +68,16 @@ class WorkstyleAssessmentController extends Controller
             ->orderByRaw('tenant_id is null')
             ->firstOrFail();
 
-        // Auto-abandon assessments older than 7 days
+        // Auto-abandon stale assessments (7 days)
         OrgAssessment::query()
             ->where('tenant_id', $tenantId)
             ->where('employee_id', $employee->id)
+            ->where('questionnaire_id', $questionnaire->id)
             ->where('status', 'started')
             ->where('started_at', '<', now()->subDays(7))
             ->update(['status' => 'abandoned']);
 
-        // Reuse existing started assessment (not yet expired)
+        // Reuse existing started assessment
         $existing = OrgAssessment::query()
             ->where('tenant_id', $tenantId)
             ->where('employee_id', $employee->id)
@@ -100,9 +106,9 @@ class WorkstyleAssessmentController extends Controller
         $tenantId = $request->user()->company_id;
 
         $payload = $request->validate([
-            'answers' => ['required','array','min:1'],
-            'answers.*.question_id' => ['required','uuid'],
-            'answers.*.value' => ['required','integer','min:1','max:5'],
+            'answers' => ['required', 'array', 'min:1'],
+            'answers.*.question_id' => ['required', 'uuid'],
+            'answers.*.value' => ['required', 'integer', 'min:1', 'max:5'],
         ]);
 
         $assessment = OrgAssessment::query()
@@ -125,13 +131,15 @@ class WorkstyleAssessmentController extends Controller
                     DB::table('org_assessment_answers')
                         ->where('assessment_id', $assessment->id)
                         ->where('question_id', $a['question_id'])
-                        ->update(['value' => (int)$a['value']]);
+                        ->update([
+                            'value' => (int) $a['value'],
+                        ]);
                 } else {
                     DB::table('org_assessment_answers')->insert([
-                        'id' => (string) \Illuminate\Support\Str::uuid(),
+                        'id' => (string) Str::uuid(),
                         'assessment_id' => $assessment->id,
                         'question_id' => $a['question_id'],
-                        'value' => (int)$a['value'],
+                        'value' => (int) $a['value'],
                         'created_at' => now(),
                     ]);
                 }
@@ -141,28 +149,39 @@ class WorkstyleAssessmentController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function complete(Request $request, string $assessmentId, WorkstyleScoringService $scoring)
-    {
+    public function complete(
+        Request $request,
+        string $assessmentId,
+        PulseScoringService $scoring,
+        PulseRiskService $riskService,
+        PulseSuggestionService $suggestionService
+    ) {
         $tenantId = $request->user()->company_id;
 
         $assessment = OrgAssessment::query()
             ->where('tenant_id', $tenantId)
             ->where('id', $assessmentId)
-            ->with(['questionnaire','answers'])
+            ->with(['questionnaire', 'answers'])
             ->firstOrFail();
 
         $profile = $scoring->completeAndScore($assessment);
+        $riskSnapshot = $riskService->computeRisk($profile, $tenantId, $assessment->employee_id);
+
+        // Generate suggestions (inline, best-effort)
+        $lang = $request->get('lang') ?: $request->header('Accept-Language', 'en');
+        $lang = str_starts_with($lang, 'tr') ? 'tr' : 'en';
+
+        try {
+            $suggestions = $suggestionService->generateSuggestions($riskSnapshot, $lang);
+            $riskSnapshot->suggestions = $suggestions;
+            $riskSnapshot->save();
+        } catch (\Throwable $e) {
+            // Non-fatal: suggestions are optional
+        }
 
         return response()->json([
             'assessment_id' => $assessment->id,
-            'profile' => [
-                'planning_score' => $profile->planning_score,
-                'social_score' => $profile->social_score,
-                'cooperation_score' => $profile->cooperation_score,
-                'stability_score' => $profile->stability_score,
-                'adaptability_score' => $profile->adaptability_score,
-                'computed_at' => $profile->computed_at,
-            ],
+            'status' => 'completed',
             'next_due_at' => $assessment->next_due_at,
         ]);
     }

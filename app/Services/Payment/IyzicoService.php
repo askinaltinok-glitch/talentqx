@@ -22,8 +22,8 @@ class IyzicoService
 
     public function __construct()
     {
-        $this->apiKey = config('services.iyzico.api_key', '');
-        $this->secretKey = config('services.iyzico.secret_key', '');
+        $this->apiKey = config('services.iyzico.api_key') ?? '';
+        $this->secretKey = config('services.iyzico.secret_key') ?? '';
         $this->sandboxMode = config('services.iyzico.sandbox', true);
         $this->baseUrl = $this->sandboxMode
             ? 'https://sandbox-api.iyzipay.com'

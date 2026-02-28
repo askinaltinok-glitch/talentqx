@@ -35,6 +35,8 @@ class QrApplyVerificationCodeMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $logoUrl = $this->job->company->getLogoUrl();
+
         return new Content(
             view: 'emails.qr-apply-verification-code',
             with: [
@@ -43,6 +45,7 @@ class QrApplyVerificationCodeMail extends Mailable implements ShouldQueue
                 'code' => $this->code,
                 'companyName' => $this->job->company->name ?? $this->brandName(),
                 'brandName' => $this->brandName(),
+                'companyLogoUrl' => $logoUrl ? rtrim(config('app.url'), '/') . $logoUrl : null,
             ],
         );
     }

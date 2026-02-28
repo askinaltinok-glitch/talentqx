@@ -34,7 +34,7 @@ class PasswordResetService
      * @param string|null $userAgent
      * @return bool
      */
-    public function sendResetLink(User $user, ?string $ipAddress = null, ?string $userAgent = null): bool
+    public function sendResetLink(User $user, ?string $ipAddress = null, ?string $userAgent = null, ?string $platform = null): bool
     {
         try {
             // Use the user's DB connection for token storage
@@ -43,11 +43,11 @@ class PasswordResetService
             // Generate secure token
             $token = $this->createToken($user->email, $connection);
 
-            // Build reset URL
-            $resetUrl = $this->buildResetUrl($token, $user);
+            // Build reset URL (use platform hint if user has no company)
+            $resetUrl = $this->buildResetUrl($token, $user, $platform);
 
-            // Queue email via Outbox
-            $this->queueResetEmail($user, $resetUrl, $connection);
+            // Queue email via Outbox (pass platform for brand name)
+            $this->queueResetEmail($user, $resetUrl, $connection, $platform);
 
             // Audit log
             $this->logAuditEvent(
@@ -312,7 +312,7 @@ class PasswordResetService
      * @param User|string $userOrEmail
      * @return string
      */
-    protected function buildResetUrl(string $token, User|string $userOrEmail): string
+    protected function buildResetUrl(string $token, User|string $userOrEmail, ?string $platformHint = null): string
     {
         if ($userOrEmail instanceof User) {
             $user = $userOrEmail;
@@ -325,7 +325,8 @@ class PasswordResetService
             }
         }
 
-        $platform = $user?->company?->platform ?? 'talentqx';
+        // Frontend hint takes priority (user's current domain), then company platform, then fallback
+        $platform = $platformHint ?? $user?->company?->platform ?? 'talentqx';
         $brand = BrandConfig::for($platform);
         $domain = $brand['domain'] ?? 'talentqx.com';
         $frontendBase = $domain === 'talentqx.com'
@@ -345,7 +346,7 @@ class PasswordResetService
      * @param string $resetUrl
      * @return void
      */
-    protected function queueResetEmail(User $user, string $resetUrl, ?string $connection = null): void
+    protected function queueResetEmail(User $user, string $resetUrl, ?string $connection = null, ?string $platformHint = null): void
     {
         // Use the user's DB connection for outbox insertion
         $prevDefault = config('database.default');
@@ -374,6 +375,7 @@ class PasswordResetService
                     'priority' => 20,
                     'metadata' => [
                         'type' => 'password_reset',
+                        'platform' => $platformHint ?? $user->company?->platform ?? 'talentqx',
                         'token_expiry_minutes' => self::TOKEN_EXPIRY_MINUTES,
                     ],
                 ]
@@ -384,18 +386,21 @@ class PasswordResetService
                 'error' => $e->getMessage(),
             ]);
 
+            $resolvedPlatform = $platformHint ?? $user->company?->platform ?? 'talentqx';
+
             $this->outboxService->queue([
                 'company_id' => $user->company_id,
                 'channel' => MessageOutbox::CHANNEL_EMAIL,
                 'recipient' => $user->email,
                 'recipient_name' => $user->full_name,
-                'subject' => 'Şifre Sıfırlama Talebi - ' . $this->brandNameForUser($user),
-                'body' => $this->buildDefaultResetEmailBody($user, $resetUrl),
+                'subject' => 'Şifre Sıfırlama Talebi - ' . $this->brandNameForUser($user, $platformHint),
+                'body' => $this->buildDefaultResetEmailBody($user, $resetUrl, $platformHint),
                 'related_type' => 'user',
                 'related_id' => $user->id,
                 'priority' => 20,
                 'metadata' => [
                     'type' => 'password_reset',
+                    'platform' => $resolvedPlatform,
                     'token_expiry_minutes' => self::TOKEN_EXPIRY_MINUTES,
                 ],
             ]);
@@ -414,9 +419,9 @@ class PasswordResetService
      * @param string $resetUrl
      * @return string
      */
-    protected function buildDefaultResetEmailBody(User $user, string $resetUrl): string
+    protected function buildDefaultResetEmailBody(User $user, string $resetUrl, ?string $platformHint = null): string
     {
-        $brand = $this->brandNameForUser($user);
+        $brand = $this->brandNameForUser($user, $platformHint);
         return "Merhaba {$user->full_name},\n\n" .
             "{$brand} hesabınız için şifre sıfırlama talebi aldık.\n\n" .
             "Aşağıdaki bağlantı " . self::TOKEN_EXPIRY_MINUTES . " dakika boyunca geçerlidir:\n" .
@@ -434,9 +439,12 @@ class PasswordResetService
         return $conn === 'mysql_talentqx' ? 'mysql' : 'mysql_talentqx';
     }
 
-    private function brandNameForUser(User $user): string
+    private function brandNameForUser(User $user, ?string $platformHint = null): string
     {
-        // Determine platform from user's company, or from current request brand key
+        // Frontend hint takes priority (user's current domain), then company, then header
+        if ($platformHint) {
+            return BrandConfig::brandName($platformHint);
+        }
         $platform = $user->company?->platform;
         if (!$platform) {
             $brandKey = request()->header('X-Brand-Key');

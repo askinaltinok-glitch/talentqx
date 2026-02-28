@@ -72,11 +72,13 @@ class PasswordController extends Controller
             ], 403);
         }
 
-        // Send reset link
+        // Send reset link (pass platform hint from frontend)
+        $platform = $request->input('platform'); // 'octopus' or 'talentqx'
         $success = $this->passwordResetService->sendResetLink(
             $user,
             $request->ip(),
-            $request->userAgent()
+            $request->userAgent(),
+            $platform
         );
 
         if (!$success) {

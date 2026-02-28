@@ -726,6 +726,8 @@ Route::prefix('v1')->group(function () {
                 Route::put('/{id}', [JobController::class, 'update']);
                 Route::delete('/{id}', [JobController::class, 'destroy']);
                 Route::post('/{id}/publish', [JobController::class, 'publish']);
+                Route::post('/{id}/close', [JobController::class, 'close']);
+                Route::post('/{id}/reactivate', [JobController::class, 'reactivate']);
                 Route::post('/{id}/qr-code', [JobController::class, 'generateQRCode']);
                 Route::get('/{id}/qr-info', [JobController::class, 'qrInfo']);
                 Route::get('/{id}/questions', [JobController::class, 'questions']);
@@ -868,6 +870,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [InterviewController::class, 'index']);
         Route::post('/', [InterviewController::class, 'store']);
         Route::get('/{id}', [InterviewController::class, 'show']);
+        Route::delete('/{id}', [InterviewController::class, 'destroy']);
         Route::get('/{id}/report.pdf', [InterviewController::class, 'reportPdf']);
         Route::post('/{id}/analyze', [InterviewController::class, 'analyze']);
     });
@@ -1661,6 +1664,13 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:30,1');
         });
 
+        // ---- Superadmin OrgHealth ----
+        Route::prefix('superadmin/orghealth')->group(function () {
+            Route::get('/tenants', [\App\Http\Controllers\V1\Superadmin\OrgHealthEmployeeImportController::class, 'tenants']);
+            Route::get('/employees/template.csv', [\App\Http\Controllers\V1\Superadmin\OrgHealthEmployeeImportController::class, 'template']);
+            Route::post('/employees/import', [\App\Http\Controllers\V1\Superadmin\OrgHealthEmployeeImportController::class, 'import']);
+        });
+
     }); // End of platform.admin middleware group
 
         }); // End of force.password.change middleware group
@@ -1683,9 +1693,39 @@ Route::prefix('v1')->group(function () {
             Route::get('/employees/{employeeId}/workstyle/profile/latest', [\App\Http\Controllers\V1\OrgHealth\WorkstyleProfileController::class, 'latest']);
             Route::get('/employees/{employeeId}/workstyle/profile/history', [\App\Http\Controllers\V1\OrgHealth\WorkstyleProfileController::class, 'history']);
 
-            // HR Aggregate
+            // HR Aggregate — WorkStyle
             Route::get('/hr/workstyle/aggregate', [\App\Http\Controllers\V1\OrgHealth\WorkstyleAggregateController::class, 'index']);
+
+            // ---- Culture v1 ----
+            Route::get('/questionnaires/culture/active', [\App\Http\Controllers\V1\OrgHealth\CultureQuestionnaireController::class, 'active']);
+            Route::post('/employees/{employeeId}/assessments/culture/start', [\App\Http\Controllers\V1\OrgHealth\CultureAssessmentController::class, 'start']);
+            Route::post('/assessments/{assessmentId}/culture-answers', [\App\Http\Controllers\V1\OrgHealth\CultureAssessmentController::class, 'saveAnswers']);
+            Route::post('/assessments/{assessmentId}/culture-complete', [\App\Http\Controllers\V1\OrgHealth\CultureAssessmentController::class, 'complete']);
+
+            // HR Aggregate — Culture
+            Route::get('/hr/culture/aggregate', [\App\Http\Controllers\V1\OrgHealth\CultureAggregateController::class, 'index']);
+
+            // HR Culture Invites
+            Route::post('/hr/culture/invites/send', [\App\Http\Controllers\V1\OrgHealth\HrCultureInviteController::class, 'send']);
+            Route::get('/hr/culture/invites/status', [\App\Http\Controllers\V1\OrgHealth\HrCultureInviteController::class, 'status']);
+
+            // ---- Pulse v1 ----
+            Route::get('/questionnaires/pulse/active', [\App\Http\Controllers\V1\OrgHealth\PulseQuestionnaireController::class, 'active']);
+            Route::post('/employees/{employeeId}/assessments/pulse/start', [\App\Http\Controllers\V1\OrgHealth\PulseAssessmentController::class, 'start']);
+            Route::post('/assessments/{assessmentId}/pulse-answers', [\App\Http\Controllers\V1\OrgHealth\PulseAssessmentController::class, 'saveAnswers']);
+            Route::post('/assessments/{assessmentId}/pulse-complete', [\App\Http\Controllers\V1\OrgHealth\PulseAssessmentController::class, 'complete']);
+
+            // Employee pulse profile (own data, no risk)
+            Route::get('/employees/{employeeId}/pulse/profile/latest', [\App\Http\Controllers\V1\OrgHealth\PulseProfileController::class, 'latest']);
+            Route::get('/employees/{employeeId}/pulse/profile/history', [\App\Http\Controllers\V1\OrgHealth\PulseProfileController::class, 'history']);
+
+            // HR Pulse Risk Dashboard
+            Route::get('/hr/pulse/risk', [\App\Http\Controllers\V1\OrgHealth\HrPulseRiskController::class, 'index']);
+            Route::get('/hr/pulse/risk/{employeeId}', [\App\Http\Controllers\V1\OrgHealth\HrPulseRiskController::class, 'show']);
         });
+
+    // Culture invite validate — public (no auth), employee clicks magic link
+    Route::post('orghealth/culture/invites/validate', [\App\Http\Controllers\V1\OrgHealth\CultureInviteController::class, 'validate']);
 
 }); // End of v1 prefix group
 
